@@ -1,0 +1,85 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+/* Global settings */
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #121212;
+    color: #e0e0e0;
+    margin: 20px;
+    line-height: 1.6;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6 {
+    color: #f0f0f0;
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+/* Paragraphs */
+p {
+    margin: 1em 0;
+}
+
+/* Links */
+a {
+    color: #29b4fd;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Code blocks */
+pre, code {
+    background-color: #1e1e1e;
+    color: #dcdcdc;
+    padding: 0.2em 0.4em;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* Lists */
+ul, ol {
+    margin: 1em 0;
+    padding-left: 1.5em;
+}
+
+li {
+    margin: 0.5em 0;
+}
+
+/* Blockquotes */
+blockquote {
+    border-left: 4px solid #bb86fc;
+    margin: 1em 0;
+    padding-left: 1em;
+    color: #a0a0a0;
+    font-style: italic;
+}
+
+/* Tables */
+table {
+    border-collapse: collapse;
+    margin: 1em 0;
+}
+
+th, td {
+    border: 1px solid #333;
+    padding: 0.5em;
+}
+
+th {
+    background-color: #333;
+}
+
+tr:nth-child(even) {
+    background-color: #1e1e1e;
+}
+
+/* Images */
+img {
+    max-width: 100%;
+    height: auto;
+}
