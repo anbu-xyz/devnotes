@@ -16,13 +16,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Base64;
 import java.io.File;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
@@ -34,32 +36,33 @@ public class MarkdownController {
     @Value("${markdown.directory}")
     private String markdownDirectory;
 
-    @GetMapping("/convert/{filename}")
-    public Object convertMarkdownToHtml(@PathVariable String filename) {
-        log.info("Fetching file: {}", filename);
-        var requestedResource = Paths.get(markdownDirectory, filename).toFile();
-        if (!requestedResource.exists()) {
-            // try to decode file name
-            byte[] decodedBytes = Base64.getDecoder().decode(filename);
-            var newFilename = new String(decodedBytes);
-            if (Paths.get(markdownDirectory, newFilename).toFile().exists()) {
-                filename = newFilename;
-            }
+    @GetMapping("/markdown")
+    public Object markdown(@RequestParam(name = "filename", required = false) String filename,
+                   @RequestParam(name = "image", required = false) String imageName) throws IOException {
+        Path markdownRoot = Paths.get(markdownDirectory);
+        if (filename == null) {
+            filename = "index.md";
+        } else if (filename.startsWith("/")) {
+            filename = filename.substring(1);
         }
-        if ("md".equalsIgnoreCase(getFileExtension(filename))) {
-            log.info("Rendering markdown: {}", filename);
-            return renderMarkdown(filename);
+        log.info("Fetching file: {}", filename);
+        var requestedResource = markdownRoot.resolve(filename);
+        if (requestedResource.toFile().exists()) {
+            if ("md".equalsIgnoreCase(getFileExtension(filename))) {
+                log.info("Rendering markdown: {}", requestedResource);
+                return renderMarkdown(requestedResource);
+            } else {
+                return Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8);
+            }
         } else {
-            log.info("Rending image: {}", filename);
-            return getImage(filename);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
     }
 
-    public String renderMarkdown(String fileName) {
-        String markdownFilePath = Paths.get(markdownDirectory, fileName).toString();
+    public String renderMarkdown(Path markdownFile) {
         try {
-            String markdownContent = new String(Files.readAllBytes(Paths.get(markdownFilePath)));
-            return wrapHtmlWithCss(convertMarkdown(markdownContent), fileName);
+            String markdownContent = new String(Files.readAllBytes(markdownFile));
+            return wrapHtmlWithCss(convertMarkdown(markdownContent), markdownFile);
         } catch (IOException e) {
             return "Error reading the markdown file: " + e.getMessage();
         }
@@ -71,7 +74,7 @@ public class MarkdownController {
                 .extensions(extensions)
                 .build();
         Node document = parser.parse(markdown);
-        // Process the document and encode links
+        // Process the document and encode linksk
         processDocument(document);
         HtmlRenderer renderer = HtmlRenderer.builder()
                 .extensions(extensions)
@@ -82,22 +85,24 @@ public class MarkdownController {
 
     private void processDocument(Node node) {
         // Traverse the node tree
+        log.info("Rendering type: {}", node);
         if (node instanceof Link link) {
             String destination = link.getDestination();
             if (destination.startsWith("http:") || destination.startsWith("https:")) {
                 log.trace("Link destination {} starts with http", destination);
             } else {
-                String encodedUrl = Base64.getEncoder().encodeToString(link.getDestination().getBytes());
-                link.setDestination(encodedUrl);
+                link.setDestination("?filename=" + URLEncoder.encode(link.getDestination(), StandardCharsets.UTF_8));
             }
         } else if (node instanceof Image image) {
-            String encodedUrl = Base64.getEncoder().encodeToString(image.getDestination().getBytes());
-            image.setDestination(encodedUrl);
+            image.setDestination("/image?filename=" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
         }
         // Recursively process child nodes
+        // process siblings first
         if (node.getNext() != null) {
             processDocument(node.getNext());
-        } else if (node.getFirstChild() != null) {
+        }
+        // Process any children now
+        if (node.getFirstChild() != null) {
             processDocument(node.getFirstChild());
         }
     }
@@ -105,16 +110,18 @@ public class MarkdownController {
     public static class ImageAttributeProvider implements AttributeProvider {
         @Override
         public void setAttributes(Node node, String tagName, Map<String, String> attributes) {
-            log.info("Rendering type: {}", node);
+//            log.info("Rendering type: {}", node);
             if (node instanceof Image) {
                 attributes.put("class", "border");
             }
         }
     }
 
-    private ResponseEntity<Resource> getImage(String filename) {
+    @GetMapping("/image")
+    public ResponseEntity<Resource> image(@RequestParam(name = "path", required = false) String path,
+                           @RequestParam(name = "filename") String filename) throws IOException {
         try {
-            File imageFile = Paths.get(markdownDirectory, filename).toFile();
+            File imageFile = Paths.get(markdownDirectory, path == null? "": path, filename).toFile();
             log.info("Fetching image {}", imageFile);
             if (!imageFile.exists() || !imageFile.isFile()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
@@ -139,9 +146,10 @@ public class MarkdownController {
             return filename.substring(dotIndex + 1);
         }
         return "";
+
     }
 
-    private String wrapHtmlWithCss(String htmlContent, String filename) {
+    private String wrapHtmlWithCss(String htmlContent, Path filename) {
         return "<!DOCTYPE html>" +
                 "<html>" +
                 "<head>" +
