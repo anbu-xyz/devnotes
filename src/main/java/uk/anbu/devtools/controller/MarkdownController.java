@@ -41,15 +41,15 @@ public class MarkdownController {
         } else if (filename.startsWith("/")) {
             filename = filename.substring(1);
         }
-        var result = renderMarkdown(filename);
-        if (result.isEmpty()) {
+        var content = fetchMarkdownContent(filename);
+        if (content.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } else {
-            return result.get();
+            return content.get();
         }
     }
 
-    public Optional<String> renderMarkdown(String filename) throws IOException {
+    public Optional<String> fetchMarkdownContent(String filename) throws IOException {
         Path markdownRoot = Paths.get(markdownDirectory);
         log.info("Fetching file: {}", filename);
         var markdownFile = markdownRoot.resolve(filename);
@@ -59,6 +59,7 @@ public class MarkdownController {
                 String markdownContent = new String(Files.readAllBytes(markdownFile));
                 return Optional.of(wrapHtmlWithCss(markdownRenderer.convertMarkdown(markdownContent), markdownFile));
             } else {
+                // assume text file
                 return Optional.of(Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8));
             }
         } else {
