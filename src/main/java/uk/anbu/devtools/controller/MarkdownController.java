@@ -1,5 +1,9 @@
 package uk.anbu.devtools.controller;
 
+import gg.jte.ContentType;
+import gg.jte.TemplateEngine;
+import gg.jte.TemplateOutput;
+import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,6 +11,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,6 +26,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -35,6 +41,8 @@ public class MarkdownController {
 
     private final ImageRenderer imageRenderer;
 
+    private final TemplateEngine templateEngine;
+
     @GetMapping("/")
     public ResponseEntity<Object> index() {
         return ResponseEntity.status(HttpStatus.FOUND)
@@ -43,7 +51,7 @@ public class MarkdownController {
     }
 
     @GetMapping("/markdown")
-    public Object markdown(@RequestParam(name = "filename", required = false) String filename) throws IOException {
+    public Object markdown(@RequestParam(name = "filename", required = false) String filename, Model model) throws IOException {
         if (filename == null) {
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/markdown?filename=index.md")
@@ -53,7 +61,7 @@ public class MarkdownController {
         if (filename.startsWith("/")) {
             filename = filename.substring(1);
         }
-        var content = fetchMarkdownContent(filename);
+        var content = fetchMarkdownContent(filename, model);
         if (content.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } else {
@@ -61,7 +69,7 @@ public class MarkdownController {
         }
     }
 
-    public Optional<String> fetchMarkdownContent(String filename) throws IOException {
+    public Optional<String> fetchMarkdownContent(String filename, Model model) throws IOException {
         Path markdownRoot = Paths.get(markdownDirectory);
         log.info("Fetching file: {}", filename);
         var markdownFile = markdownRoot.resolve(filename);
@@ -69,7 +77,15 @@ public class MarkdownController {
             if ("md".equalsIgnoreCase(FileUtil.getFileExtension(filename))) {
                 log.info("Rendering markdown: {}", markdownFile);
                 String markdownContent = new String(Files.readAllBytes(markdownFile));
-                return Optional.of(wrapHtmlWithCss(markdownRenderer.convertMarkdown(markdownContent), markdownFile));
+                String originalMarkdown = getOriginalMarkdown(markdownFile);
+                var htmlContent = markdownRenderer.convertMarkdown(markdownContent);
+
+                TemplateOutput output = new StringOutput();
+                var page = Map.of("htmlContent", htmlContent,"filename", markdownFile.getFileName().toString(), "originalMarkdown", escapeHtml(originalMarkdown));
+                templateEngine.render("markdown-wrapper.jte", page, output);
+                System.out.println(output);
+
+                return Optional.of(output.toString());
             } else {
                 // assume text file
                 return Optional.of(Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8));
@@ -101,30 +117,6 @@ public class MarkdownController {
         }
     }
 
-    private String wrapHtmlWithCss(String htmlContent, Path filename) {
-        return "<!DOCTYPE html>" +
-                "<html>" +
-                "<head>" +
-                "<link rel=\"stylesheet\" type=\"text/css\" href=\"/css/style.css\">" +
-                "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css\">" +
-                "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css\">" +
-                "<title>" + filename + "</title>" +
-                "</head>" +
-                "<body class=\"p-8\">" +
-                "<button id=\"editButton\" onclick=\"toggleEdit()\">Edit</button>" +
-                "<div id=\"viewContent\">" + htmlContent + "</div>" +
-                "<div id=\"editContent\" style=\"display:none;\">" +
-                "<textarea id=\"editor\">" + escapeHtml(getOriginalMarkdown(filename)) + "</textarea>" +
-                "</div>" +
-                "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js\"></script>" +
-                "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js\"></script>" +
-                "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-javascript.min.js\"></script>" +
-                "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-java.min.js\"></script>" +
-                "<script src=\"https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js\"></script>" +
-                "<script src=\"/js/edit.js\"></script>" +
-                "</body>" +
-                "</html>";
-    }
 
     private String getOriginalMarkdown(Path filename) {
         try {
