@@ -51,7 +51,7 @@ public class MarkdownController {
     }
 
     @GetMapping("/markdown")
-    public Object markdown(@RequestParam(name = "filename", required = false) String filename, Model model) throws IOException {
+    public Object markdown(@RequestParam(name = "filename", required = false) String filename) throws IOException {
         if (filename == null) {
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/markdown?filename=index.md")
@@ -61,15 +61,35 @@ public class MarkdownController {
         if (filename.startsWith("/")) {
             filename = filename.substring(1);
         }
-        var content = fetchMarkdownContent(filename, model);
+        var content = fetchMarkdownContent(filename);
         if (content.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            var model = Map.of("filename", filename);
+            TemplateOutput output = new StringOutput();
+            templateEngine.render("file-not-found.jte", model, output);
+            return output.toString();
         } else {
             return content.get();
         }
     }
 
-    public Optional<String> fetchMarkdownContent(String filename, Model model) throws IOException {
+    @PostMapping("/createMarkdown")
+    public ResponseEntity<String> createMarkdown(@RequestParam String filename) {
+        try {
+            Path filePath = Paths.get(markdownDirectory, filename);
+            if (!Files.exists(filePath)) {
+                Files.createDirectories(filePath.getParent());
+                Files.createFile(filePath);
+            }
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "/markdown?filename=" + filename)
+                    .build();
+        } catch (IOException e) {
+            log.error("Error creating markdown file", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating file");
+        }
+    }
+
+    public Optional<String> fetchMarkdownContent(String filename) throws IOException {
         Path markdownRoot = Paths.get(markdownDirectory);
         log.info("Fetching file: {}", filename);
         var markdownFile = markdownRoot.resolve(filename);
@@ -83,7 +103,6 @@ public class MarkdownController {
                 TemplateOutput output = new StringOutput();
                 var page = Map.of("htmlContent", htmlContent,"filename", markdownFile.getFileName().toString(), "originalMarkdown", escapeHtml(originalMarkdown));
                 templateEngine.render("markdown-wrapper.jte", page, output);
-                System.out.println(output);
 
                 return Optional.of(output.toString());
             } else {
