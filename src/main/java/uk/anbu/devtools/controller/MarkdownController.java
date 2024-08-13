@@ -1,6 +1,5 @@
 package uk.anbu.devtools.controller;
 
-import gg.jte.ContentType;
 import gg.jte.TemplateEngine;
 import gg.jte.TemplateOutput;
 import gg.jte.output.StringOutput;
@@ -11,7 +10,6 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devtools.module.ImageRenderer;
 import uk.anbu.devtools.module.MarkdownRenderer;
+import uk.anbu.devtools.service.ConfigService;
 import uk.anbu.devtools.util.FileUtil;
 
 import java.io.IOException;
@@ -34,14 +33,13 @@ import java.util.Optional;
 @RestController
 public class MarkdownController {
 
-    @Value("${markdown.directory}")
-    private String markdownDirectory;
-
     private final MarkdownRenderer markdownRenderer;
 
     private final ImageRenderer imageRenderer;
 
     private final TemplateEngine templateEngine;
+
+    private final ConfigService configService;
 
     @GetMapping("/")
     public ResponseEntity<Object> index() {
@@ -75,7 +73,8 @@ public class MarkdownController {
     @PostMapping("/createMarkdown")
     public ResponseEntity<String> createMarkdown(@RequestParam String filename) {
         try {
-            Path filePath = Paths.get(markdownDirectory, filename);
+            Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+            Path filePath = markdownRoot.resolve(filename);
             if (!Files.exists(filePath)) {
                 Files.createDirectories(filePath.getParent());
                 Files.createFile(filePath);
@@ -90,7 +89,7 @@ public class MarkdownController {
     }
 
     public Optional<String> fetchMarkdownContent(String filename) throws IOException {
-        Path markdownRoot = Paths.get(markdownDirectory);
+        Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
         log.info("Fetching file: {}", filename);
         var markdownFile = markdownRoot.resolve(filename);
         if (markdownFile.toFile().exists()) {
@@ -157,7 +156,7 @@ public class MarkdownController {
     @PostMapping("/saveMarkdown")
     public ResponseEntity<String> saveMarkdown(@RequestParam String filename, @RequestBody String content) {
         try {
-            Path filePath = Paths.get(markdownDirectory, filename);
+            Path filePath = Paths.get(configService.getMarkdownDirectory(), filename);
             Files.write(filePath, content.getBytes());
             return ResponseEntity.ok("Saved successfully");
         } catch (IOException e) {
