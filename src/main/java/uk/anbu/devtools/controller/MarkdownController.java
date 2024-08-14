@@ -5,7 +5,6 @@ import gg.jte.TemplateOutput;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -25,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Comparator;
 import java.util.Map;
 import java.util.Optional;
 
@@ -56,18 +56,49 @@ public class MarkdownController {
                     .build();
         }
 
-        if (filename.startsWith("/")) {
+        if (filename.equals("/")) {
+            filename = ".";
+        } else if (filename.startsWith("/")) {
             filename = filename.substring(1);
         }
-        var content = fetchMarkdownContent(filename);
-        if (content.isEmpty()) {
-            var model = Map.of("filename", filename);
-            TemplateOutput output = new StringOutput();
-            templateEngine.render("file-not-found.jte", model, output);
-            return output.toString();
+
+        Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+        Path filePath = markdownRoot.resolve(filename);
+
+        if (Files.isDirectory(filePath)) {
+            return renderDirectoryContents(filename, markdownRoot.resolve(filename));
         } else {
-            return content.get();
+            var content = fetchMarkdownContent(filename);
+            if (content.isEmpty()) {
+                var model = Map.of("filename", filename);
+                TemplateOutput output = new StringOutput();
+                templateEngine.render("file-not-found.jte", model, output);
+                return output.toString();
+            } else {
+                return content.get();
+            }
         }
+    }
+
+    private String renderDirectoryContents(String directoryName, Path filePath) throws IOException {
+        try (var filesList = Files.list(filePath)) {
+            var entries = filesList
+                    .map(path -> new FileEntry(path.getFileName().toString(), Files.isDirectory(path)))
+                    .sorted(Comparator.<FileEntry>comparingInt(e -> e.isDirectory() ? 0 : 1)
+                            .thenComparing(f -> f.filename))
+                    .toList();
+
+            var model = Map.of(
+                    "directoryName", directoryName,
+                    "entries", entries
+            );
+            TemplateOutput output = new StringOutput();
+            templateEngine.render("directory-listing.jte", model, output);
+            return output.toString();
+        }
+    }
+
+    public record FileEntry(String filename, boolean isDirectory) {
     }
 
     @PostMapping("/createMarkdown")
@@ -134,7 +165,6 @@ public class MarkdownController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
-
 
     private String getOriginalMarkdown(Path filename) {
         try {
