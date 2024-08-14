@@ -30,7 +30,7 @@ public class GitService {
         File gitDir = new File(configService.getDocsDirectory());
 
         if (!isGitRepository(gitDir)) {
-            log.warn("The markdown directory is not a Git repository. Skipping commit and push.");
+            log.warn("The docs directory is not a Git repository. Skipping commit and push.");
             return false;
         }
 
@@ -42,8 +42,12 @@ public class GitService {
                 return false;
             }
 
-            log.debug("Changes detected, committing to Git repository");
-            git.add().addFilepattern(".").call();
+            log.debug("Changes detected, adding all changes to Git repository");
+
+            // Add all changes, including new files, modifications, and deletions
+            git.add().setUpdate(true).addFilepattern(".").call();
+
+            // Commit the changes
             git.commit().setMessage("Auto-commit: " + java.time.LocalDateTime.now()).call();
 
             if (hasRemote(git)) {
