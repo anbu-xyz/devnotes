@@ -6,6 +6,8 @@ import org.eclipse.jgit.api.PushCommand;
 import org.eclipse.jgit.api.Status;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Config;
+import org.eclipse.jgit.lib.Repository;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,10 +28,17 @@ public class GitService {
 
     public boolean commitAndPushChanges() throws IOException, GitAPIException {
         File gitDir = new File(configService.getMarkdownDirectory());
+
+        if (!isGitRepository(gitDir)) {
+            log.warn("The markdown directory is not a Git repository. Skipping commit and push.");
+            return false;
+        }
+
         try (Git git = Git.open(gitDir)) {
             Status status = git.status().call();
 
             if (status.isClean()) {
+                log.info("No changes detected in Git repository");
                 return false;
             }
 
@@ -42,6 +51,20 @@ public class GitService {
             }
 
             return true;
+        }
+    }
+
+    private boolean isGitRepository(File directory) {
+        try {
+            Repository repository = new FileRepositoryBuilder()
+                    .setGitDir(new File(directory, ".git"))
+                    .readEnvironment()
+                    .findGitDir()
+                    .build();
+            return repository.getObjectDatabase().exists();
+        } catch (IOException e) {
+            log.error("Error checking if directory is a Git repository", e);
+            return false;
         }
     }
 
