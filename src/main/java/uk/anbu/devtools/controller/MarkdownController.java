@@ -39,13 +39,6 @@ public class MarkdownController {
 
     private final ConfigService configService;
 
-    @GetMapping("/")
-    public ResponseEntity<Object> index() {
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .header(HttpHeaders.LOCATION, "/markdown?filename=index.md")
-                .build();
-    }
-
     @GetMapping("/markdown")
     public ResponseEntity<Object> markdown(@RequestParam(name = "filename", required = false) String filename) throws IOException {
         if (filename == null) {

@@ -6,6 +6,7 @@ import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,6 +30,13 @@ public class DirectoryListingController {
     private final ConfigService configService;
 
     private final TemplateEngine templateEngine;
+
+    @GetMapping("/")
+    public ResponseEntity<Object> index() {
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, "/renderDirectoryContents?directoryName=.")
+                .build();
+    }
 
     @PostMapping("/createSubdirectory")
     public ResponseEntity<String> createSubdirectory(@RequestParam String path, @RequestParam String name) {
