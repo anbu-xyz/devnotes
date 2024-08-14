@@ -85,6 +85,15 @@ img {
 }
 
 /* Directory listing */
+.directory-list {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.directory-list li {
+    margin-bottom: 0.5rem;
+}
+
 .entry-container {
     position: relative;
     margin-bottom: 0.5rem;

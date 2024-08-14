@@ -12,9 +12,9 @@
 </head>
 <body class="p-8">
 <h1>Directory: ${directoryName}</h1>
-<ul class="list-none">
+<ul class="directory-list">
     @if(directoryName.length() > 1)
-        <li class="mb-2">
+        <li>
             <a href="/markdown?filename=${directoryName.substring(0, directoryName.lastIndexOf('/'))}" class="text-blue-500 hover:text-blue-700">
                 <i class="fas fa-level-up-alt mr-2"></i>..
             </a>
