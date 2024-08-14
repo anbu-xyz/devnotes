@@ -101,8 +101,8 @@ public class MarkdownController {
     public record FileEntry(String filename, boolean isDirectory) {
     }
 
-    @PostMapping("/createMarkdown")
-    public ResponseEntity<String> createMarkdown(@RequestParam String filename) {
+    @PostMapping("/createNewMarkdown")
+    public ResponseEntity<String> createNewMarkdown(@RequestParam String filename) {
         try {
             Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
             Path filePath = markdownRoot.resolve(filename);
@@ -192,6 +192,32 @@ public class MarkdownController {
         } catch (IOException e) {
             log.error("Error saving markdown file", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error saving file");
+        }
+    }
+
+    @PostMapping("/createSubdirectory")
+    public ResponseEntity<String> createSubdirectory(@RequestParam String path, @RequestParam String name) {
+        try {
+            Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+            Path newDirPath = markdownRoot.resolve(path).resolve(name);
+            Files.createDirectories(newDirPath);
+            return ResponseEntity.ok("Subdirectory created successfully");
+        } catch (IOException e) {
+            log.error("Error creating subdirectory", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating subdirectory");
+        }
+    }
+
+    @PostMapping("/createMarkdown")
+    public ResponseEntity<String> createMarkdown(@RequestParam String path, @RequestParam String name) {
+        try {
+            Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+            Path newFilePath = markdownRoot.resolve(path).resolve(name);
+            Files.createFile(newFilePath);
+            return ResponseEntity.ok("Markdown file created successfully");
+        } catch (IOException e) {
+            log.error("Error creating markdown file", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating markdown file");
         }
     }
 }

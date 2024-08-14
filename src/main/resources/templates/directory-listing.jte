@@ -23,13 +23,25 @@
             <a href="/markdown?filename=${directoryName}/${entry.filename()}" class="text-blue-500 hover:text-blue-700">
                 @if(entry.isDirectory())
                     <i class="fas fa-folder mr-2 text-yellow-500"></i>
-<%--                @else--%>
-<%--                    <i class="fas fa-file mr-2 text-gray-500"></i>--%>
                 @endif
                 ${entry.filename()}
             </a>
         </li>
     @endfor
 </ul>
+
+<div class="mt-8">
+    <button onclick="createSubdirectory()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4">
+        Create New Subdirectory
+    </button>
+    <button onclick="createMarkdown()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+        Create New Markdown
+    </button>
+</div>
+
+<script>
+    var currentDirectoryName = "${directoryName}";
+</script>
+<script src="/js/directory-listing.js"></script>
 </body>
 </html>

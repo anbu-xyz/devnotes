@@ -11,7 +11,7 @@
 <h1>File Not Found</h1>
 <p>The requested markdown file "${data.get("filename")}" was not found.</p>
 <p>Would you like to create it?</p>
-<form action="/createMarkdown" method="post">
+<form action="/createNewMarkdown" method="post">
     <input type="hidden" name="filename" value="${data.get("filename")}">
     <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
         Yes, create the file
