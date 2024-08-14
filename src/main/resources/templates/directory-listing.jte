@@ -1,5 +1,5 @@
 @param String directoryName
-@param java.util.List<uk.anbu.devtools.controller.MarkdownController.FileEntry> entries
+@param java.util.List<uk.anbu.devtools.controller.DirectoryListingController.FileEntry> entries
 
 <!DOCTYPE html>
 <html>
