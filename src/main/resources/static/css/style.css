@@ -134,6 +134,23 @@ img {
     font-weight: 900;
 }
 
+/* Make the cursor more visible */
+.CodeMirror-cursor {
+    border-left: 1px solid #e0e0e0 !important; /* Light grey color */
+}
+
+/* Improve visibility of selected text */
+.CodeMirror-selected {
+    background: #3a3a3a !important; /* Darker grey for selection */
+}
+.CodeMirror-selectedtext {
+    color: #ffffff !important; /* White text for better contrast */
+}
+/* Improve visibility of the active line */
+.CodeMirror-activeline-background {
+    background: #2a2a2a !important; /* Slightly lighter than the background */
+}
+
 .editor-toolbar button[title="Bold"]:before { content: "\f032"; }
 .editor-toolbar button[title="Italic"]:before { content: "\f033"; }
 .editor-toolbar button[title="Heading"]:before { content: "\f1dc"; }
