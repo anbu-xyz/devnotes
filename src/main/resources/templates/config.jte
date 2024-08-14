@@ -1,4 +1,5 @@
 @param String markdownDirectory
+@param java.util.Map<String, uk.anbu.devtools.service.ConfigService.DataSourceConfig> dataSources
 
 <!DOCTYPE html>
 <html>
@@ -14,8 +15,27 @@
         <label for="markdownDirectory">Markdown Directory:</label>
         <input type="text" id="markdownDirectory" name="markdownDirectory" value="${markdownDirectory}" class="config-input">
     </div>
+
+    <h2>Database Configurations</h2>
+    @for(var entry : dataSources.entrySet())
+        <div class="form-group">
+            <h3>${entry.getKey()}</h3>
+            <label for="${entry.getKey()}-url">URL:</label>
+            <input type="text" id="${entry.getKey()}-url" name="datasources[${entry.getKey()}].url" value="${entry.getValue().url()}" class="config-input">
+
+            <label for="${entry.getKey()}-username">Username:</label>
+            <input type="text" id="${entry.getKey()}-username" name="datasources[${entry.getKey()}].username" value="${entry.getValue().username()}" class="config-input">
+
+            <label for="${entry.getKey()}-password">Password:</label>
+            <input type="password" id="${entry.getKey()}-password" name="datasources[${entry.getKey()}].password" value="********" class="config-input">
+
+            <label for="${entry.getKey()}-driverClassName">Driver Class Name:</label>
+            <input type="text" id="${entry.getKey()}-driverClassName" name="datasources[${entry.getKey()}].driverClassName" value="${entry.getValue().driverClassName()}" class="config-input">
+        </div>
+    @endfor
+
     <button type="submit" class="create-button">
-        <i class="fas fa-save"></i>Save Configuration
+        <i class="fas fa-save"></i>Save And Reload
     </button>
 </form>
 <a href="/" class="create-button mt-4">

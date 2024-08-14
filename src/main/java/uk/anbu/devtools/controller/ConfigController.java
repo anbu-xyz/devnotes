@@ -4,6 +4,9 @@ import gg.jte.TemplateEngine;
 import gg.jte.TemplateOutput;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.anbu.devtools.service.ConfigService;
 
@@ -17,18 +20,26 @@ public class ConfigController {
     private final ConfigService configService;
 
     @GetMapping("/config")
-    public String configPage() {
+    public ResponseEntity<String> configPage() {
         Map<String, Object> model = Map.of(
-                "markdownDirectory", configService.getMarkdownDirectory()
+                "markdownDirectory", configService.getMarkdownDirectory(),
+                "dataSources", configService.getDataSources()
         );
         TemplateOutput output = new StringOutput();
         templateEngine.render("config.jte", model, output);
-        return output.toString();
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(output.toString());
     }
 
     @PostMapping("/config")
-    public String updateConfig(@RequestParam String markdownDirectory) {
+    public ResponseEntity<String> updateConfig(@RequestParam String markdownDirectory,
+                                               @RequestParam Map<String, String> datasources) {
         configService.setMarkdownDirectory(markdownDirectory);
-        return "redirect:/config";
+        configService.updateDataSources(datasources);
+        configService.saveAndReloadConfig();
+
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .header(HttpHeaders.LOCATION, "/config")
+                .build();
     }
 }
