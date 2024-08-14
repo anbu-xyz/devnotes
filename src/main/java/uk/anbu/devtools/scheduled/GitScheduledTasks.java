@@ -23,10 +23,14 @@ public class GitScheduledTasks {
     @Scheduled(fixedRate = 300000)
     public void scheduleGitCommit() {
         try {
-            gitService.commitChanges();
-            log.info("Git commit completed successfully");
+            boolean committed = gitService.commitAndPushChanges();
+            if (committed) {
+                log.info("Committed changes");
+            } else {
+                log.info("No changes to commit");
+            }
         } catch (IOException | GitAPIException e) {
-            log.error("Error while commiting changes", e);
+            log.error("Error during Git operation", e);
         }
     }
 }
