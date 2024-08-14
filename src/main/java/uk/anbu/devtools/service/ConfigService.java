@@ -1,6 +1,7 @@
 package uk.anbu.devtools.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import org.springframework.stereotype.Service;
@@ -28,9 +29,9 @@ public class ConfigService {
     }
 
     private void loadDataSourceConfigs() {
-        File dataSourceFile = new File(markdownDirectory, "config/datasource.json");
+        File dataSourceFile = new File(markdownDirectory, "config/datasource.yaml");
         if (dataSourceFile.exists()) {
-            ObjectMapper mapper = new ObjectMapper();
+            ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
             try {
                 Map<String, DataSourceConfig> configs = mapper.readValue(dataSourceFile,
                         mapper.getTypeFactory().constructMapType(Map.class, String.class, DataSourceConfig.class));
