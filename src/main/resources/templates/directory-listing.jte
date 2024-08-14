@@ -49,6 +49,15 @@
     </button>
 </div>
 
+@if(directoryName.equals("."))
+    <a href="/database" class="create-button">
+        <i class="fas fa-database"></i>Database Metadata
+    </a>
+    <a href="/config" class="create-button">
+        <i class="fas fa-cog"></i>Config Editor
+    </a>
+@endif
+
 <script>
     var currentDirectoryName = "${directoryName}";
 </script>
