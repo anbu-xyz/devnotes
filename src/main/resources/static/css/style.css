@@ -83,3 +83,36 @@ img {
     max-width: 100%;
     height: auto;
 }
+
+/* Directory listing */
+.entry-container {
+    position: relative;
+    margin-bottom: 0.5rem;
+}
+
+.entry-link {
+    display: inline-block;
+}
+
+.entry-actions {
+    display: none;
+    position: absolute;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    padding: 5px;
+    z-index: 1000;
+}
+
+.entry-actions button {
+    margin-left: 0.5rem;
+    padding: 0.25rem 0.5rem;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.entry-actions button:hover {
+    background-color: #e0e0e0;
+}

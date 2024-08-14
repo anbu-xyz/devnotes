@@ -1,13 +1,20 @@
 let hoverTimer;
 let currentVisibleActions = null;
 
-function showActions(entry) {
+function showActions(entry, event) {
     if (currentVisibleActions) {
         currentVisibleActions.style.display = 'none';
     }
     const actions = document.getElementById(`actions-${entry}`);
     actions.style.display = 'block';
+    positionActions(actions, event);
     currentVisibleActions = actions;
+}
+
+function positionActions(actions, event) {
+    const rect = event.target.getBoundingClientRect();
+    actions.style.left = `${event.clientX - rect.left + 10}px`;
+    actions.style.top = `${event.clientY - rect.top}px`;
 }
 
 function hideActions() {
@@ -21,7 +28,7 @@ document.querySelectorAll('.entry-link').forEach(link => {
     link.addEventListener('mouseenter', (e) => {
         clearTimeout(hoverTimer);
         const entry = e.target.dataset.entry;
-        hoverTimer = setTimeout(() => showActions(entry), 2000);
+        hoverTimer = setTimeout(() => showActions(entry, e), 2000);
     });
 
     link.addEventListener('mouseleave', () => {
