@@ -1,22 +1,50 @@
 let hoverTimer;
+let currentVisibleActions = null;
+
+function showActions(entry) {
+    if (currentVisibleActions) {
+        currentVisibleActions.style.display = 'none';
+    }
+    const actions = document.getElementById(`actions-${entry}`);
+    actions.style.display = 'block';
+    currentVisibleActions = actions;
+}
+
+function hideActions() {
+    if (currentVisibleActions) {
+        currentVisibleActions.style.display = 'none';
+        currentVisibleActions = null;
+    }
+}
 
 document.querySelectorAll('.entry-link').forEach(link => {
     link.addEventListener('mouseenter', (e) => {
+        clearTimeout(hoverTimer);
         const entry = e.target.dataset.entry;
-        hoverTimer = setTimeout(() => {
-            document.getElementById(`actions-${entry}`).style.display = 'block';
-        }, 5000);
+        hoverTimer = setTimeout(() => showActions(entry), 2000);
     });
 
     link.addEventListener('mouseleave', () => {
         clearTimeout(hoverTimer);
-        document.querySelectorAll('.entry-actions').forEach(actions => {
-            actions.style.display = 'none';
-        });
+    });
+});
+
+// Add event listener to the document to hide actions when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.entry-link') && !e.target.closest('.entry-actions')) {
+        hideActions();
+    }
+});
+
+// Prevent immediate hiding when interacting with action buttons
+document.querySelectorAll('.entry-actions').forEach(actionDiv => {
+    actionDiv.addEventListener('click', (e) => {
+        e.stopPropagation();
     });
 });
 
 function createSubdirectory() {
+    hideActions();
     const subdirName = prompt("Enter subdirectory name:");
     if (subdirName) {
         fetch('/createSubdirectory', {
@@ -36,6 +64,7 @@ function createSubdirectory() {
 }
 
 function createMarkdown() {
+    hideActions();
     const fileName = prompt("Enter markdown file name (without .md extension):");
     if (fileName) {
         fetch('/createMarkdown', {
@@ -55,6 +84,7 @@ function createMarkdown() {
 }
 
 function renameEntry(oldName) {
+    hideActions();
     const newName = prompt(`Enter new name for ${oldName}:`);
     if (newName) {
         fetch('/renameEntry', {
@@ -74,6 +104,7 @@ function renameEntry(oldName) {
 }
 
 function deleteEntry(name) {
+    hideActions();
     if (confirm(`Are you sure you want to delete ${name}?`)) {
         fetch('/deleteEntry', {
             method: 'POST',
