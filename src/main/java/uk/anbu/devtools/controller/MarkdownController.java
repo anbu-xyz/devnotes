@@ -9,6 +9,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,10 +23,10 @@ import uk.anbu.devtools.util.FileUtil;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -61,42 +62,66 @@ public class MarkdownController {
             filename = filename.substring(1);
         }
 
-        Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
-        Path filePath = markdownRoot.resolve(filename);
+        Path markdownRoot = Paths.get(configService.getDocsDirectory());
+        Path filePath;
+        try {
+            filePath = markdownRoot.resolve(filename);
+        } catch (InvalidPathException e) {
+            log.error("Invalid path: {}", filename);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Invalid path " + filename);
+        }
 
+        String fileExtension = FileUtil.getFileExtension(filename).toLowerCase();
         if (Files.isDirectory(filePath)) {
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/renderDirectoryContents?directoryName=" + filename)
                     .build();
+        } else if (!filePath.toFile().exists() && fileExtension.equals("md")) {
+            return handleMissingMarkdownFile(filename);
         } else {
-            var content = fetchMarkdownContent(filename);
-            if (content.isEmpty()) {
-                var model = Map.of("filename", filename);
-                TemplateOutput output = new StringOutput();
-                templateEngine.render("file-not-found.jte", model, output);
-                return ResponseEntity.ok()
-                        .contentType(org.springframework.http.MediaType.TEXT_HTML)
-                        .body(output.toString());
-            } else {
-                String fileExtension = FileUtil.getFileExtension(filename).toLowerCase();
-                if ("md".equals(fileExtension)) {
-                    return ResponseEntity.ok()
-                            .contentType(org.springframework.http.MediaType.TEXT_HTML)
-                            .body(content.get().content());
-                } else {
-                    // For other text files, set content type to plain text
-                    return ResponseEntity.ok()
-                            .contentType(org.springframework.http.MediaType.TEXT_PLAIN)
-                            .body(content.get().content());
-                }
-            }
+            return readFileContent(filename, fileExtension, markdownRoot);
         }
+    }
+
+    private ResponseEntity<Object> handleMissingMarkdownFile(String filename) {
+        var model = Map.of("filename", filename);
+        TemplateOutput output = new StringOutput();
+        templateEngine.render("file-not-found.jte", model, output);
+        return ResponseEntity.ok()
+                .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                .body(output.toString());
+    }
+
+    private ResponseEntity<Object> readFileContent(String filename, String fileExtension, Path markdownRoot) throws IOException {
+        if ("md".equals(fileExtension)) {
+            var content = fetchMarkdownContent(filename);
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                    .body(content.content());
+        } else if (isImage(fileExtension)) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "/image?filename=" + filename)
+                    .build();
+        } else {
+            // For other text files, set content type to plain text
+            String content = Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8);
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.TEXT_PLAIN)
+                    .body(content);
+        }
+    }
+
+    private static boolean isImage(String fileExtension) {
+        return "png".equals(fileExtension) || "jpg".equals(fileExtension) || "jpeg".equals(fileExtension)
+                || "gif".equals(fileExtension) || "svg".equals(fileExtension) || "bmp".equals(fileExtension)
+                || "webp".equals(fileExtension) || "tiff".equals(fileExtension) || "tif".equals(fileExtension)
+                || "ico".equals(fileExtension);
     }
 
     @PostMapping("/createNewMarkdown")
     public ResponseEntity<String> createNewMarkdown(@RequestParam String filename) {
         try {
-            Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
             Path filePath = markdownRoot.resolve(filename);
             if (!Files.exists(filePath)) {
                 Files.createDirectories(filePath.getParent());
@@ -111,32 +136,26 @@ public class MarkdownController {
         }
     }
 
-    public record ContentWithType(String content, String contentType) {}
+    public record ContentWithType(String content, String contentType) {
+    }
 
-    public Optional<ContentWithType> fetchMarkdownContent(String filename) throws IOException {
-        Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+    public ContentWithType fetchMarkdownContent(String filename) throws IOException {
+        Assert.isTrue(filename.endsWith(".md"), "filename must end with .md");
+        Path markdownRoot = Paths.get(configService.getDocsDirectory());
         log.info("Fetching file: {}", filename);
         var markdownFile = markdownRoot.resolve(filename);
-        if (markdownFile.toFile().exists()) {
-            if ("md".equalsIgnoreCase(FileUtil.getFileExtension(filename))) {
-                log.info("Rendering markdown: {}", markdownFile);
-                String markdownContent = new String(Files.readAllBytes(markdownFile));
-                String originalMarkdown = getOriginalMarkdown(markdownFile);
-                var htmlContent = markdownRenderer.convertMarkdown(markdownContent);
+        Assert.isTrue(markdownFile.toFile().exists(), "File does not exist " + filename);
 
-                TemplateOutput output = new StringOutput();
-                var page = Map.of("htmlContent", htmlContent, "filename", markdownFile.getFileName().toString(), "originalMarkdown", escapeHtml(originalMarkdown));
-                templateEngine.render("markdown-wrapper.jte", page, output);
+        log.info("Rendering markdown: {}", markdownFile);
+        String markdownContent = new String(Files.readAllBytes(markdownFile));
+        String originalMarkdown = getOriginalMarkdown(markdownFile);
+        var htmlContent = markdownRenderer.convertMarkdown(markdownContent);
 
-                return Optional.of(new ContentWithType(output.toString(), "text/html"));
-            } else {
-                // assume text file
-                String content = Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8);
-                return Optional.of(new ContentWithType(content, "text/plain"));
-            }
-        } else {
-            return Optional.empty();
-        }
+        TemplateOutput output = new StringOutput();
+        var page = Map.of("htmlContent", htmlContent, "filename", markdownFile.getFileName().toString(), "originalMarkdown", escapeHtml(originalMarkdown));
+        templateEngine.render("markdown-wrapper.jte", page, output);
+
+        return new ContentWithType(output.toString(), "text/html");
     }
 
     @GetMapping("/image")
@@ -153,7 +172,6 @@ public class MarkdownController {
 
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                     .body(resource.get());
 
         } catch (IOException e) {
@@ -181,7 +199,7 @@ public class MarkdownController {
     @PostMapping("/saveMarkdown")
     public ResponseEntity<String> saveMarkdown(@RequestParam String filename, @RequestBody String content) {
         try {
-            Path filePath = Paths.get(configService.getMarkdownDirectory(), filename);
+            Path filePath = Paths.get(configService.getDocsDirectory(), filename);
             Files.write(filePath, content.getBytes());
             return ResponseEntity.ok("Saved successfully");
         } catch (IOException e) {

@@ -2,7 +2,6 @@ package uk.anbu.devtools.module;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Component;
@@ -22,7 +21,7 @@ public class ImageRenderer {
     private final ConfigService configService;
 
     public Optional<Resource> image(String path, String filename) throws IOException {
-        Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+        Path markdownRoot = Paths.get(configService.getDocsDirectory());
         File imageFile = markdownRoot.resolve(path == null ? "" : path).resolve(filename).toFile();
         log.info("Fetching image {}", imageFile);
         if (!imageFile.exists() || !imageFile.isFile()) {

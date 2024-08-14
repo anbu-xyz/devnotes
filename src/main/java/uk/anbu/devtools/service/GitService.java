@@ -27,7 +27,7 @@ public class GitService {
     }
 
     public boolean commitAndPushChanges() throws IOException, GitAPIException {
-        File gitDir = new File(configService.getMarkdownDirectory());
+        File gitDir = new File(configService.getDocsDirectory());
 
         if (!isGitRepository(gitDir)) {
             log.warn("The markdown directory is not a Git repository. Skipping commit and push.");

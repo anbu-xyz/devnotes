@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import jakarta.annotation.PostConstruct;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -13,23 +15,29 @@ import java.util.Map;
 
 @Service
 @Data
+@Slf4j
 public class ConfigService {
 
-    private String markdownDirectory;
+    @Value("${devtools.docsDirectory}")
+    private String docsDirectory;
     private Map<String, DataSourceConfig> dataSources;
 
     public ConfigService() {
-        this.markdownDirectory = "//wsl.localhost/Ubuntu/home/anbu/workspace/docs";
         this.dataSources = new HashMap<>();
     }
 
     @PostConstruct
     public void init() {
+        if (docsDirectory == null || docsDirectory.isEmpty()) {
+            docsDirectory = System.getProperty("user.home") + File.separator + "docs" + File.separator;
+            log.warn("documents directory not set, using default: {}", docsDirectory);
+        }
+        log.info("Document root directory {}", docsDirectory);
         loadDataSourceConfigs();
     }
 
     private void loadDataSourceConfigs() {
-        File dataSourceFile = new File(markdownDirectory, "config/datasource.yaml");
+        File dataSourceFile = new File(docsDirectory, "config/datasource.yaml");
         if (dataSourceFile.exists()) {
             ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
             try {
@@ -70,7 +78,7 @@ public class ConfigService {
     }
 
     private void saveDataSourceConfigs() {
-        File dataSourceFile = new File(markdownDirectory, "config/datasource.yaml");
+        File dataSourceFile = new File(docsDirectory, "config/datasource.yaml");
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
             mapper.writeValue(dataSourceFile, dataSources);

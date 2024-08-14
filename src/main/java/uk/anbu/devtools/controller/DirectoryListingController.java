@@ -33,7 +33,7 @@ public class DirectoryListingController {
     @PostMapping("/createSubdirectory")
     public ResponseEntity<String> createSubdirectory(@RequestParam String path, @RequestParam String name) {
         try {
-            Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
             Path newDirPath = markdownRoot.resolve(path).resolve(name);
             Files.createDirectories(newDirPath);
             return ResponseEntity.ok("Subdirectory created successfully");
@@ -46,7 +46,7 @@ public class DirectoryListingController {
     @PostMapping("/createMarkdown")
     public ResponseEntity<String> createMarkdown(@RequestParam String path, @RequestParam String name) {
         try {
-            Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
             Path newFilePath = markdownRoot.resolve(path).resolve(name);
             Files.createFile(newFilePath);
             return ResponseEntity.ok("Markdown file created successfully");
@@ -59,7 +59,7 @@ public class DirectoryListingController {
     @PostMapping("/renameEntry")
     public ResponseEntity<String> renameEntry(@RequestParam String path, @RequestParam String oldName, @RequestParam String newName) {
         try {
-            Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
             Path oldPath = markdownRoot.resolve(path).resolve(oldName);
             Path newPath = markdownRoot.resolve(path).resolve(newName);
             Files.move(oldPath, newPath);
@@ -73,7 +73,7 @@ public class DirectoryListingController {
     @PostMapping("/deleteEntry")
     public ResponseEntity<String> deleteEntry(@RequestParam String path, @RequestParam String name) {
         try {
-            Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
             Path entryPath = markdownRoot.resolve(path).resolve(name);
             if (Files.isDirectory(entryPath)) {
                 FileUtils.deleteDirectory(entryPath.toFile());
@@ -89,7 +89,7 @@ public class DirectoryListingController {
 
     @GetMapping("/renderDirectoryContents")
     public ResponseEntity<String> renderDirectoryContents(@RequestParam String directoryName) throws IOException {
-        Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+        Path markdownRoot = Paths.get(configService.getDocsDirectory());
         Path filePath = markdownRoot.resolve(directoryName);
 
         try (var filesList = Files.list(filePath)) {

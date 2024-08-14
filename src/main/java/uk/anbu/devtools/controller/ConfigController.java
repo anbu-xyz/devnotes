@@ -22,7 +22,7 @@ public class ConfigController {
     @GetMapping("/config")
     public ResponseEntity<String> configPage() {
         Map<String, Object> model = Map.of(
-                "markdownDirectory", configService.getMarkdownDirectory(),
+                "markdownDirectory", configService.getDocsDirectory(),
                 "dataSources", configService.getDataSources()
         );
         TemplateOutput output = new StringOutput();
@@ -32,9 +32,7 @@ public class ConfigController {
     }
 
     @PostMapping("/config")
-    public ResponseEntity<String> updateConfig(@RequestParam String markdownDirectory,
-                                               @RequestParam Map<String, String> datasources) {
-        configService.setMarkdownDirectory(markdownDirectory);
+    public ResponseEntity<String> updateConfig(@RequestParam Map<String, String> datasources) {
         configService.updateDataSources(datasources);
         configService.saveAndReloadConfig();
 

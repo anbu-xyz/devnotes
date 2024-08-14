@@ -11,10 +11,7 @@
 <body class="p-8">
 <h1>Configuration</h1>
 <form action="/config" method="post" class="config-form">
-    <div class="form-group">
-        <label for="markdownDirectory">Markdown Directory:</label>
-        <input type="text" id="markdownDirectory" name="markdownDirectory" value="${markdownDirectory}" class="config-input">
-    </div>
+    Markdown Directory: ${markdownDirectory}
 
     <h2>Database Configurations</h2>
     @for(var entry : dataSources.entrySet())
