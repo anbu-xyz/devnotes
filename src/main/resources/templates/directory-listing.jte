@@ -29,19 +29,23 @@
                 ${entry.filename()}
             </a>
             <div class="entry-actions" id="actions-${entry.filename()}">
-                <button onclick="renameEntry('${entry.filename()}')">Rename</button>
-                <button onclick="deleteEntry('${entry.filename()}')">Delete</button>
+                <button onclick="renameEntry('${entry.filename()}')">
+                    <i class="fas fa-edit"></i>Rename
+                </button>
+                <button onclick="deleteEntry('${entry.filename()}')">
+                    <i class="fas fa-trash-alt"></i>Delete
+                </button>
             </div>
         </li>
     @endfor
 </ul>
 
 <div class="mt-8">
-    <button onclick="createSubdirectory()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mr-4">
-        Create New Subdirectory
+    <button onclick="createSubdirectory()" class="create-button">
+        <i class="fas fa-folder-plus"></i>Create New Subdirectory
     </button>
-    <button onclick="createMarkdown()" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
-        Create New Markdown
+    <button onclick="createMarkdown()" class="create-button">
+        <i class="fas fa-file-alt"></i>Create New Markdown
     </button>
 </div>
 
