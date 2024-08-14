@@ -9,7 +9,7 @@ function toggleEdit() {
     if (!isEditing) {
         viewContent.style.display = 'none';
         editContent.style.display = 'block';
-        editButton.textContent = 'Save';
+        editButton.innerHTML = '<i class="fas fa-save"></i>Save';
         if (!simplemde) {
             simplemde = new SimpleMDE({ element: document.getElementById("editor") });
         }
@@ -17,7 +17,7 @@ function toggleEdit() {
         saveContent();
         viewContent.style.display = 'block';
         editContent.style.display = 'none';
-        editButton.textContent = 'Edit';
+        editButton.innerHTML = '<i class="fas fa-edit"></i>Edit';
     }
 
     isEditing = !isEditing;
