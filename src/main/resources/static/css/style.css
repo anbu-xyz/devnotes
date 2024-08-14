@@ -242,3 +242,46 @@ img {
 .create-button i {
     margin-right: 0.5rem;
 }
+
+/* ==========================================================================
+                       Configuration Form
+   ========================================================================== */
+.config-form {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #f0f0f0;
+}
+
+.config-input {
+    width: 100%;
+    padding: 0.5rem;
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border: 1px solid #29b4fd;
+    border-radius: 3px;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.config-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(41, 180, 253, 0.5);
+}
+
+/* Adjust create-button for form submit and links */
+.create-button {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+}
+
+.mt-4 {
+    margin-top: 1rem;
+}
