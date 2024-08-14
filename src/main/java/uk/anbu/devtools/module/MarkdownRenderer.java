@@ -37,7 +37,7 @@ public class MarkdownRenderer {
 
     private void processDocument(Node node) {
         // Traverse the node tree
-        log.info("Rendering type: {}", node);
+        log.trace("Rendering type: {}", node);
         if (node instanceof Link link) {
             String destination = link.getDestination();
             if (destination.startsWith("http:") || destination.startsWith("https:")) {

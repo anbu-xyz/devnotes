@@ -5,7 +5,6 @@ import gg.jte.TemplateOutput;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +14,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.anbu.devtools.module.ImageRenderer;
 import uk.anbu.devtools.module.MarkdownRenderer;
 import uk.anbu.devtools.service.ConfigService;
 import uk.anbu.devtools.util.FileUtil;
@@ -28,14 +26,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
+import static uk.anbu.devtools.controller.ImageController.isImage;
+
 @Slf4j
 @RequiredArgsConstructor
 @RestController
 public class MarkdownController {
 
     private final MarkdownRenderer markdownRenderer;
-
-    private final ImageRenderer imageRenderer;
 
     private final TemplateEngine templateEngine;
 
@@ -111,13 +109,6 @@ public class MarkdownController {
         }
     }
 
-    private static boolean isImage(String fileExtension) {
-        return "png".equals(fileExtension) || "jpg".equals(fileExtension) || "jpeg".equals(fileExtension)
-                || "gif".equals(fileExtension) || "svg".equals(fileExtension) || "bmp".equals(fileExtension)
-                || "webp".equals(fileExtension) || "tiff".equals(fileExtension) || "tif".equals(fileExtension)
-                || "ico".equals(fileExtension);
-    }
-
     @PostMapping("/createNewMarkdown")
     public ResponseEntity<String> createNewMarkdown(@RequestParam String filename) {
         try {
@@ -153,30 +144,9 @@ public class MarkdownController {
 
         TemplateOutput output = new StringOutput();
         var page = Map.of("htmlContent", htmlContent, "filename", markdownFile.getFileName().toString(), "originalMarkdown", escapeHtml(originalMarkdown));
-        templateEngine.render("markdown-wrapper.jte", page, output);
+        templateEngine.render("markdown.jte", page, output);
 
         return new ContentWithType(output.toString(), "text/html");
-    }
-
-    @GetMapping("/image")
-    public ResponseEntity<Resource> image(@RequestParam(name = "path", required = false) String path,
-                                          @RequestParam(name = "filename") String filename) {
-        try {
-            var resource = imageRenderer.image(path, filename);
-
-            if (resource.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-            }
-
-            String contentType = "image/" + FileUtil.getFileExtension(filename).toLowerCase();
-
-            return ResponseEntity.ok()
-                    .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
-                    .body(resource.get());
-
-        } catch (IOException e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
     }
 
     private String getOriginalMarkdown(Path filename) {

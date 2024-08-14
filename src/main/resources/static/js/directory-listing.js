@@ -92,7 +92,7 @@ function createMarkdown() {
 
 function renameEntry(oldName) {
     hideActions();
-    const newName = prompt(`Enter new name for ${oldName}:`);
+    const newName = prompt(`Enter new name for ${oldName}:`, oldName);
     if (newName) {
         fetch('/renameEntry', {
             method: 'POST',
