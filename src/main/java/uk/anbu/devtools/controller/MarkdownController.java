@@ -48,7 +48,7 @@ public class MarkdownController {
     }
 
     @GetMapping("/markdown")
-    public Object markdown(@RequestParam(name = "filename", required = false) String filename) throws IOException {
+    public ResponseEntity<Object> markdown(@RequestParam(name = "filename", required = false) String filename) throws IOException {
         if (filename == null) {
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/markdown?filename=index.md")
@@ -74,13 +74,24 @@ public class MarkdownController {
                 var model = Map.of("filename", filename);
                 TemplateOutput output = new StringOutput();
                 templateEngine.render("file-not-found.jte", model, output);
-                return output.toString();
+                return ResponseEntity.ok()
+                        .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                        .body(output.toString());
             } else {
-                return content.get();
+                String fileExtension = FileUtil.getFileExtension(filename).toLowerCase();
+                if ("md".equals(fileExtension)) {
+                    return ResponseEntity.ok()
+                            .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                            .body(content.get().content());
+                } else {
+                    // For other text files, set content type to plain text
+                    return ResponseEntity.ok()
+                            .contentType(org.springframework.http.MediaType.TEXT_PLAIN)
+                            .body(content.get().content());
+                }
             }
         }
     }
-
 
     @PostMapping("/createNewMarkdown")
     public ResponseEntity<String> createNewMarkdown(@RequestParam String filename) {
@@ -100,7 +111,9 @@ public class MarkdownController {
         }
     }
 
-    public Optional<String> fetchMarkdownContent(String filename) throws IOException {
+    public record ContentWithType(String content, String contentType) {}
+
+    public Optional<ContentWithType> fetchMarkdownContent(String filename) throws IOException {
         Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
         log.info("Fetching file: {}", filename);
         var markdownFile = markdownRoot.resolve(filename);
@@ -112,13 +125,14 @@ public class MarkdownController {
                 var htmlContent = markdownRenderer.convertMarkdown(markdownContent);
 
                 TemplateOutput output = new StringOutput();
-                var page = Map.of("htmlContent", htmlContent,"filename", markdownFile.getFileName().toString(), "originalMarkdown", escapeHtml(originalMarkdown));
+                var page = Map.of("htmlContent", htmlContent, "filename", markdownFile.getFileName().toString(), "originalMarkdown", escapeHtml(originalMarkdown));
                 templateEngine.render("markdown-wrapper.jte", page, output);
 
-                return Optional.of(output.toString());
+                return Optional.of(new ContentWithType(output.toString(), "text/html"));
             } else {
                 // assume text file
-                return Optional.of(Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8));
+                String content = Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8);
+                return Optional.of(new ContentWithType(content, "text/plain"));
             }
         } else {
             return Optional.empty();
