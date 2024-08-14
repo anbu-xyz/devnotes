@@ -84,7 +84,71 @@ img {
     height: auto;
 }
 
-/* Directory listing */
+/* ==========================================================================
+                       SimpleMDE overrides
+   ========================================================================== */
+
+.editor-toolbar {
+    background-color: #1e1e1e;
+    border-color: #333;
+}
+
+.editor-toolbar button {
+    color: #e0e0e0 !important;
+}
+
+.editor-toolbar button:hover,
+.editor-toolbar button.active {
+    background: #29b4fd;
+    color: #121212 !important;
+}
+
+.editor-toolbar i.separator {
+    border-left: 1px solid #444;
+    border-right: 1px solid #444;
+}
+
+.CodeMirror {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border-color: #333;
+}
+
+.editor-preview {
+    background-color: #121212;
+    color: #e0e0e0;
+}
+
+.editor-preview pre {
+    background-color: #1e1e1e;
+}
+
+.editor-preview table td,
+.editor-preview table th {
+    border-color: #333;
+}
+
+/* Adjust SimpleMDE icon font */
+.editor-toolbar button:before {
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+}
+
+.editor-toolbar button[title="Bold"]:before { content: "\f032"; }
+.editor-toolbar button[title="Italic"]:before { content: "\f033"; }
+.editor-toolbar button[title="Heading"]:before { content: "\f1dc"; }
+.editor-toolbar button[title="Quote"]:before { content: "\f10d"; }
+.editor-toolbar button[title="Generic List"]:before { content: "\f0ca"; }
+.editor-toolbar button[title="Numbered List"]:before { content: "\f0cb"; }
+.editor-toolbar button[title="Create Link"]:before { content: "\f0c1"; }
+.editor-toolbar button[title="Insert Image"]:before { content: "\f03e"; }
+.editor-toolbar button[title="Toggle Preview"]:before { content: "\f1e0"; }
+.editor-toolbar button[title="Toggle Side by Side"]:before { content: "\f0db"; }
+.editor-toolbar button[title="Toggle Fullscreen"]:before { content: "\f31e"; }
+
+/* ==========================================================================
+                       Directory listing
+   ========================================================================== */
 .directory-list {
     list-style-type: none;
     padding-left: 0;
