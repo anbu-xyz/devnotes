@@ -12,7 +12,7 @@
 <body class="p-8">
 <div id="viewContent">$unsafe{data.get("htmlContent")}</div>
 <div id="editContent" style="display:none;">
-    <textarea id="editor">${data.get("originalMarkdown")}</textarea>
+    <textarea id="editor">$unsafe{data.get("originalMarkdown")}</textarea>
 </div>
 <button id="editButton" onclick="toggleEdit()" class="create-button">
     <i class="fas fa-edit"></i>Edit
