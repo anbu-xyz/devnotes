@@ -5,6 +5,7 @@ import gg.jte.TemplateOutput;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -218,6 +219,37 @@ public class MarkdownController {
         } catch (IOException e) {
             log.error("Error creating markdown file", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating markdown file");
+        }
+    }
+
+    @PostMapping("/renameEntry")
+    public ResponseEntity<String> renameEntry(@RequestParam String path, @RequestParam String oldName, @RequestParam String newName) {
+        try {
+            Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+            Path oldPath = markdownRoot.resolve(path).resolve(oldName);
+            Path newPath = markdownRoot.resolve(path).resolve(newName);
+            Files.move(oldPath, newPath);
+            return ResponseEntity.ok("Entry renamed successfully");
+        } catch (IOException e) {
+            log.error("Error renaming entry", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error renaming entry");
+        }
+    }
+
+    @PostMapping("/deleteEntry")
+    public ResponseEntity<String> deleteEntry(@RequestParam String path, @RequestParam String name) {
+        try {
+            Path markdownRoot = Paths.get(configService.getMarkdownDirectory());
+            Path entryPath = markdownRoot.resolve(path).resolve(name);
+            if (Files.isDirectory(entryPath)) {
+                FileUtils.deleteDirectory(entryPath.toFile());
+            } else {
+                Files.delete(entryPath);
+            }
+            return ResponseEntity.ok("Entry deleted successfully");
+        } catch (IOException e) {
+            log.error("Error deleting entry", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error deleting entry");
         }
     }
 }
