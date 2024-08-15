@@ -62,8 +62,11 @@ class MarkdownControllerSpec extends Specification {
         def response = controller.markdown("non-existent.md")
 
         then:
+        Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
-        response.body =~ ".*?The requested markdown file \"non-existent.md\" was not found.*?"
+        doc.select("body > h1").text() == "File Not Found"
+        doc.select("body > p:nth-of-type(1)").text() == "The requested markdown file \"non-existent.md\" was not found."
+        doc.select("body > p:nth-of-type(2)").text() == "Would you like to create it?"
     }
 
     def "markdown() should render markdown content"() {
