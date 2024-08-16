@@ -1,4 +1,6 @@
-@param java.util.Map<String, String> data
+@import java.util.Map
+
+@param Map<String, String> data
 
 <!DOCTYPE html>
 <html>

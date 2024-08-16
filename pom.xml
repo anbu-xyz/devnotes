@@ -150,7 +150,7 @@
                 <version>${jte.version}</version>
                 <configuration>
                     <sourceDirectory>${project.basedir}/src/main/jte</sourceDirectory>
-                    <targetDirectory>${project.build.directory}/jte-classes</targetDirectory>
+                    <targetDirectory>${project.build.directory}/classes</targetDirectory>
                     <contentType>Html</contentType>
                 </configuration>
                 <executions>

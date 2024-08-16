@@ -1,5 +1,8 @@
+@import java.util.List
+@import uk.anbu.devtools.controller.DirectoryListingController.FileEntry
+
 @param String directoryName
-@param java.util.List<uk.anbu.devtools.controller.DirectoryListingController.FileEntry> entries
+@param List<FileEntry> entries
 
 <!DOCTYPE html>
 <html>

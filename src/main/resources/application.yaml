@@ -1,5 +1,7 @@
 spring.application.name: devtools
 
+spring.profiles.active: default
+
 devtools.docsDirectory: @user.home@/docs
 
 # jte configuration
@@ -17,6 +19,7 @@ spring:
       on-profile: prod
 gg.jte:
   usePrecompiledTemplates: true
+  templateLocation: classpath:templates/
 
 ---
 spring:

@@ -1,5 +1,8 @@
+@import uk.anbu.devtools.service.ConfigService.DataSourceConfig
+@import java.util.Map
+
 @param String markdownDirectory
-@param java.util.Map<String, uk.anbu.devtools.service.ConfigService.DataSourceConfig> dataSources
+@param Map<String, DataSourceConfig> dataSources
 
 <!DOCTYPE html>
 <html>

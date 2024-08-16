@@ -1,4 +1,6 @@
-@param java.util.Set<String> dataSources
+@import java.util.Set
+
+@param Set<String> dataSources
 
 <!DOCTYPE html>
 <html>
