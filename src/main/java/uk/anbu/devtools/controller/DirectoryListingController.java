@@ -13,12 +13,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import uk.anbu.devtools.service.ConfigService;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Comparator;
 import java.util.Map;
 
@@ -118,5 +120,21 @@ public class DirectoryListingController {
     }
 
     public record FileEntry(String filename, boolean isDirectory) {
+    }
+
+    @PostMapping("/uploadFile")
+    public ResponseEntity<String> uploadFile(@RequestParam MultipartFile file, @RequestParam String path) {
+        try {
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
+            Path uploadPath = markdownRoot.resolve(path);
+            Path filePath = uploadPath.resolve(file.getOriginalFilename());
+
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            return ResponseEntity.ok("File uploaded successfully");
+        } catch (IOException e) {
+            log.error("Error uploading file", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error uploading file");
+        }
     }
 }

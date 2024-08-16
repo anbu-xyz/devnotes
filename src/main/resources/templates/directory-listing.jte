@@ -47,16 +47,25 @@
     <button onclick="createMarkdown()" class="create-button">
         <i class="fas fa-file-alt"></i>Create New Markdown
     </button>
+    <button onclick="document.getElementById('file-upload').click()" class="create-button">
+        <i class="fas fa-upload"></i>Upload File
+    </button>
+    <input type="file" id="file-upload" style="display: none;" onchange="uploadFile(this.files[0])">
 </div>
 
-@if(directoryName.equals("."))
-    <a href="/database" class="create-button">
-        <i class="fas fa-database"></i>Database Metadata
-    </a>
-    <a href="/config" class="create-button">
-        <i class="fas fa-cog"></i>Config Editor
-    </a>
-@endif
+<div id="paste-area">
+    Paste image here
+</div>
+<div>
+    @if(directoryName.equals("."))
+        <a href="/database" class="create-button">
+            <i class="fas fa-database"></i>Database Metadata
+        </a>
+        <a href="/config" class="create-button">
+            <i class="fas fa-cog"></i>Config Editor
+        </a>
+    @endif
+</div>
 
 <script>
     var currentDirectoryName = "${directoryName}";

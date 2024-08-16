@@ -131,3 +131,58 @@ function deleteEntry(name) {
         });
     }
 }
+
+function uploadFile(file) {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('path', currentDirectoryName);
+
+    fetch('/uploadFile', {
+        method: 'POST',
+        body: formData
+    }).then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            alert('Failed to upload file');
+        }
+    });
+}
+
+document.addEventListener('paste', function(event) {
+    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+    for (let index in items) {
+        const item = items[index];
+        if (item.kind === 'file') {
+            const blob = item.getAsFile();
+            const fileName = `pasted_image_${Date.now()}.png`;
+            const file = new File([blob], fileName, {type: blob.type});
+            uploadFile(file);
+        }
+    }
+});
+
+const pasteArea = document.getElementById('paste-area');
+pasteArea.addEventListener('dragover', function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.style.background = '#e1e1e1';
+});
+
+pasteArea.addEventListener('dragleave', function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.style.background = '';
+});
+
+pasteArea.addEventListener('drop', function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.style.background = '';
+    const files = event.dataTransfer.files;
+    if (files.length > 0) {
+        uploadFile(files[0]);
+    }
+});
