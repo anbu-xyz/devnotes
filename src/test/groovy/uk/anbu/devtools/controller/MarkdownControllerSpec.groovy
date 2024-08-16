@@ -2,7 +2,7 @@ package uk.anbu.devtools.controller
 
 import gg.jte.ContentType
 import gg.jte.TemplateEngine
-import gg.jte.resolve.ResourceCodeResolver
+import gg.jte.resolve.DirectoryCodeResolver
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.springframework.http.HttpStatus
@@ -22,8 +22,8 @@ class MarkdownControllerSpec extends Specification {
 
     def setup() {
         markdownRenderer = new MarkdownRenderer()
-        var codeResolver = new ResourceCodeResolver("templates")
-        templateEngine =  TemplateEngine.create(codeResolver, Paths.get("src/main/resources/templates"), ContentType.Html)
+        var codeResolver = new DirectoryCodeResolver(Paths.get("src/main/jte"))
+        templateEngine =  TemplateEngine.create(codeResolver, Paths.get("src/main/jte"), ContentType.Html)
         configService = Mock(ConfigService)
         controller = new MarkdownController(markdownRenderer, templateEngine, configService)
     }
@@ -50,7 +50,7 @@ class MarkdownControllerSpec extends Specification {
         response.headers.getFirst("Location") == "/renderDirectoryContents?directoryName=" + tempDir.fileName.toString()
 
         cleanup:
-        Files.deleteIfExists(tempDir)
+        tempDir.deleteDir()
     }
 
     def "markdown() should handle missing markdown file"() {
@@ -104,10 +104,10 @@ class MarkdownControllerSpec extends Specification {
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
         doc.select("h1").text() == "Test"
-        doc.select("TextArea#editor").text() == "# Test"
+        doc.select("h1 + p > img").get(0).attr("src").endsWith("filename=nested1/nested2/image.png")
 
         cleanup:
-        Files.deleteIfExists(tempDirectory.toPath())
+        tempDirectory.deleteDir()
     }
 
     def "createNewMarkdown() should create a new markdown file"() {
@@ -125,8 +125,7 @@ class MarkdownControllerSpec extends Specification {
         Files.exists(tempDir.resolve(filename))
 
         cleanup:
-        Files.deleteIfExists(tempDir.resolve(filename))
-        Files.deleteIfExists(tempDir)
+        tempDir.deleteDir()
     }
 
     def "saveMarkdown() should save markdown content"() {
