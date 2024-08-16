@@ -20,14 +20,14 @@ import java.util.Map;
 @Component
 public class MarkdownRenderer {
 
-    public String convertMarkdown(String markdown) {
+    public String convertMarkdown(String markdown, String fileNameWithRelativePath) {
         List<Extension> extensions = List.of(TablesExtension.create());
         Parser parser = Parser.builder()
                 .extensions(extensions)
                 .build();
         Node document = parser.parse(markdown);
         // Process the document and encode link
-        processDocument(document);
+        processDocument(document, fileNameWithRelativePath);
         HtmlRenderer renderer = HtmlRenderer.builder()
                 .extensions(extensions)
                 .attributeProviderFactory(context -> new ImageAttributeProvider())
@@ -35,7 +35,7 @@ public class MarkdownRenderer {
         return renderer.render(document);
     }
 
-    private void processDocument(Node node) {
+    private void processDocument(Node node, String fileNameWithRelativePath) {
         // Traverse the node tree
         log.trace("Rendering type: {}", node);
         if (node instanceof Link link) {
@@ -46,16 +46,18 @@ public class MarkdownRenderer {
                 link.setDestination("?filename=" + URLEncoder.encode(link.getDestination(), StandardCharsets.UTF_8));
             }
         } else if (node instanceof Image image) {
-            image.setDestination("/image?filename=" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
+            String fileLocation = fileNameWithRelativePath.replaceAll("\\\\", "/").replaceFirst("/[^/]+$", "");
+
+            image.setDestination("/image?filename=" + fileLocation + "/" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
         }
         // Recursively process child nodes
         // process siblings first
         if (node.getNext() != null) {
-            processDocument(node.getNext());
+            processDocument(node.getNext(), fileNameWithRelativePath);
         }
         // Process any children now
         if (node.getFirstChild() != null) {
-            processDocument(node.getFirstChild());
+            processDocument(node.getFirstChild(), fileNameWithRelativePath);
         }
     }
 

@@ -1,0 +1,24 @@
+spring.application.name: devtools
+
+devtools.docsDirectory: @user.home@/docs
+
+# jte configuration
+gg.jte:
+  templateLocation:
+    @project.basedir@/src/main/resources/templates/
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+gg.jte:
+  usePrecompiledTemplates: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+gg.jte.developmentMode: true

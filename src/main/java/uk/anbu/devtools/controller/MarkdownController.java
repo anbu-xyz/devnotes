@@ -133,7 +133,7 @@ public class MarkdownController {
         log.info("Rendering markdown: {}", markdownFile);
         String markdownContent = new String(Files.readAllBytes(markdownFile));
         String originalMarkdown = getOriginalMarkdown(markdownFile);
-        var htmlContent = markdownRenderer.convertMarkdown(markdownContent);
+        var htmlContent = markdownRenderer.convertMarkdown(markdownContent, filename);
 
         TemplateOutput output = new StringOutput();
         var page = Map.of("htmlContent", htmlContent, "filename", markdownFile.getFileName().toString(), "originalMarkdown", escapeHtml(originalMarkdown));

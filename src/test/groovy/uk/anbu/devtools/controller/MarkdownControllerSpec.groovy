@@ -88,6 +88,28 @@ class MarkdownControllerSpec extends Specification {
         Files.deleteIfExists(tempFile)
     }
 
+    def "markdown() should interpret image location as relative to current document"() {
+        given:
+        def tempDirectory = Files.createTempDirectory("test").toFile()
+        new File(tempDirectory, "nested1/nested2").mkdirs()
+        var newFile = new File(tempDirectory, "nested1/nested2/new-file.md")
+
+        Files.write(newFile.toPath(), """# Test\n![image](image.png)""".getBytes())
+        configService.getDocsDirectory() >> tempDirectory.absolutePath
+
+        when:
+        def response = controller.markdown("nested1/nested2/new-file.md")
+
+        then:
+        Document doc = Jsoup.parse(response.body.toString())
+        response.statusCode == HttpStatus.OK
+        doc.select("h1").text() == "Test"
+        doc.select("TextArea#editor").text() == "# Test"
+
+        cleanup:
+        Files.deleteIfExists(tempDirectory.toPath())
+    }
+
     def "createNewMarkdown() should create a new markdown file"() {
         given:
         def tempDir = Files.createTempDirectory("test")

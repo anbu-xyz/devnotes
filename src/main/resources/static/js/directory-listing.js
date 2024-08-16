@@ -72,7 +72,10 @@ function createSubdirectory() {
 
 function createMarkdown() {
     hideActions();
-    const fileName = prompt("Enter markdown file name (without .md extension):");
+    let fileName = prompt("Enter markdown file name (without .md extension):");
+    if (fileName && fileName.endsWith('.md')) {
+        fileName = fileName.substring(0, fileName.length - 3);
+    }
     if (fileName) {
         fetch('/createMarkdown', {
             method: 'POST',

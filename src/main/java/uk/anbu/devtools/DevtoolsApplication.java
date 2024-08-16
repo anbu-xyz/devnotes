@@ -8,8 +8,13 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 public class DevtoolsApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(DevtoolsApplication.class, args);
-	}
+    public static void main(String[] args) {
+        if (args.length == 0) {
+            System.setProperty("spring.profiles.active", "prod");
+        } else {
+            System.setProperty("spring.profiles.active", args[0]);
+        }
+        SpringApplication.run(DevtoolsApplication.class, args);
+    }
 
 }
