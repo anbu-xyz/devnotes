@@ -114,14 +114,13 @@ public class MarkdownRenderer {
         }
 
         List<String> parameterNames = extractParameterNames(sql);
-        Map<Integer, String> parameterValues = new LinkedHashMap<>();
+        Map<String, String> parameterValues = new LinkedHashMap<>();
 
         if (!parameterNames.isEmpty()) {
             // TODO: Implement user input for parameter values
             // For now, we'll use placeholder values
-            Integer i = 1;
             for (String param : parameterNames) {
-                parameterValues.put(i++, "placeholder_value");
+                parameterValues.put(param, "placeholder_value");
             }
         }
 
@@ -141,7 +140,7 @@ public class MarkdownRenderer {
         return parameterNames;
     }
 
-    private Node renderSqlResultTable(String sqlText, Path outputPath, Map<Integer, String> parameterValues,
+    private Node renderSqlResultTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
                                       String dataSourceName, String markdownFileName) {
         String tableString = sqlExecutor.convertToHtmlTable(sqlText, outputPath, parameterValues, dataSourceName, markdownFileName);
         HtmlBlock htmlBlock = new HtmlBlock();

@@ -7,8 +7,7 @@ import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Component;
 import uk.anbu.devtools.service.ConfigService;
@@ -35,7 +34,7 @@ public class SqlExecutor {
     private final ConfigService configService;
 
     public Path executeSqlAndSaveOutput(ConfigService.DataSourceConfig config, String sql,
-                                        Map<Integer, String> parameterValues, String fileNameWithRelativePath) {
+                                        Map<String, String> parameterValues, String fileNameWithRelativePath) {
 
         String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
                 fileNameWithRelativePath, sql + parameterValues.toString());
@@ -47,15 +46,10 @@ public class SqlExecutor {
         dataSource.setUsername(config.username());
         dataSource.setPassword(config.password());
 
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
-        PreparedStatementSetter setter = ps -> {
-            for (Map.Entry<Integer, String> entry : parameterValues.entrySet()) {
-                ps.setObject(entry.getKey(), entry.getValue());
-            }
-        };
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
 
         try (FileWriter writer = new FileWriter(outputPath.toFile())) {
-            jdbcTemplate.query(sql, setter, (rs) -> {
+            jdbcTemplate.query(sql, parameterValues, (rs) -> {
                 try {
                     ResultSetMetaData metaData = rs.getMetaData();
                     int columnCount = metaData.getColumnCount();
@@ -97,7 +91,7 @@ public class SqlExecutor {
         return outputPath;
     }
 
-    public String convertToHtmlTable(String sqlText, Path outputPath, Map<Integer, String> parameterValues,
+    public String convertToHtmlTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
                                      String dataSourceName, String markdownFileName) {
         try {
             JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
