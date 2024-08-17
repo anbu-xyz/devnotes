@@ -107,6 +107,7 @@ public class DirectoryListingController {
                     .map(path -> new FileEntry(path.getFileName().toString(), Files.isDirectory(path)))
                     .sorted(Comparator.<FileEntry>comparingInt(e -> e.isDirectory() ? 0 : 1)
                             .thenComparing(f -> f.filename))
+                    .filter(e -> !e.filename.endsWith(".output"))
                     .toList();
 
             var model = Map.of(

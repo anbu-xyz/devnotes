@@ -108,7 +108,6 @@
             <artifactId>groovy-all</artifactId>
             <version>4.0.16</version>
             <type>pom</type>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.jsoup</groupId>
