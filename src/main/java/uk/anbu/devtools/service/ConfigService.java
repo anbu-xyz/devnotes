@@ -23,6 +23,8 @@ public class ConfigService {
     private String docsDirectory;
     @Value("${devtools.sshKeyFile}")
     private String sshKeyFile;
+    @Value("${devtools.sql.maxRows:1000}")
+    private int sqlMaxRows;
     private Map<String, DataSourceConfig> dataSources;
 
     public ConfigService() {

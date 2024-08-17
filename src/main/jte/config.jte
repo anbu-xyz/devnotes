@@ -4,6 +4,7 @@
 @param String markdownDirectory
 @param String sshKeyFile
 @param Map<String, DataSourceConfig> dataSources
+@param Integer sqlMaxRows
 
 <!DOCTYPE html>
 <html>
@@ -17,6 +18,11 @@
 <form action="/config" method="post" class="config-form">
     Markdown Directory: ${markdownDirectory}<br>
     SSH Key File: ${sshKeyFile}
+
+    <div class="form-group">
+        <label for="sqlMaxRows">Max SQL Result Rows:</label>
+        <input type="number" id="sqlMaxRows" name="sqlMaxRows" value="${sqlMaxRows}" class="config-input">
+    </div>
 
     <h2>Database Configurations</h2>
     @for(var entry : dataSources.entrySet())

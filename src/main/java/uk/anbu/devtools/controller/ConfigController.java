@@ -24,7 +24,8 @@ public class ConfigController {
         Map<String, Object> model = Map.of(
                 "markdownDirectory", configService.getDocsDirectory(),
                 "sshKeyFile", configService.getSshKey().orElse("Not set"),
-                "dataSources", configService.getDataSources()
+                "dataSources", configService.getDataSources(),
+                "sqlMaxRows", configService.getSqlMaxRows()
         );
         TemplateOutput output = new StringOutput();
         templateEngine.render("config.jte", model, output);
@@ -33,8 +34,11 @@ public class ConfigController {
     }
 
     @PostMapping("/config")
-    public ResponseEntity<String> updateConfig(@RequestParam Map<String, String> datasources) {
-        configService.updateDataSources(datasources);
+    public ResponseEntity<String> updateConfig(@RequestParam Map<String, String> params) {
+        configService.updateDataSources(params);
+        if (params.containsKey("sqlMaxRows")) {
+            configService.setSqlMaxRows(Integer.parseInt(params.get("sqlMaxRows")));
+        }
         configService.saveAndReloadConfig();
 
         return ResponseEntity.status(HttpStatus.FOUND)

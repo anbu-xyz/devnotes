@@ -1,11 +1,17 @@
 package uk.anbu.devtools.module;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import groovy.lang.GroovyShell;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.Extension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
-import org.commonmark.node.*;
+import org.commonmark.node.FencedCodeBlock;
+import org.commonmark.node.HtmlBlock;
+import org.commonmark.node.Image;
+import org.commonmark.node.Link;
+import org.commonmark.node.Node;
+import org.commonmark.node.Text;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.HtmlRenderer;
@@ -20,9 +26,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
@@ -30,6 +40,8 @@ import java.util.Map;
 public class MarkdownRenderer {
 
     private final ConfigService configService;
+    private final ObjectMapper objectMapper;
+    private final SqlExecutor sqlExecutor;
 
     public String convertMarkdown(String markdown, String fileNameWithRelativePath) {
         List<Extension> extensions = List.of(TablesExtension.create());
@@ -85,7 +97,58 @@ public class MarkdownRenderer {
         if (codeType.matches("^groovy:([^:]+)$")) {
             String targetType = codeType.substring(7);
             processGroovyCodeBlock(codeBlock, targetType, fileNameWithRelativePath);
+        } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
+            String dataSourceName = codeType.substring(4, codeType.length() - 1);
+            String sql = codeBlock.getLiteral();
+            var node = processSqlCodeBlock(sql, dataSourceName, fileNameWithRelativePath);
+            codeBlock.insertAfter(node);
+            codeBlock.unlink();
         }
+    }
+
+    private Node processSqlCodeBlock(String sql, String dataSourceName, String fileNameWithRelativePath) {
+        ConfigService.DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
+        if (dataSourceConfig == null) {
+            return new Text("Error: DataSource '" + dataSourceName + "' not found.");
+        }
+
+        List<String> parameterNames = extractParameterNames(sql);
+        Map<Integer, String> parameterValues = new LinkedHashMap<>();
+
+        if (!parameterNames.isEmpty()) {
+            // TODO: Implement user input for parameter values
+            // For now, we'll use placeholder values
+            Integer i = 1;
+            for (String param : parameterNames) {
+                parameterValues.put(i++, "placeholder_value");
+            }
+        }
+
+        String outputFileName = generateOutputFileName(fileNameWithRelativePath, sql + parameterValues.toString());
+        Path outputPath = Paths.get(outputFileName);
+
+        if (!Files.exists(outputPath)) {
+            sqlExecutor.executeSqlAndSaveOutput(dataSourceConfig, sql, parameterValues, outputPath);
+        }
+
+        return renderSqlResultTable(sql, outputPath, parameterValues);
+    }
+
+    private List<String> extractParameterNames(String sql) {
+        List<String> parameterNames = new ArrayList<>();
+        Pattern pattern = Pattern.compile(":(\\w+)");
+        Matcher matcher = pattern.matcher(sql);
+        while (matcher.find()) {
+            parameterNames.add(matcher.group(1));
+        }
+        return parameterNames;
+    }
+
+    private Node renderSqlResultTable(String sqlText, Path outputPath, Map<Integer, String> parameterValues) {
+        String tableString =  sqlExecutor.convertToHtmlTable(sqlText, outputPath, parameterValues);
+        HtmlBlock htmlBlock = new HtmlBlock();
+        htmlBlock.setLiteral(tableString);
+        return htmlBlock;
     }
 
     private void processGroovyCodeBlock(FencedCodeBlock codeBlock, String targetType, String fileNameWithRelativePath) {
@@ -123,13 +186,13 @@ public class MarkdownRenderer {
             fencedCodeBlock.setLiteral(output);
             codeBlock.insertAfter(fencedCodeBlock);
         } else if("csv-table".equals(targetType) || "csv-table-with-header".equals(targetType)) {
-            renderHtmlTable(codeBlock, targetType, output);
+            csvToHtmlTable(codeBlock, targetType, output);
         }
 
         codeBlock.unlink();
     }
 
-    private static void renderHtmlTable(FencedCodeBlock codeBlock, String targetType, String output) {
+    private static void csvToHtmlTable(FencedCodeBlock codeBlock, String targetType, String output) {
         String[] lines = output.split("\n");
         StringBuilder tableHtml = new StringBuilder();
         tableHtml.append("<table>");

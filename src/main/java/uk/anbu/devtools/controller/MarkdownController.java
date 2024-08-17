@@ -136,7 +136,9 @@ public class MarkdownController {
         var htmlContent = markdownRenderer.convertMarkdown(markdownContent, filename);
 
         TemplateOutput output = new StringOutput();
-        var page = Map.of("htmlContent", htmlContent, "filename", markdownFile.getFileName().toString(), "originalMarkdown", escapeHtml(originalMarkdown));
+        var page = Map.of("htmlContent", htmlContent,
+                "filename", markdownFile.getFileName().toString(),
+                "originalMarkdown", escapeHtml(originalMarkdown));
         templateEngine.render("markdown.jte", page, output);
 
         return new ContentWithType(output.toString(), "text/html");
