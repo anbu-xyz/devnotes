@@ -42,11 +42,11 @@
         </div>
     @endfor
 
-    <button type="submit" class="create-button">
+    <button type="submit" class="btn-blue-glow">
         <i class="fas fa-save"></i>Save And Reload
     </button>
 </form>
-<a href="/" class="create-button mt-4">
+<a href="/" class="btn-blue-glow mt-4">
     <i class="fas fa-home"></i>Return to Home
 </a>
 </body>

@@ -24,11 +24,11 @@
         <label for="targetName">Target File Name (without .yaml):</label>
         <input type="text" id="targetName" name="targetName" class="config-input" required>
     </div>
-    <button type="submit" class="create-button">
+    <button type="submit" class="btn-blue-glow">
         <i class="fas fa-database"></i>Fetch Metadata
     </button>
 </form>
-<a href="/" class="create-button mt-4">
+<a href="/" class="btn-blue-glow mt-4">
     <i class="fas fa-home"></i>Return to Home
 </a>
 </body>

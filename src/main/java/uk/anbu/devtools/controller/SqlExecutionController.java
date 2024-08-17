@@ -1,43 +1,39 @@
 package uk.anbu.devtools.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.anbu.devtools.module.MarkdownRenderer;
 import uk.anbu.devtools.module.SqlExecutor;
 import uk.anbu.devtools.service.ConfigService;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
 @RestController
 @RequiredArgsConstructor
+@Slf4j
 public class SqlExecutionController {
 
     private final ConfigService configService;
     private final SqlExecutor sqlExecutor;
 
-    @PostMapping("/reExecuteSql")
+    @PostMapping(value = "/reExecuteSql", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> reExecuteSql(@RequestBody SqlExecutionRequest request) {
         String dataSourceName = request.getDatasourceName();
         ConfigService.DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
 
         if (dataSourceConfig == null) {
-            return ResponseEntity.badRequest().body("Invalid datasource name");
+            log.error("Invalid datasource name: {}", dataSourceName);
+            return ResponseEntity.badRequest().body("Invalid datasource name:" + dataSourceName);
         }
 
-        String outputFileName = MarkdownRenderer.generateOutputFileName(configService.getDocsDirectory(),
-                request.getMarkdownFileName(), request.getSql());
-        Path outputPath = Paths.get(configService.getDocsDirectory(), outputFileName);
-
-        sqlExecutor.executeSqlAndSaveOutput(dataSourceConfig, request.getSql(),
+        var outputPath = sqlExecutor.executeSqlAndSaveOutput(dataSourceConfig, request.getSql(),
                 request.getParameterValues(), request.getMarkdownFileName());
 
         String htmlTable = sqlExecutor.convertToHtmlTable(request.getSql(), outputPath,

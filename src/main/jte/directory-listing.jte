@@ -44,13 +44,13 @@
 </ul>
 
 <div class="mt-8">
-    <button onclick="createSubdirectory()" class="create-button">
+    <button onclick="createSubdirectory()" class="btn-blue-glow">
         <i class="fas fa-folder-plus"></i>Create New Subdirectory
     </button>
-    <button onclick="createMarkdown()" class="create-button">
+    <button onclick="createMarkdown()" class="btn-blue-glow">
         <i class="fas fa-file-alt"></i>Create New Markdown
     </button>
-    <button onclick="document.getElementById('file-upload').click()" class="create-button">
+    <button onclick="document.getElementById('file-upload').click()" class="btn-blue-glow">
         <i class="fas fa-upload"></i>Upload File
     </button>
     <input type="file" id="file-upload" style="display: none;" onchange="uploadFile(this.files[0])">
@@ -61,10 +61,10 @@
 </div>
 <div>
     @if(directoryName.equals("."))
-        <a href="/database" class="create-button">
+        <a href="/database" class="btn-blue-glow">
             <i class="fas fa-database"></i>Database Metadata
         </a>
-        <a href="/config" class="create-button">
+        <a href="/config" class="btn-blue-glow">
             <i class="fas fa-cog"></i>Config Editor
         </a>
     @endif

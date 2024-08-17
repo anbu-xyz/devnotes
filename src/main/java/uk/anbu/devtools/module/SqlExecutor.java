@@ -111,9 +111,10 @@ public class SqlExecutor {
         jsonGenerator.writeArrayFieldStart("metadata");
         for (int i = 1; i <= columnCount[0]; i++) {
             jsonGenerator.writeStartObject();
-            jsonGenerator.writeStringField("name", metaData.getColumnName(i));
-            columnNames.add(metaData.getColumnName(i));
-            jsonGenerator.writeStringField("type", metaData.getColumnTypeName(i));
+            var columnLabel = metaData.getColumnLabel(i);
+            jsonGenerator.writeStringField("name", columnLabel);
+            columnNames.add(columnLabel);
+            jsonGenerator.writeStringField("type", metaData.getColumnClassName(i));
             jsonGenerator.writeEndObject();
         }
         jsonGenerator.writeEndArray();

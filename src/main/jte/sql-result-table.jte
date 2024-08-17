@@ -1,5 +1,6 @@
 @import java.util.Map
 @import java.util.List
+@import gg.jte.support.ForSupport
 
 @param String sqlText
 @param String outputFileName
@@ -20,19 +21,29 @@
             </ul>
         </div>
     @endif
+    <div>
+        ${sqlText}
+    </div>
 
-    <button class='download-btn' onclick='downloadExcel("${outputFileName}")'>Download Excel</button>
-    <button class='re-execute-btn'
+    <button class='btn-blue-glow' onclick='downloadExcel("${outputFileName}")'>Download Excel</button>
+    <button class='btn-blue-glow'
             hx-post='/reExecuteSql'
             hx-trigger='click'
-            hx-vals='{"sql": "${sqlText.replace("\"", "\\\"")}",
-                      "markdownFileName": "${markdownFileName}",
-                      "datasourceName": "${datasourceName}"
-                      "parameterValues": {
-                        @for(Map.Entry<Integer, String> entry : parameterValues.entrySet())
-                            "${entry.getKey()}": "${entry.getValue()}",
+            hx-ext='json-enc'
+            hx-vals='{"sql": "${sqlText.replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"") }",
+                   "datasourceName": "${datasourceName}",
+                   "outputFileName": "${outputFileName}",
+                   "markdownFileName": "${markdownFileName}",
+                   "parameterValues":  {
+                        @for(var entry : ForSupport.of(parameterValues.entrySet()))
+                             @if(entry.getIndex() == 0)
+                                 "${entry.get().getKey()}": "${entry.get().getValue()}"
+                             @else
+                                 ", ${entry.get().getKey()}": "${entry.get().getValue()}"
+                             @endif
                         @endfor
-                      }'
+                        }
+                   }'
             hx-target='closest div.sql-result'
             hx-swap='outerHTML'>
         Re-execute SQL
