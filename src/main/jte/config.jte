@@ -2,6 +2,7 @@
 @import java.util.Map
 
 @param String markdownDirectory
+@param String sshKeyFile
 @param Map<String, DataSourceConfig> dataSources
 
 <!DOCTYPE html>
@@ -14,7 +15,8 @@
 <body class="p-8">
 <h1>Configuration</h1>
 <form action="/config" method="post" class="config-form">
-    Markdown Directory: ${markdownDirectory}
+    Markdown Directory: ${markdownDirectory}<br>
+    SSH Key File: ${sshKeyFile}
 
     <h2>Database Configurations</h2>
     @for(var entry : dataSources.entrySet())

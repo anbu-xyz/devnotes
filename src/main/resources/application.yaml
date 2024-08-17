@@ -2,7 +2,9 @@ spring.application.name: devtools
 
 spring.profiles.active: default
 
-devtools.docsDirectory: @user.home@/docs
+devtools:
+  docsDirectory: @user.home@/docs
+  sshKeyFile:
 
 # jte configuration
 gg.jte:
@@ -13,18 +15,14 @@ spring.servlet.multipart.max-file-size: 10MB
 spring.servlet.multipart.max-request-size: 10MB
 
 ---
-spring:
-  config:
-    activate:
-      on-profile: prod
+spring.config.activate.on-profile: prod
 gg.jte:
   usePrecompiledTemplates: true
   templateLocation: classpath:templates/
 
 ---
-spring:
-  config:
-    activate:
-      on-profile: dev
+spring.config.activate.on-profile: dev
+gg.jte:
+  templateLocation: src/main/jte/
 
 gg.jte.developmentMode: true

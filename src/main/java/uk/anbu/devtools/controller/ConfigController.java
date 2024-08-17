@@ -23,6 +23,7 @@ public class ConfigController {
     public ResponseEntity<String> configPage() {
         Map<String, Object> model = Map.of(
                 "markdownDirectory", configService.getDocsDirectory(),
+                "sshKeyFile", configService.getSshKey().orElse("Not set"),
                 "dataSources", configService.getDataSources()
         );
         TemplateOutput output = new StringOutput();

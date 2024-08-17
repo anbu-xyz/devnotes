@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 @Data
@@ -20,6 +21,8 @@ public class ConfigService {
 
     @Value("${devtools.docsDirectory}")
     private String docsDirectory;
+    @Value("${devtools.sshKeyFile}")
+    private String sshKeyFile;
     private Map<String, DataSourceConfig> dataSources;
 
     public ConfigService() {
@@ -89,6 +92,14 @@ public class ConfigService {
 
     public DataSourceConfig getDataSourceConfig(String name) {
         return dataSources.get(name);
+    }
+
+    public Optional<String> getSshKey() {
+        if (sshKeyFile == null || sshKeyFile.isEmpty() || sshKeyFile.isBlank()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(sshKeyFile);
+        }
     }
 
     public record DataSourceConfig(String url, String username, String password, String driverClassName) {}
