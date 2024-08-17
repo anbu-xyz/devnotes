@@ -1,6 +1,5 @@
 package uk.anbu.devtools.module;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.Extension;
@@ -19,7 +18,6 @@ import uk.anbu.devtools.service.ConfigService;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -37,7 +35,6 @@ import java.util.regex.Pattern;
 public class MarkdownRenderer {
 
     private final ConfigService configService;
-    private final ObjectMapper objectMapper;
     private final SqlExecutor sqlExecutor;
     private final GroovyExecutor groovyExecutor;
 

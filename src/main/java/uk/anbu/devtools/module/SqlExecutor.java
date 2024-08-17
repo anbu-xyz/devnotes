@@ -7,16 +7,21 @@ import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Component;
 import uk.anbu.devtools.service.ConfigService;
 
+import javax.sql.DataSource;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,61 +39,84 @@ public class SqlExecutor {
     private final ConfigService configService;
 
     public Path executeSqlAndSaveOutput(ConfigService.DataSourceConfig config, String sql,
-                                        Map<String, String> parameterValues, String fileNameWithRelativePath) {
-
-        String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
-                fileNameWithRelativePath, sql + parameterValues.toString());
-        Path outputPath = Paths.get(outputFileName);
-
+                                        Map<String, String> parameterValues, String markdownFilePath) {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(config.driverClassName());
         dataSource.setUrl(config.url());
         dataSource.setUsername(config.username());
         dataSource.setPassword(config.password());
 
+        return writeSqlResultToFile(dataSource, sql, parameterValues, markdownFilePath);
+    }
+
+    public Path writeSqlResultToFile(DataSource dataSource, String sql, Map<String, String> parameterValues,
+                                     String fileNameWithRelativePath) {
+
+        String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
+                fileNameWithRelativePath, sql + parameterValues.toString());
+        Path outputPath = Paths.get(outputFileName);
+
         NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
 
+        SqlParameterSource parameterSource = new MapSqlParameterSource(parameterValues);
+
+        final Integer[] rowCount = {0};
+        final Integer[] columnCount = {0};
+        final List<String> columnNames = new ArrayList<>();
         try (FileWriter writer = new FileWriter(outputPath.toFile())) {
-            jdbcTemplate.query(sql, parameterValues, (rs) -> {
+            JsonGenerator jsonGenerator = objectMapper.getFactory().createGenerator(writer);
+            startOutermostObject(jsonGenerator);
+
+            jdbcTemplate.query(sql, parameterSource, (rs) -> {
                 try {
-                    ResultSetMetaData metaData = rs.getMetaData();
-                    int columnCount = metaData.getColumnCount();
-
-                    JsonGenerator jsonGenerator = objectMapper.getFactory().createGenerator(writer);
-                    jsonGenerator.writeStartObject();
-
-                    // Write metadata
-                    jsonGenerator.writeArrayFieldStart("metadata");
-                    for (int i = 1; i <= columnCount; i++) {
-                        jsonGenerator.writeStartObject();
-                        jsonGenerator.writeStringField("name", metaData.getColumnName(i));
-                        jsonGenerator.writeStringField("type", metaData.getColumnTypeName(i));
-                        jsonGenerator.writeEndObject();
+                    rowCount[0]++;
+                    if (rowCount[0] == 1) {
+                        ResultSetMetaData metaData = rs.getMetaData();
+                        columnCount[0] = metaData.getColumnCount();
+                        writeMetadata(jsonGenerator, columnCount, metaData, columnNames);
+                        jsonGenerator.writeArrayFieldStart("data");
                     }
-                    jsonGenerator.writeEndArray();
 
-                    // Write data
-                    jsonGenerator.writeArrayFieldStart("data");
-                    while (rs.next()) {
-                        log.info("Writing row");
-                        jsonGenerator.writeStartObject();
-                        for (int i = 1; i <= columnCount; i++) {
-                            jsonGenerator.writeObjectField(metaData.getColumnName(i), rs.getObject(i));
-                        }
-                        jsonGenerator.writeEndObject();
-                    }
-                    jsonGenerator.writeEndArray();
-
-                    jsonGenerator.writeEndObject();
-                    jsonGenerator.close();
+                    writeRow(rs, jsonGenerator, columnCount, columnNames);
                 } catch (IOException e) {
                     throw new RuntimeException("Error writing SQL result to file", e);
                 }
             });
+            jsonGenerator.writeEndArray();
+            endOutermostObject(jsonGenerator);
+            jsonGenerator.close();
         } catch (Exception e) {
             log.error("Error executing SQL query", e);
         }
         return outputPath;
+    }
+
+    private static void endOutermostObject(JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeEndObject();
+    }
+
+    private static void startOutermostObject(JsonGenerator jsonGenerator) throws IOException {
+        jsonGenerator.writeStartObject();
+    }
+
+    private static void writeRow(ResultSet rs, JsonGenerator jsonGenerator, Integer[] columnCount, List<String> columnNames) throws IOException, SQLException {
+        jsonGenerator.writeStartObject();
+        for (int i = 1; i <= columnCount[0]; i++) {
+            jsonGenerator.writeObjectField(columnNames.get(i - 1), rs.getObject(i));
+        }
+        jsonGenerator.writeEndObject();
+    }
+
+    private static void writeMetadata(JsonGenerator jsonGenerator, Integer[] columnCount, ResultSetMetaData metaData, List<String> columnNames) throws IOException, SQLException {
+        jsonGenerator.writeArrayFieldStart("metadata");
+        for (int i = 1; i <= columnCount[0]; i++) {
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeStringField("name", metaData.getColumnName(i));
+            columnNames.add(metaData.getColumnName(i));
+            jsonGenerator.writeStringField("type", metaData.getColumnTypeName(i));
+            jsonGenerator.writeEndObject();
+        }
+        jsonGenerator.writeEndArray();
     }
 
     public String convertToHtmlTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
