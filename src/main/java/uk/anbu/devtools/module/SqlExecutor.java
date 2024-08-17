@@ -163,4 +163,40 @@ public class SqlExecutor {
             return "Error: Unable to render SQL result table";
         }
     }
+
+    public String convertToHtmlTable(JsonNode rootNode, String dataSourceName, String markdownFileName) {
+        JsonNode metadataNode = rootNode.get("metadata");
+        JsonNode dataNode = rootNode.get("data");
+
+        List<Map<String, String>> metadata = new ArrayList<>();
+        for (JsonNode column : metadataNode) {
+            Map<String, String> columnInfo = new HashMap<>();
+            columnInfo.put("name", column.get("name").asText());
+            columnInfo.put("type", column.get("type").asText());
+            metadata.add(columnInfo);
+        }
+
+        List<Map<String, String>> data = new ArrayList<>();
+        for (JsonNode row : dataNode) {
+            Map<String, String> rowData = new HashMap<>();
+            for (JsonNode column : metadataNode) {
+                String columnName = column.get("name").asText();
+                rowData.put(columnName, row.get(columnName).asText());
+            }
+            data.add(rowData);
+        }
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("sqlText", ""); // We don't have the original SQL text here
+        params.put("outputFileName", markdownFileName + ".json");
+        params.put("datasourceName", dataSourceName);
+        params.put("markdownFileName", markdownFileName);
+        params.put("parameterValues", new HashMap<>()); // We don't have the original parameter values here
+        params.put("metadata", metadata);
+        params.put("data", data);
+
+        StringOutput output = new StringOutput();
+        templateEngine.render("sql-result-table.jte", params, output);
+        return output.toString();
+    }
 }

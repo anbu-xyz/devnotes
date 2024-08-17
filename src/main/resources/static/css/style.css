@@ -186,7 +186,7 @@ img {
 
 .entry-actions {
     display: none;
-    position: absolute;
+    position: fixed; /* Change from absolute to fixed */
     background-color: #121212;
     border: 1px solid #29b4fd;
     border-radius: 3px;
@@ -295,4 +295,32 @@ img {
 
 .mt-4 {
     margin-top: 1rem;
+}
+
+/* ==========================================================================
+                       SQL Result Table
+   ========================================================================== */
+
+table.sortable th {
+    cursor: pointer;
+}
+
+table.sortable th:hover {
+    background-color: #333;
+}
+
+table.entry-container.sortable:hover .entry-actions.show {
+    display: block;
+}
+
+table.sortable.entry-actions {
+    display: none;
+    position: absolute;
+    top: 0;
+    right: 0;
+    background-color: #121212;
+    border: 1px solid #29b4fd;
+    border-radius: 3px;
+    padding: 5px;
+    z-index: 1000;
 }
