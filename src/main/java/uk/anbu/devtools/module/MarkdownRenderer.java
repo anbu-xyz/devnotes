@@ -125,15 +125,10 @@ public class MarkdownRenderer {
             }
         }
 
-        String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
-                fileNameWithRelativePath, sql + parameterValues.toString());
-        Path outputPath = Paths.get(outputFileName);
+        var outputPath = sqlExecutor.executeSqlAndSaveOutput(dataSourceConfig, sql,
+                parameterValues, fileNameWithRelativePath);
 
-        if (!Files.exists(outputPath)) {
-            sqlExecutor.executeSqlAndSaveOutput(dataSourceConfig, sql, parameterValues, outputPath);
-        }
-
-        return renderSqlResultTable(sql, outputPath, parameterValues);
+        return renderSqlResultTable(sql, outputPath, parameterValues, dataSourceName, fileNameWithRelativePath);
     }
 
     private List<String> extractParameterNames(String sql) {
@@ -146,14 +141,15 @@ public class MarkdownRenderer {
         return parameterNames;
     }
 
-    private Node renderSqlResultTable(String sqlText, Path outputPath, Map<Integer, String> parameterValues) {
-        String tableString = sqlExecutor.convertToHtmlTable(sqlText, outputPath, parameterValues);
+    private Node renderSqlResultTable(String sqlText, Path outputPath, Map<Integer, String> parameterValues,
+                                      String dataSourceName, String markdownFileName) {
+        String tableString = sqlExecutor.convertToHtmlTable(sqlText, outputPath, parameterValues, dataSourceName, markdownFileName);
         HtmlBlock htmlBlock = new HtmlBlock();
         htmlBlock.setLiteral(tableString);
         return htmlBlock;
     }
 
-    static String generateOutputFileName(String docsDirectory, String markdownFileName, String scriptText) {
+    public static String generateOutputFileName(String docsDirectory, String markdownFileName, String scriptText) {
         String hash = generateHash(scriptText);
         return Paths.get(docsDirectory, markdownFileName).getParent().resolve(
                 Paths.get(markdownFileName).getFileName().toString().replaceFirst("[.][^.]+$", "") + "." + hash + ".output"

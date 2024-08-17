@@ -3,6 +3,8 @@ package uk.anbu.devtools.module;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gg.jte.TemplateEngine;
+import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -14,8 +16,14 @@ import uk.anbu.devtools.service.ConfigService;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.ResultSetMetaData;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import static uk.anbu.devtools.module.MarkdownRenderer.generateOutputFileName;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -23,9 +31,15 @@ import java.util.Map;
 public class SqlExecutor {
 
     private final ObjectMapper objectMapper;
+    private final TemplateEngine templateEngine;
+    private final ConfigService configService;
 
-    public void executeSqlAndSaveOutput(ConfigService.DataSourceConfig config, String sql,
-                                        Map<Integer, String> parameterValues, Path outputPath) {
+    public Path executeSqlAndSaveOutput(ConfigService.DataSourceConfig config, String sql,
+                                        Map<Integer, String> parameterValues, String fileNameWithRelativePath) {
+
+        String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
+                fileNameWithRelativePath, sql + parameterValues.toString());
+        Path outputPath = Paths.get(outputFileName);
 
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(config.driverClassName());
@@ -80,58 +94,50 @@ public class SqlExecutor {
         } catch (Exception e) {
             log.error("Error executing SQL query", e);
         }
+        return outputPath;
     }
 
-    public String convertToHtmlTable(String sqlText, Path outputPath, Map<Integer, String> parameterValues) {
+    public String convertToHtmlTable(String sqlText, Path outputPath, Map<Integer, String> parameterValues,
+                                     String dataSourceName, String markdownFileName) {
         try {
             JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
             JsonNode metadataNode = rootNode.get("metadata");
             JsonNode dataNode = rootNode.get("data");
 
-            StringBuilder htmlBuilder = new StringBuilder();
-            htmlBuilder.append("<div class='sql-result'>");
-
-            // Add download button
-            htmlBuilder.append("<button class='download-btn' onclick='downloadExcel(\"")
-                    .append(outputPath.getFileName()).append("\")'>Download Excel</button>");
-
-            // Display parameters
-            if (!parameterValues.isEmpty()) {
-                htmlBuilder.append("<div class='parameters'><h4>Parameters:</h4><ul>");
-                for (Map.Entry<Integer, String> entry : parameterValues.entrySet()) {
-                    htmlBuilder.append("<li>").append(entry.getKey()).append(": ").append(entry.getValue()).append("</li>");
-                }
-                htmlBuilder.append("</ul></div>");
-            }
-
-            // Add re-execute button
-            htmlBuilder.append("<div class='sql-reexecute-button'>\n");
-            htmlBuilder.append("<button class='re-execute-btn' onclick='reExecuteSql(closest(\"div.sql-reexecute-button\"))'>Re-execute SQL</button>\n");
-            htmlBuilder.append("<p class=\"sql-text\">").append(sqlText).append("</p>");
-            htmlBuilder.append("</div>\n");
-
-            htmlBuilder.append("<table class='sortable'><thead><tr>");
+            List<Map<String, String>> metadata = new ArrayList<>();
             for (JsonNode column : metadataNode) {
-                htmlBuilder.append("<th data-type='").append(column.get("type").asText()).append("'>")
-                        .append(column.get("name").asText()).append("</th>");
+                Map<String, String> columnInfo = new HashMap<>();
+                columnInfo.put("name", column.get("name").asText());
+                columnInfo.put("type", column.get("type").asText());
+                metadata.add(columnInfo);
             }
-            htmlBuilder.append("</tr></thead><tbody>");
 
+            List<Map<String, String>> data = new ArrayList<>();
             for (JsonNode row : dataNode) {
-                htmlBuilder.append("<tr>");
+                Map<String, String> rowData = new HashMap<>();
                 for (JsonNode column : metadataNode) {
                     String columnName = column.get("name").asText();
-                    htmlBuilder.append("<td>").append(row.get(columnName).asText()).append("</td>");
+                    rowData.put(columnName, row.get(columnName).asText());
                 }
-                htmlBuilder.append("</tr>");
+                data.add(rowData);
             }
-            htmlBuilder.append("</tbody></table></div>");
-            return htmlBuilder.toString();
+
+            Map<String, Object> params = new HashMap<>();
+            params.put("sqlText", sqlText);
+            params.put("outputFileName", outputPath.getFileName().toString());
+            params.put("datasourceName", dataSourceName);
+            params.put("markdownFileName", markdownFileName);
+            params.put("parameterValues", parameterValues);
+            params.put("metadata", metadata);
+            params.put("data", data);
+
+            StringOutput output = new StringOutput();
+            templateEngine.render("sql-result-table.jte", params, output);
+            return output.toString();
 
         } catch (IOException e) {
             log.error("Error rendering SQL result table", e);
             return "Error: Unable to render SQL result table";
         }
     }
-
 }
