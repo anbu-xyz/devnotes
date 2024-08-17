@@ -24,7 +24,9 @@ public class SqlExecutor {
 
     private final ObjectMapper objectMapper;
 
-    public void executeSqlAndSaveOutput(ConfigService.DataSourceConfig config, String sql, Map<Integer, String> parameterValues, Path outputPath) {
+    public void executeSqlAndSaveOutput(ConfigService.DataSourceConfig config, String sql,
+                                        Map<Integer, String> parameterValues, Path outputPath) {
+
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(config.driverClassName());
         dataSource.setUrl(config.url());
@@ -90,7 +92,8 @@ public class SqlExecutor {
             htmlBuilder.append("<div class='sql-result'>");
 
             // Add download button
-            htmlBuilder.append("<button class='download-btn' onclick='downloadExcel(\"").append(outputPath.getFileName()).append("\")'>Download Excel</button>");
+            htmlBuilder.append("<button class='download-btn' onclick='downloadExcel(\"")
+                    .append(outputPath.getFileName()).append("\")'>Download Excel</button>");
 
             // Display parameters
             if (!parameterValues.isEmpty()) {
