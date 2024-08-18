@@ -14,6 +14,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Component;
+import org.springframework.util.Assert;
 import uk.anbu.devtools.service.ConfigService;
 
 import javax.sql.DataSource;
@@ -48,11 +49,11 @@ public class SqlExecutor {
         dataSource.setUsername(config.username());
         dataSource.setPassword(config.password());
 
-        return writeSqlResultToFile(dataSource, sql, parameterValues, markdownFilePath);
+        return writeSqlResultToFile(dataSource, sql, parameterValues, markdownFilePath, config.name());
     }
 
     public Path writeSqlResultToFile(DataSource dataSource, String sql, Map<String, String> parameterValues,
-                                     String fileNameWithRelativePath) {
+                                     String fileNameWithRelativePath, String dataSourceName) {
 
         String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
                 fileNameWithRelativePath, sql + parameterValues.toString());
@@ -80,6 +81,9 @@ public class SqlExecutor {
             }
             jsonGenerator.writeEndObject(); // end parameterValues
             jsonGenerator.writeEndObject(); // end sql
+
+            Assert.isTrue(dataSourceName != null, "dataSourceName must not be null");
+            jsonGenerator.writeStringField("datasourceName", dataSourceName);
 
             jdbcTemplate.query(sql, parameterSource, (rs) -> {
                 try {

@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Data
@@ -48,7 +49,11 @@ public class ConfigService {
             try {
                 Map<String, DataSourceConfig> configs = mapper.readValue(dataSourceFile,
                         mapper.getTypeFactory().constructMapType(Map.class, String.class, DataSourceConfig.class));
-                this.dataSources.putAll(configs);
+                var x = configs.entrySet().stream()
+                        .map(e -> new DataSourceConfig(e.getKey(), e.getValue().url(), e.getValue().username(),
+                                e.getValue().password(), e.getValue().driverClassName()))
+                        .collect(Collectors.toMap(DataSourceConfig::name, e -> e));
+                this.dataSources.putAll(x);
             } catch (IOException e) {
                 throw new RuntimeException("Failed to load datasource configurations", e);
             }
@@ -61,16 +66,19 @@ public class ConfigService {
             if (parts.length == 2) {
                 String dataSourceName = parts[0].replace("datasources[", "").replace("]", "");
                 String property = parts[1];
-                DataSourceConfig config = dataSources.getOrDefault(dataSourceName, new DataSourceConfig("", "", "", ""));
+                DataSourceConfig config = dataSources.getOrDefault(dataSourceName, new DataSourceConfig(dataSourceName, "", "", "", ""));
                 switch (property) {
-                    case "url" -> config = new DataSourceConfig(entry.getValue(), config.username(), config.password(), config.driverClassName());
-                    case "username" -> config = new DataSourceConfig(config.url(), entry.getValue(), config.password(), config.driverClassName());
+                    case "url" ->
+                            config = new DataSourceConfig(dataSourceName, entry.getValue(), config.username(), config.password(), config.driverClassName());
+                    case "username" ->
+                            config = new DataSourceConfig(dataSourceName, config.url(), entry.getValue(), config.password(), config.driverClassName());
                     case "password" -> {
                         if (!entry.getValue().equals("********")) {
-                            config = new DataSourceConfig(config.url(), config.username(), entry.getValue(), config.driverClassName());
+                            config = new DataSourceConfig(dataSourceName, config.url(), config.username(), entry.getValue(), config.driverClassName());
                         }
                     }
-                    case "driverClassName" -> config = new DataSourceConfig(config.url(), config.username(), config.password(), entry.getValue());
+                    case "driverClassName" ->
+                            config = new DataSourceConfig(dataSourceName, config.url(), config.username(), config.password(), entry.getValue());
                 }
                 dataSources.put(dataSourceName, config);
             }
@@ -104,5 +112,5 @@ public class ConfigService {
         }
     }
 
-    public record DataSourceConfig(String url, String username, String password, String driverClassName) {}
+    public record DataSourceConfig(String name, String url, String username, String password, String driverClassName) {}
 }
