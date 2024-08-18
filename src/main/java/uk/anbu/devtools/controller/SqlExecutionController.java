@@ -64,14 +64,10 @@ public class SqlExecutionController {
                 "attachment; filename=" + fileName).body(new ClassPathResource("excel.xlsx"));
     }
 
-    @PostMapping("/sortTable")
-    public ResponseEntity<String> sortTable(@RequestParam String column,
-                                            @RequestParam String dataType,
-                                            @RequestParam String outputFile,
-                                            @RequestParam String datasource,
-                                            @RequestParam String markdownFile) {
+    @PostMapping(value = "/sortTable", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<String> sortTable(@RequestBody TableSortRequest request) {
         try {
-            Path outputPath = Paths.get(configService.getDocsDirectory(), outputFile);
+            Path outputPath = Paths.get(configService.getDocsDirectory(), request.getOutputFileName());
             JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
             JsonNode dataNode = rootNode.get("data");
 
@@ -82,7 +78,7 @@ public class SqlExecutionController {
                 data.add(rowData);
             }
 
-            data.sort((a, b) -> compare(a.get(column), b.get(column), dataType));
+            data.sort((a, b) -> compare(a.get(request.getColumnName()), b.get(request.getColumnName()), request.getColumnType()));
 
             // Convert sorted data back to JSON
             ArrayNode sortedDataNode = objectMapper.createArrayNode();
@@ -95,7 +91,8 @@ public class SqlExecutionController {
             objectMapper.writeValue(outputPath.toFile(), rootNode);
 
             // Convert to HTML table
-            String htmlTable = sqlExecutor.convertToHtmlTable(rootNode, datasource, markdownFile, outputFile);
+            String htmlTable = sqlExecutor.convertToHtmlTable(rootNode, request.getDatasourceName(),
+                    request.getMarkdownFileName(), request.getOutputFileName());
 
             return ResponseEntity.ok(htmlTable);
         } catch (IOException e) {
@@ -128,5 +125,22 @@ public class SqlExecutionController {
             default:
                 return a.toString().compareTo(b.toString());
         }
+    }
+
+    @lombok.Data
+    public static class SqlExecutionRequest {
+        private String datasourceName;
+        private String sql;
+        private String markdownFileName;
+        private Map<String, String> parameterValues;
+    }
+
+    @lombok.Data
+    public static class TableSortRequest {
+        private String columnName;
+        private String columnType;
+        private String outputFileName;
+        private String datasourceName;
+        private String markdownFileName;
     }
 }
