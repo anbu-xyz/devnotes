@@ -191,7 +191,8 @@ public class SqlExecutor {
         }
     }
 
-    public String convertToHtmlTable(JsonNode rootNode, String dataSourceName, String markdownFileName, String outputFileName) {
+    public String convertToHtmlTable(JsonNode rootNode, String dataSourceName, String markdownFileName,
+                                     String outputFileName, String sortColumn, String sortDirection) {
         JsonNode metadataNode = rootNode.get("metadata");
         JsonNode dataNode = rootNode.get("data");
 
@@ -221,6 +222,8 @@ public class SqlExecutor {
         params.put("parameterValues", new HashMap<>()); // We don't have the original parameter values here
         params.put("metadata", metadata);
         params.put("data", data);
+        params.put("sortColumn", sortColumn);
+        params.put("sortDirection", sortDirection);
 
         StringOutput output = new StringOutput();
         templateEngine.render("sql-result-table.jte", params, output);

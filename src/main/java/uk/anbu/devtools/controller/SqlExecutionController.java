@@ -68,9 +68,9 @@ public class SqlExecutionController {
     public ResponseEntity<String> sortTable(@RequestBody TableSortRequest request) {
         try {
             var outputPath = Paths.get(configService.getDocsDirectory())
-                                .resolve(Path.of(request.getMarkdownFileName())
-                                .getParent()
-                                .resolve(request.getOutputFileName()));
+                    .resolve(Path.of(request.getMarkdownFileName())
+                            .getParent()
+                            .resolve(request.getOutputFileName()));
             JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
             JsonNode dataNode = rootNode.get("data");
 
@@ -81,7 +81,10 @@ public class SqlExecutionController {
                 data.add(rowData);
             }
 
-            data.sort((a, b) -> compare(a.get(request.getColumnName()), b.get(request.getColumnName()), request.getColumnType()));
+            data.sort((a, b) -> {
+                int comparison = compare(a.get(request.getColumnName()), b.get(request.getColumnName()), request.getColumnType());
+                return request.getSortDirection().equals("desc") ? -comparison : comparison;
+            });
 
             // Convert sorted data back to JSON
             ArrayNode sortedDataNode = objectMapper.createArrayNode();
@@ -95,7 +98,7 @@ public class SqlExecutionController {
 
             // Convert to HTML table
             String htmlTable = sqlExecutor.convertToHtmlTable(rootNode, request.getDatasourceName(),
-                    request.getMarkdownFileName(), request.getOutputFileName());
+                    request.getMarkdownFileName(), request.getOutputFileName(), request.getColumnName(), request.getSortDirection());
 
             return ResponseEntity.ok(htmlTable);
         } catch (IOException e) {
@@ -145,5 +148,6 @@ public class SqlExecutionController {
         private String outputFileName;
         private String datasourceName;
         private String markdownFileName;
+        private String sortDirection;
     }
 }

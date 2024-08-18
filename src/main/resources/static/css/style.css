@@ -296,3 +296,19 @@ img {
 .mt-4 {
     margin-top: 1rem;
 }
+
+/* ==========================================================================
+                       Sorting
+   ========================================================================== */
+.sort-arrow {
+    margin-left: 5px;
+    font-size: 0.8em;
+}
+
+th[data-column] {
+    cursor: pointer;
+}
+
+th[data-column]:hover {
+    background-color: #2a2a2a;
+}

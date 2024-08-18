@@ -9,6 +9,8 @@
 @param Map<Integer, String> parameterValues
 @param List<Map<String, String>> metadata
 @param List<Map<String, String>> data
+@param String sortColumn
+@param String sortDirection
 
 <div class='sql-result'>
     @if(!parameterValues.isEmpty())
@@ -38,9 +40,15 @@
                                   "columnType": "${column.get("type")}",
                                   "outputFileName": "${outputFileName}",
                                   "datasourceName": "${datasourceName}",
-                                  "markdownFileName": "${markdownFileName}"
+                                  "markdownFileName": "${markdownFileName}",
+                                  "sortDirection": "${column.get("name").equals(sortColumn) ? (sortDirection.equals("asc") ? "desc" : "asc") : "asc"}"
                                  }'
-                    >${column.get("name")}</th>
+                    >
+                        ${column.get("name")}
+                        @if(column.get("name").equals(sortColumn))
+                            <span class="sort-arrow">${sortDirection.equals("asc") ? "▲" : "▼"}</span>
+                        @endif
+                    </th>
                 @endfor
             </tr>
             </thead>
