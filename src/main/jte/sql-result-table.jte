@@ -65,7 +65,7 @@
                 <tr>
                     <td colspan="${metadata.size()}">
                         <button class="btn-blue-glow" onclick='downloadExcel("${outputFileName}")'>
-                            <i class="fas fa-file-excel"></i>Download Excel
+                            <i class="fas fa-file-excel"></i> <!-- Download Excel -->
                         </button>
                         <button class='btn-blue-glow'
                                 hx-post='/reExecuteSql'
@@ -87,7 +87,7 @@
                                                }'
                                 hx-target='closest div.sql-result'
                                 hx-swap='outerHTML'>
-                            <i class="fas fa-sync"></i>Re-execute SQL
+                            <i class="fas fa-sync"></i> <!-- Re-execute SQL -->
                         </button>
                     </td>
                 </tr>
