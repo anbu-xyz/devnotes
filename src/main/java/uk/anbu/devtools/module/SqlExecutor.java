@@ -8,16 +8,25 @@ import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 import uk.anbu.devtools.service.ConfigService;
 
-import javax.sql.DataSource;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -43,25 +52,11 @@ public class SqlExecutor {
 
     public Path executeSqlAndSaveOutput(ConfigService.DataSourceConfig config, String sql,
                                         Map<String, String> parameterValues, String markdownFilePath) {
-        DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName(config.driverClassName());
-        dataSource.setUrl(config.url());
-        dataSource.setUsername(config.username());
-        dataSource.setPassword(config.password());
-
-        return writeSqlResultToFile(dataSource, sql, parameterValues, markdownFilePath, config.name());
-    }
-
-    public Path writeSqlResultToFile(DataSource dataSource, String sql, Map<String, String> parameterValues,
-                                     String fileNameWithRelativePath, String dataSourceName) {
+        var jdbcTemplate = getNamedParameterJdbcTemplate(config);
 
         String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
-                fileNameWithRelativePath, sql + parameterValues.toString());
+                markdownFilePath, sql + parameterValues.toString());
         Path outputPath = Paths.get(outputFileName);
-
-        JdbcTemplate jdbctmpl = new JdbcTemplate(dataSource);
-        jdbctmpl.setFetchSize(500);
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(jdbctmpl);
 
         SqlParameterSource parameterSource = new MapSqlParameterSource(parameterValues);
 
@@ -82,8 +77,7 @@ public class SqlExecutor {
             jsonGenerator.writeEndObject(); // end parameterValues
             jsonGenerator.writeEndObject(); // end sql
 
-            Assert.isTrue(dataSourceName != null, "dataSourceName must not be null");
-            jsonGenerator.writeStringField("datasourceName", dataSourceName);
+            jsonGenerator.writeStringField("datasourceName", config.name());
 
             jdbcTemplate.query(sql, parameterSource, (rs) -> {
                 try {
@@ -133,6 +127,98 @@ public class SqlExecutor {
         }
     }
 
+    private static NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(ConfigService.DataSourceConfig dataSourceConfig) {
+
+        DriverManagerDataSource dataSource = new DriverManagerDataSource();
+        dataSource.setDriverClassName(dataSourceConfig.driverClassName());
+        dataSource.setUrl(dataSourceConfig.url());
+        dataSource.setUsername(dataSourceConfig.username());
+        dataSource.setPassword(dataSourceConfig.password());
+
+        var jdbcTemplate = new JdbcTemplate(dataSource);
+        jdbcTemplate.setFetchSize(500);
+
+        return new NamedParameterJdbcTemplate(jdbcTemplate);
+    }
+
+    public File getResourceResponseEntity(String fileName) throws IOException {
+        Path outputPath = Paths.get(configService.getDocsDirectory()).resolve(fileName);
+        JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
+
+        JsonNode sqlNode = rootNode.get("sql");
+        String sql = sqlNode.get("sqlText").asText();
+        Map<String, Object> parameterValues = objectMapper.convertValue(sqlNode.get("parameterValues"),
+                new TypeReference<>() {});
+
+        String dataSourceName = rootNode.get("datasourceName").asText();
+        ConfigService.DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
+
+        NamedParameterJdbcTemplate jdbcTemplate = getNamedParameterJdbcTemplate(dataSourceConfig);
+
+        return createWorkbook(jdbcTemplate, sql, parameterValues);
+    }
+
+    private static File createWorkbook(NamedParameterJdbcTemplate jdbcTemplate, String sql,
+                                       Map<String, Object> parameterValues) throws IOException {
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("SQL Results");
+
+        CellStyle headerStyle = createHeaderRowStyle(workbook);
+
+        final int[] rowNum = {0};
+        final boolean[] headerCreated = {false};
+
+        jdbcTemplate.query(sql, parameterValues, rs -> {
+            if (!headerCreated[0]) {
+                createHeaderRow(rs, sheet, rowNum, headerStyle, headerCreated);
+            }
+            createDataRow(rs, sheet, rowNum);
+        });
+
+        for (int i = 0; i < sheet.getRow(0).getPhysicalNumberOfCells(); i++) {
+            sheet.autoSizeColumn(i);
+        }
+
+        File outputFile = File.createTempFile("sql_results", ".xlsx");
+        FileOutputStream outputStream = new FileOutputStream(outputFile);
+        workbook.write(outputStream);
+        workbook.close();
+        return outputFile;
+    }
+
+    private static CellStyle createHeaderRowStyle(Workbook workbook) {
+        CellStyle headerStyle = workbook.createCellStyle();
+        headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        Font headerFont = workbook.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+        return headerStyle;
+    }
+
+    private static void createDataRow(ResultSet rs, Sheet sheet, int[] rowNum) throws SQLException {
+        Row dataRow = sheet.createRow(rowNum[0]++);
+        for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+            Cell cell = dataRow.createCell(i - 1);
+            Object value = rs.getObject(i);
+            if (value != null) {
+                cell.setCellValue(value.toString());
+            }
+        }
+    }
+
+    private static void createHeaderRow(ResultSet rs, Sheet sheet, int[] rowNum, CellStyle headerStyle,
+                                        boolean[] headerCreated) throws SQLException {
+        Row headerRow = sheet.createRow(rowNum[0]++);
+        for (int i = 1; i <= rs.getMetaData().getColumnCount(); i++) {
+            Cell cell = headerRow.createCell(i - 1);
+            cell.setCellValue(rs.getMetaData().getColumnName(i));
+            cell.setCellStyle(headerStyle);
+        }
+        headerCreated[0] = true;
+    }
+
+
     private static void endOutermostObject(JsonGenerator jsonGenerator) throws IOException {
         jsonGenerator.writeEndObject();
     }
@@ -141,7 +227,8 @@ public class SqlExecutor {
         jsonGenerator.writeStartObject();
     }
 
-    private static void writeRow(ResultSet rs, JsonGenerator jsonGenerator, Integer[] columnCount, List<String> columnNames) throws IOException, SQLException {
+    private static void writeRow(ResultSet rs, JsonGenerator jsonGenerator, Integer[] columnCount,
+                                 List<String> columnNames) throws IOException, SQLException {
         jsonGenerator.writeStartObject();
         for (int i = 1; i <= columnCount[0]; i++) {
             jsonGenerator.writeObjectField(columnNames.get(i - 1), rs.getObject(i));
@@ -149,7 +236,8 @@ public class SqlExecutor {
         jsonGenerator.writeEndObject();
     }
 
-    private static void writeMetadata(JsonGenerator jsonGenerator, Integer[] columnCount, ResultSetMetaData metaData, List<String> columnNames) throws IOException, SQLException {
+    private static void writeMetadata(JsonGenerator jsonGenerator, Integer[] columnCount, ResultSetMetaData metaData,
+                                      List<String> columnNames) throws IOException, SQLException {
         jsonGenerator.writeArrayFieldStart("metadata");
         for (int i = 1; i <= columnCount[0]; i++) {
             jsonGenerator.writeStartObject();
