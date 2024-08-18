@@ -51,9 +51,12 @@
         const headers = table.querySelectorAll('th');
         headers.forEach(header => {
             header.addEventListener('click', () => {
-                const column = header.cellIndex;
+                const column = header.getAttribute('data-column');
                 const dataType = header.getAttribute('data-type');
-                sortTable(table, column, dataType);
+                const outputFile = header.getAttribute('data-output-file');
+                const datasource = header.getAttribute('data-datasource');
+                const markdownFile = header.getAttribute('data-markdown-file');
+                sortTable(table, column, dataType, outputFile, datasource, markdownFile);
             });
         });
     }

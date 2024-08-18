@@ -23,11 +23,14 @@
     @endif
 
     <div class="entry-container">
-        <table class='sortable' data-output-file="${outputFileName}" data-datasource="${datasourceName}" data-markdown-file="${markdownFileName}">
+        <table class='sortable' data-output-file="${outputFileName}" data-datasource="${datasourceName}"
+               data-markdown-file="${markdownFileName}">
             <thead>
             <tr>
                 @for(Map<String, String> column : metadata)
-                    <th data-type='${column.get("type")}' data-column='${column.get("name")}'>${column.get("name")}</th>
+                    <th data-type='${column.get("type")}' data-column='${column.get("name")}' data-output-file="${outputFileName}"
+                        data-datasource="${datasourceName}" data-markdown-file="${markdownFileName}"
+                        data-sort-order="">${column.get("name")}</th>
                 @endfor
             </tr>
             </thead>

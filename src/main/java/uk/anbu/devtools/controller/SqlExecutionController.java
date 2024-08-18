@@ -73,7 +73,6 @@ public class SqlExecutionController {
         try {
             Path outputPath = Paths.get(configService.getDocsDirectory(), outputFile);
             JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
-            JsonNode metadataNode = rootNode.get("metadata");
             JsonNode dataNode = rootNode.get("data");
 
             List<Map<String, Object>> data = new ArrayList<>();
@@ -83,7 +82,6 @@ public class SqlExecutionController {
                 data.add(rowData);
             }
 
-            // Sort the data based on the column and data type
             data.sort((a, b) -> compare(a.get(column), b.get(column), dataType));
 
             // Convert sorted data back to JSON
@@ -112,13 +110,21 @@ public class SqlExecutionController {
         }
         switch (dataType) {
             case "java.lang.Integer":
-                return Integer.compare((Integer) a, (Integer) b);
+                var intA = Integer.parseInt(a.toString());
+                var intB = Integer.parseInt(b.toString());
+                return Integer.compare(intA, intB);
             case "java.lang.Long":
-                return Long.compare((Long) a, (Long) b);
+                var longA = Long.parseLong(a.toString());
+                var longB = Long.parseLong(b.toString());
+                return Long.compare(longA, longB);
             case "java.lang.Double":
-                return Double.compare((Double) a, (Double) b);
+                var doubleA = Double.parseDouble(a.toString());
+                var doubleB = Double.parseDouble(b.toString());
+                return Double.compare(doubleA, doubleB);
             case "java.sql.Timestamp":
-                return ((Timestamp) a).compareTo((Timestamp) b);
+                var timestampA = Timestamp.valueOf(a.toString());
+                var timestampB = Timestamp.valueOf(b.toString());
+                return timestampA.compareTo(timestampB);
             default:
                 return a.toString().compareTo(b.toString());
         }

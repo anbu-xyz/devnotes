@@ -7,6 +7,7 @@ import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -56,7 +57,9 @@ public class SqlExecutor {
                 fileNameWithRelativePath, sql + parameterValues.toString());
         Path outputPath = Paths.get(outputFileName);
 
-        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(dataSource);
+        JdbcTemplate jdbctmpl = new JdbcTemplate(dataSource);
+        jdbctmpl.setFetchSize(500);
+        NamedParameterJdbcTemplate jdbcTemplate = new NamedParameterJdbcTemplate(jdbctmpl);
 
         SqlParameterSource parameterSource = new MapSqlParameterSource(parameterValues);
 

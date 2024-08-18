@@ -19,6 +19,7 @@ import uk.anbu.devtools.service.ConfigService;
 import uk.anbu.devtools.util.FileUtil;
 
 import java.io.IOException;
+import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
@@ -164,7 +165,8 @@ public class MarkdownController {
     @PostMapping("/saveMarkdown")
     public ResponseEntity<String> saveMarkdown(@RequestParam String filename, @RequestBody String content) {
         try {
-            Path filePath = Paths.get(configService.getDocsDirectory(), filename);
+            var decodedFilename = URLDecoder.decode(filename, StandardCharsets.UTF_8);
+            Path filePath = Paths.get(configService.getDocsDirectory(), decodedFilename);
             Files.write(filePath, content.getBytes());
             return ResponseEntity.ok("Saved successfully");
         } catch (IOException e) {
