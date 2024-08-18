@@ -1,11 +1,11 @@
-package uk.anbu.devtools.scheduled;
+package uk.anbu.devnotes.scheduled;
 
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import uk.anbu.devtools.service.GitService;
+import uk.anbu.devnotes.service.GitService;
 
 import java.io.IOException;
 

@@ -1,4 +1,4 @@
-package uk.anbu.devtools.controller
+package uk.anbu.devnotes.controller
 
 import gg.jte.ContentType
 import gg.jte.TemplateEngine
@@ -7,8 +7,8 @@ import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.springframework.http.HttpStatus
 import spock.lang.Specification
-import uk.anbu.devtools.module.MarkdownRenderer
-import uk.anbu.devtools.service.ConfigService
+import uk.anbu.devnotes.module.MarkdownRenderer
+import uk.anbu.devnotes.service.ConfigService
 
 import java.nio.file.Files
 import java.nio.file.Paths

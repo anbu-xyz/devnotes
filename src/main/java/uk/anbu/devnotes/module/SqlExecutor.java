@@ -1,4 +1,4 @@
-package uk.anbu.devtools.module;
+package uk.anbu.devnotes.module;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -23,7 +23,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Component;
-import uk.anbu.devtools.service.ConfigService;
+import uk.anbu.devnotes.service.ConfigService;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -39,7 +39,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static uk.anbu.devtools.module.MarkdownRenderer.generateOutputFileName;
+import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 
 @RequiredArgsConstructor
 @Slf4j

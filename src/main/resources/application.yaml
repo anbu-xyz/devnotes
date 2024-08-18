@@ -1,8 +1,8 @@
-spring.application.name: devtools
+spring.application.name: devnotes
 
 spring.profiles.active: default
 
-devtools:
+devnotes:
   docsDirectory: @user.home@/docs
   sshKeyFile:
 

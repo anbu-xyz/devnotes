@@ -1,4 +1,4 @@
-package uk.anbu.devtools.module;
+package uk.anbu.devnotes.module;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,7 +14,7 @@ import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.HtmlRenderer;
 import org.springframework.stereotype.Component;
-import uk.anbu.devtools.service.ConfigService;
+import uk.anbu.devnotes.service.ConfigService;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;

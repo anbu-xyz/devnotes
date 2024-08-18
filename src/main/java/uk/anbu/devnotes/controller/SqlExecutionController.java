@@ -1,4 +1,4 @@
-package uk.anbu.devtools.controller;
+package uk.anbu.devnotes.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.anbu.devtools.module.SqlExecutor;
-import uk.anbu.devtools.service.ConfigService;
+import uk.anbu.devnotes.module.SqlExecutor;
+import uk.anbu.devnotes.service.ConfigService;
 
 import java.io.File;
 import java.io.IOException;

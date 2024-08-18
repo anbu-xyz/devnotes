@@ -1,4 +1,4 @@
-package uk.anbu.devtools.controller;
+package uk.anbu.devnotes.controller;
 
 import gg.jte.TemplateEngine;
 import gg.jte.TemplateOutput;
@@ -14,9 +14,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import uk.anbu.devtools.module.MarkdownRenderer;
-import uk.anbu.devtools.service.ConfigService;
-import uk.anbu.devtools.util.FileUtil;
+import uk.anbu.devnotes.module.MarkdownRenderer;
+import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.util.FileUtil;
 
 import java.io.IOException;
 import java.net.URLDecoder;
@@ -27,7 +27,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
 
-import static uk.anbu.devtools.controller.ImageController.isImage;
+import static uk.anbu.devnotes.controller.ImageController.isImage;
 
 @Slf4j
 @RequiredArgsConstructor

@@ -1,4 +1,4 @@
-package uk.anbu.devtools.controller;
+package uk.anbu.devnotes.controller;
 
 import gg.jte.TemplateEngine;
 import gg.jte.TemplateOutput;
@@ -8,7 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.anbu.devtools.service.ConfigService;
+import uk.anbu.devnotes.service.ConfigService;
 
 import java.util.Map;
 

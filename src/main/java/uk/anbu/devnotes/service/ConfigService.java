@@ -1,4 +1,4 @@
-package uk.anbu.devtools.service;
+package uk.anbu.devnotes.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -20,11 +20,11 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ConfigService {
 
-    @Value("${devtools.docsDirectory}")
+    @Value("${devnotes.docsDirectory}")
     private String docsDirectory;
-    @Value("${devtools.sshKeyFile}")
+    @Value("${devnotes.sshKeyFile}")
     private String sshKeyFile;
-    @Value("${devtools.sql.maxRows:1000}")
+    @Value("${devnotes.sql.maxRows:1000}")
     private int sqlMaxRows;
     private Map<String, DataSourceConfig> dataSources;
 

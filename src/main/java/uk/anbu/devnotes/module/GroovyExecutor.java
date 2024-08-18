@@ -1,4 +1,4 @@
-package uk.anbu.devtools.module;
+package uk.anbu.devnotes.module;
 
 import groovy.lang.GroovyShell;
 import lombok.RequiredArgsConstructor;
@@ -8,7 +8,7 @@ import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Node;
 import org.commonmark.node.Text;
 import org.springframework.stereotype.Component;
-import uk.anbu.devtools.service.ConfigService;
+import uk.anbu.devnotes.service.ConfigService;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,7 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
-import static uk.anbu.devtools.module.MarkdownRenderer.generateOutputFileName;
+import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 
 @Slf4j
 @RequiredArgsConstructor

@@ -1,4 +1,4 @@
-package uk.anbu.devtools.controller;
+package uk.anbu.devnotes.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
@@ -10,7 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.anbu.devtools.service.ConfigService;
+import uk.anbu.devnotes.service.ConfigService;
 
 import java.io.File;
 import java.io.IOException;

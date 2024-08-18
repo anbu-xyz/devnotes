@@ -1,4 +1,4 @@
-package uk.anbu.devtools;
+package uk.anbu.devnotes;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,7 +6,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
-public class DevtoolsApplication {
+public class DevnotesApplication {
 
     public static void main(String[] args) {
         if (args.length == 0) {
@@ -14,7 +14,7 @@ public class DevtoolsApplication {
         } else {
             System.setProperty("spring.profiles.active", args[0]);
         }
-        SpringApplication.run(DevtoolsApplication.class, args);
+        SpringApplication.run(DevnotesApplication.class, args);
     }
 
 }

@@ -1,4 +1,4 @@
-package uk.anbu.devtools.util;
+package uk.anbu.devnotes.util;
 
 public class FileUtil {
     public static String getFileExtension(String filename) {

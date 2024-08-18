@@ -1,4 +1,4 @@
-package uk.anbu.devtools.service;
+package uk.anbu.devnotes.service;
 
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;

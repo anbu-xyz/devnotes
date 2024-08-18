@@ -1,5 +1,5 @@
 @import java.util.List
-@import uk.anbu.devtools.controller.DirectoryListingController.FileEntry
+@import uk.anbu.devnotes.controller.DirectoryListingController.FileEntry
 
 @param String directoryName
 @param List<FileEntry> entries
