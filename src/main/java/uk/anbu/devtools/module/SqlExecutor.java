@@ -87,8 +87,32 @@ public class SqlExecutor {
             jsonGenerator.close();
         } catch (Exception e) {
             log.error("Error executing SQL query", e);
+            // write a json result with error message to the output file
+            writeErrorMessage(e, outputPath);
         }
         return outputPath;
+    }
+
+    private void writeErrorMessage(Exception e, Path outputPath) {
+        try (FileWriter writer = new FileWriter(outputPath.toFile())) {
+            JsonGenerator jsonGenerator = objectMapper.getFactory().createGenerator(writer);
+            startOutermostObject(jsonGenerator);
+            jsonGenerator.writeArrayFieldStart("metadata");
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeStringField("name", "Error");
+            jsonGenerator.writeStringField("type", "java.lang.String");
+            jsonGenerator.writeEndObject();
+            jsonGenerator.writeEndArray();
+            jsonGenerator.writeArrayFieldStart("data");
+            jsonGenerator.writeStartObject();
+            jsonGenerator.writeStringField("Error", e.getMessage());
+            jsonGenerator.writeEndObject();
+            jsonGenerator.writeEndArray();
+            endOutermostObject(jsonGenerator);
+            jsonGenerator.close();
+        } catch (Exception e1) {
+            log.error("Error writing error message to file", e1);
+        }
     }
 
     private static void endOutermostObject(JsonGenerator jsonGenerator) throws IOException {
