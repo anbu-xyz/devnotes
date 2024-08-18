@@ -191,7 +191,7 @@ public class SqlExecutor {
         }
     }
 
-    public String convertToHtmlTable(JsonNode rootNode, String dataSourceName, String markdownFileName) {
+    public String convertToHtmlTable(JsonNode rootNode, String dataSourceName, String markdownFileName, String outputFileName) {
         JsonNode metadataNode = rootNode.get("metadata");
         JsonNode dataNode = rootNode.get("data");
 
@@ -215,7 +215,7 @@ public class SqlExecutor {
 
         Map<String, Object> params = new HashMap<>();
         params.put("sqlText", ""); // We don't have the original SQL text here
-        params.put("outputFileName", markdownFileName + ".json");
+        params.put("outputFileName", outputFileName);
         params.put("datasourceName", dataSourceName);
         params.put("markdownFileName", markdownFileName);
         params.put("parameterValues", new HashMap<>()); // We don't have the original parameter values here

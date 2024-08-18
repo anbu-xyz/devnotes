@@ -33,34 +33,6 @@
         window.location.href = '/downloadExcel?fileName=' + fileName;
     }
 
-    // HTMX will handle the re-execution of SQL
-    document.body.addEventListener('htmx:afterSwap', function(evt) {
-        if (evt.detail.target.classList.contains('sql-result')) {
-            // Reinitialize sorting for the new table
-            initializeSorting(evt.detail.target.querySelector('table.sortable'));
-        }
-    });
-
-    // Add sorting functionality to tables
-    document.addEventListener('DOMContentLoaded', function() {
-        const tables = document.querySelectorAll('table.sortable');
-        tables.forEach(initializeSorting);
-    });
-
-    function initializeSorting(table) {
-        const headers = table.querySelectorAll('th');
-        headers.forEach(header => {
-            header.addEventListener('click', () => {
-                const column = header.getAttribute('data-column');
-                const dataType = header.getAttribute('data-type');
-                const outputFile = header.getAttribute('data-output-file');
-                const datasource = header.getAttribute('data-datasource');
-                const markdownFile = header.getAttribute('data-markdown-file');
-                sortTable(table, column, dataType, outputFile, datasource, markdownFile);
-            });
-        });
-    }
-
     function sortTable(table, column, dataType, outputFile, datasource, markdownFile) {
         htmx.ajax('POST', '/sortTable', {
             target: table.closest('.sql-result'),

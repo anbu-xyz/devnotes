@@ -95,7 +95,7 @@ public class SqlExecutionController {
             objectMapper.writeValue(outputPath.toFile(), rootNode);
 
             // Convert to HTML table
-            String htmlTable = sqlExecutor.convertToHtmlTable(rootNode, datasource, markdownFile);
+            String htmlTable = sqlExecutor.convertToHtmlTable(rootNode, datasource, markdownFile, outputFile);
 
             return ResponseEntity.ok(htmlTable);
         } catch (IOException e) {

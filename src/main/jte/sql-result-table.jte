@@ -30,7 +30,8 @@
                 @for(Map<String, String> column : metadata)
                     <th data-type='${column.get("type")}' data-column='${column.get("name")}' data-output-file="${outputFileName}"
                         data-datasource="${datasourceName}" data-markdown-file="${markdownFileName}"
-                        data-sort-order="">${column.get("name")}</th>
+                        hx-on:click="sortTable(this, '${column.get("name")}', '${column.get("type")}', '${outputFileName}', '${datasourceName}', '${markdownFileName}')"
+                    >${column.get("name")}</th>
                 @endfor
             </tr>
             </thead>
