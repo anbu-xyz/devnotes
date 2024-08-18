@@ -4,7 +4,7 @@ pipeline {
     environment {
         GITHUB_CREDENTIALS_ID = 'github-PAT-Aug-16'
         GITHUB_ACCOUNT = 'anbu-xyz'
-        GITHUB_REPO = 'devtools'
+        GITHUB_REPO = 'devnotes'
     }
 
 
@@ -50,10 +50,9 @@ def getCommitSha() {
 }
 
 def updateGithubCommitStatus(state, description) {
-  // workaround https://issues.jenkins-ci.org/browse/JENKINS-38674
   repoUrl = getRepoURL()
   commitSha = getCommitSha()
-  payload =  """{"state": "${state}", "target_url": "https://jenkins.anbu.io/devtools", "description": "${description}", "context": "continuous-integration/jenkins"}"""
+  payload =  """{"state": "${state}", "target_url": "https://jenkins.anbu.io/devnotes", "description": "${description}", "context": "continuous-integration/jenkins"}"""
 
   withCredentials([usernamePassword(credentialsId: env.GITHUB_CREDENTIALS_ID, passwordVariable: 'PASSWORD_VAR', usernameVariable: 'USERNAME')]) {
      sh """curl -L \
