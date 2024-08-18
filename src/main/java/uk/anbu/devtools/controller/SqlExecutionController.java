@@ -67,7 +67,10 @@ public class SqlExecutionController {
     @PostMapping(value = "/sortTable", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> sortTable(@RequestBody TableSortRequest request) {
         try {
-            Path outputPath = Paths.get(configService.getDocsDirectory(), request.getOutputFileName());
+            var outputPath = Paths.get(configService.getDocsDirectory())
+                                .resolve(Path.of(request.getMarkdownFileName())
+                                .getParent()
+                                .resolve(request.getOutputFileName()));
             JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
             JsonNode dataNode = rootNode.get("data");
 
