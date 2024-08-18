@@ -58,58 +58,6 @@
         });
     }
 
-    let hoverTimer;
-    let currentActions = null;
-
-    function showActions(element, event) {
-        clearTimeout(hoverTimer);
-        hoverTimer = setTimeout(() => {
-            const actions = element.querySelector('.entry-actions');
-            if (actions) {
-                hideCurrentActions();
-                actions.style.display = 'block';
-                actions.style.left = event.clientX + "px";
-                actions.style.top = event.clientY + "px";
-                actions.classList.add('show');
-                currentActions = actions;
-            }
-        }, 2000);
-    }
-
-    function hideCurrentActions() {
-        if (currentActions) {
-            currentActions.classList.remove('show');
-            currentActions = null;
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const tables = document.querySelectorAll('table.sortable');
-        tables.forEach(table => {
-            table.addEventListener('mousemove', (event) => showActions(table.closest('.entry-container'), event));
-            table.addEventListener('mouseleave', hideCurrentActions);
-
-            const headers = table.querySelectorAll('th');
-            headers.forEach(header => {
-                header.addEventListener('click', () => {
-                    const column = header.getAttribute('data-column');
-                    const dataType = header.getAttribute('data-type');
-                    const outputFile = table.getAttribute('data-output-file');
-                    const datasource = table.getAttribute('data-datasource');
-                    const markdownFile = table.getAttribute('data-markdown-file');
-                    sortTable(table, column, dataType, outputFile, datasource, markdownFile);
-                });
-            });
-        });
-
-        // Hide actions when clicking outside
-        document.addEventListener('click', (event) => {
-            if (!event.target.closest('.entry-actions') && !event.target.closest('table.sortable')) {
-                hideCurrentActions();
-            }
-        });
-    });
-
     function sortTable(table, column, dataType, outputFile, datasource, markdownFile) {
         htmx.ajax('POST', '/sortTable', {
             target: table.closest('.sql-result'),

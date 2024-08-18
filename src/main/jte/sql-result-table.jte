@@ -40,33 +40,37 @@
                 </tr>
             @endfor
             </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="${metadata.size()}">
+                        <button class="btn-blue-glow" onclick='downloadExcel("${outputFileName}")'>
+                            <i class="fas fa-file-excel"></i>Download Excel
+                        </button>
+                        <button class='btn-blue-glow'
+                                hx-post='/reExecuteSql'
+                                hx-trigger='click'
+                                hx-ext='json-enc'
+                                hx-vals='{"sql": "${sqlText.replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"") }",
+                                               "datasourceName": "${datasourceName}",
+                                               "outputFileName": "${outputFileName}",
+                                               "markdownFileName": "${markdownFileName}",
+                                               "parameterValues":  {
+                                                    @for(var entry : ForSupport.of(parameterValues.entrySet()))
+                                                            @if(entry.getIndex() == 0)
+                                                             "${entry.get().getKey()}": "${entry.get().getValue()}"
+                                                         @else
+                                                             ", ${entry.get().getKey()}": "${entry.get().getValue()}"
+                                                         @endif
+                                                        @endfor
+                                                    }
+                                               }'
+                                hx-target='closest div.sql-result'
+                                hx-swap='outerHTML'>
+                            <i class="fas fa-sync"></i>Re-execute SQL
+                        </button>
+                    </td>
+                </tr>
+            </tfoot>
         </table>
-        <div class="entry-actions">
-            <button onclick='downloadExcel("${outputFileName}")'>
-                <i class="fas fa-file-excel"></i>Download Excel
-            </button>
-            <button class='btn-blue-glow'
-                    hx-post='/reExecuteSql'
-                    hx-trigger='click'
-                    hx-ext='json-enc'
-                    hx-vals='{"sql": "${sqlText.replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"") }",
-                   "datasourceName": "${datasourceName}",
-                   "outputFileName": "${outputFileName}",
-                   "markdownFileName": "${markdownFileName}",
-                   "parameterValues":  {
-                        @for(var entry : ForSupport.of(parameterValues.entrySet()))
-                        @if(entry.getIndex() == 0)
-                                 "${entry.get().getKey()}": "${entry.get().getValue()}"
-                             @else
-                                 ", ${entry.get().getKey()}": "${entry.get().getValue()}"
-                             @endif
-                    @endfor
-                        }
-                   }'
-                    hx-target='closest div.sql-result'
-                    hx-swap='outerHTML'>
-                <i class="fas fa-sync"></i>Re-execute SQL
-            </button>
-        </div>
     </div>
 </div>
