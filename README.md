@@ -131,7 +131,7 @@ mvn clean package
 To run the project, run the following command:
 
 ```
-java -jar target/devnotes-0.0.1-SNAPSHOT.jar -Ddevnotes.docsDirectory=/path/to/docs
+java -Ddevnotes.docsDirectory=/path/to/docs -jar target/devnotes-0.0.1-SNAPSHOT.jar prod
 ```
 
 ## License

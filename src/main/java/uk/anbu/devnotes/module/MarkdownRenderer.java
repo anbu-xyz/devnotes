@@ -94,13 +94,13 @@ public class MarkdownRenderer {
             String groovyScript = codeBlock.getLiteral();
             var node = groovyExecutor.processGroovyCodeBlock(groovyScript, targetType, fileNameWithRelativePath);
             codeBlock.insertAfter(node);
-            codeBlock.unlink();
+            codeBlock.setInfo("hidden-groovy");
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
             String dataSourceName = codeType.substring(4, codeType.length() - 1);
             String sql = codeBlock.getLiteral();
             var node = processSqlCodeBlock(sql, dataSourceName, fileNameWithRelativePath);
             codeBlock.insertAfter(node);
-            codeBlock.unlink();
+            codeBlock.setInfo("hidden-sql");
         }
     }
 

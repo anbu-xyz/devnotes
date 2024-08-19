@@ -40,6 +40,14 @@ pre, code {
     font-family: 'Courier New', Courier, monospace;
 }
 
+pre.language-hidden-sql {
+    display: none;
+}
+
+pre.language-hidden-groovy {
+    display: none;
+}
+
 /* Lists */
 ul, ol {
     margin: 1em 0;

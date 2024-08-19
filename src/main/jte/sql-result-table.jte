@@ -6,7 +6,7 @@
 @param String outputFileName
 @param String datasourceName
 @param String markdownFileName
-@param Map<Integer, String> parameterValues
+@param Map<String, String> parameterValues
 @param List<Map<String, String>> metadata
 @param List<Map<String, String>> data
 @param String sortColumn
@@ -17,7 +17,7 @@
         <div class='parameters'>
             <h4>Parameters:</h4>
             <ul>
-                @for(Map.Entry<Integer, String> entry : parameterValues.entrySet())
+                @for(Map.Entry<String, String> entry : parameterValues.entrySet())
                     <li>${entry.getKey()}: ${entry.getValue()}</li>
                 @endfor
             </ul>

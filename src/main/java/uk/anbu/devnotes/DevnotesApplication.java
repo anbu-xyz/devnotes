@@ -1,19 +1,27 @@
 package uk.anbu.devnotes;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
 @EnableScheduling
+@Slf4j
 public class DevnotesApplication {
 
     public static void main(String[] args) {
+        // Oracle JDBC driver requires this property to be set to return timestamps as java.sql.Timestamp
+        // instead of oracle.sql.TIMESTAMP
+        System.setProperty("oracle.jdbc.J2EE13Compliant", "true");
+
+        String profile;
         if (args.length == 0) {
-            System.setProperty("spring.profiles.active", "prod");
+            profile =  "prod";
         } else {
-            System.setProperty("spring.profiles.active", args[0]);
+            profile = args[0];
         }
+        log.info("Running with profile: {}", profile);
         SpringApplication.run(DevnotesApplication.class, args);
     }
 
