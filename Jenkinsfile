@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        GITHUB_CREDENTIALS_ID = 'github-PAT-Aug-16'
+        GITHUB_CREDENTIALS_ID = 'bf69d9ff-a08d-4138-979a-2f7f32bc860b'
         GITHUB_ACCOUNT = 'anbu-xyz'
         GITHUB_REPO = 'devnotes'
     }
