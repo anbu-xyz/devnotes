@@ -1,24 +1,22 @@
 @import java.util.Map
 @import java.util.List
 @import gg.jte.support.ForSupport
+@import uk.anbu.devnotes.module.SqlResult
 
-@param String sqlText
 @param String outputFileName
 @param String datasourceName
 @param String markdownFileName
-@param Map<String, String> parameterValues
-@param List<Map<String, String>> metadata
-@param List<Map<String, String>> data
 @param String sortColumn
 @param String sortDirection
+@param SqlResult sqlResult
 
 <div class='sql-result'>
-    @if(!parameterValues.isEmpty())
+    @if(sqlResult.getSql().parameters() != null && !sqlResult.getSql().parameters().keySet().isEmpty())
         <div class='parameters'>
             <h4>Parameters:</h4>
             <ul>
-                @for(Map.Entry<String, String> entry : parameterValues.entrySet())
-                    <li>${entry.getKey()}: ${entry.getValue()}</li>
+                @for(Map.Entry<String, Object> entry : sqlResult.getSql().parameters().entrySet())
+                    <li>${entry.getKey()}: ${entry.getValue().toString()}</li>
                 @endfor
             </ul>
         </div>
@@ -29,23 +27,23 @@
                data-markdown-file="${markdownFileName}">
             <thead>
             <tr>
-                @for(Map<String, String> column : metadata)
-                    <th data-type='${column.get("type")}' data-column='${column.get("name")}' data-output-file="${outputFileName}"
+                @for(SqlResult.Metadata columnMetadata: sqlResult.getData().metadata())
+                    <th data-type='${columnMetadata.javaClass()}' data-column='${columnMetadata.name()}' data-output-file="${outputFileName}"
                         data-datasource="${datasourceName}" data-markdown-file="${markdownFileName}"
                         hx-post='/sortTable'
                         hx-trigger='click'
                         hx-target='closest div.sql-result'
                         hx-ext='json-enc'
-                        hx-vals='{"columnName": "${column.get("name")}",
-                                  "columnType": "${column.get("type")}",
+                        hx-vals='{"columnName": "${columnMetadata.name()}",
+                                  "columnType": "${columnMetadata.javaClass()}",
                                   "outputFileName": "${outputFileName}",
                                   "datasourceName": "${datasourceName}",
                                   "markdownFileName": "${markdownFileName}",
-                                  "sortDirection": "${column.get("name").equals(sortColumn) ? (sortDirection.equals("asc") ? "desc" : "asc") : "asc"}"
+                                  "sortDirection": "${columnMetadata.name().equals(sortColumn) ? (sortDirection.equals("asc") ? "desc" : "asc") : "asc"}"
                                  }'
                     >
-                        ${column.get("name")}
-                        @if(column.get("name").equals(sortColumn))
+                        ${columnMetadata.name()}
+                        @if(columnMetadata.name().equals(sortColumn))
                             <span class="sort-arrow">${sortDirection.equals("asc") ? "▲" : "▼"}</span>
                         @endif
                     </th>
@@ -53,17 +51,17 @@
             </tr>
             </thead>
             <tbody>
-            @for(Map<String, String> row : data)
+            @for(Map<String, Object> row : sqlResult.getData().rowData())
                 <tr>
-                    @for(Map<String, String> column : metadata)
-                        <td>${row.get(column.get("name"))}</td>
+                    @for(SqlResult.Metadata columnMetadata: sqlResult.getData().metadata())
+                        <td>${row.get(columnMetadata.name()).toString()}</td>
                     @endfor
                 </tr>
             @endfor
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="${metadata.size()}">
+                    <td colspan="${sqlResult.getData().metadata().size()}">
                         <button class="btn-blue-glow" onclick='downloadExcel("${outputFileName}")'>
                             <i class="fas fa-file-excel"></i> <!-- Download Excel -->
                         </button>
@@ -71,19 +69,11 @@
                                 hx-post='/reExecuteSql'
                                 hx-trigger='click'
                                 hx-ext='json-enc'
-                                hx-vals='{"sql": "${sqlText.replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"") }",
-                                               "datasourceName": "${datasourceName}",
+                                hx-vals='{"sql": "${sqlResult.getSql().sqlText().replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"") }",
+                                               "datasourceName": "${sqlResult.getDatasourceName()}",
                                                "outputFileName": "${outputFileName}",
                                                "markdownFileName": "${markdownFileName}",
-                                               "parameterValues":  {
-                                                    @for(var entry : ForSupport.of(parameterValues.entrySet()))
-                                                            @if(entry.getIndex() == 0)
-                                                             "${entry.get().getKey()}": "${entry.get().getValue()}"
-                                                         @else
-                                                             ", ${entry.get().getKey()}": "${entry.get().getValue()}"
-                                                         @endif
-                                                        @endfor
-                                                    }
+                                               "parameterValues":  {}
                                                }'
                                 hx-target='closest div.sql-result'
                                 hx-swap='outerHTML'>

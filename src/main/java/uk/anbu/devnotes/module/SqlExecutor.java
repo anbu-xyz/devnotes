@@ -148,7 +148,8 @@ public class SqlExecutor {
         JsonNode sqlNode = rootNode.get("sql");
         String sql = sqlNode.get("sqlText").asText();
         Map<String, Object> parameterValues = objectMapper.convertValue(sqlNode.get("parameterValues"),
-                new TypeReference<>() {});
+                new TypeReference<>() {
+                });
 
         String dataSourceName = rootNode.get("datasourceName").asText();
         ConfigService.DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
@@ -257,16 +258,19 @@ public class SqlExecutor {
             JsonNode metadataNode = rootNode.get("metadata");
             JsonNode dataNode = rootNode.get("data");
 
-            SqlResult sqlResult = getResult(metadataNode, dataNode);
+            SqlResult.Data sqlResult = getResult(metadataNode, dataNode);
 
             Map<String, Object> params = new HashMap<>();
-            params.put("sqlText", sqlText);
             params.put("outputFileName", outputPath.getFileName().toString());
             params.put("datasourceName", dataSourceName);
             params.put("markdownFileName", markdownFileName);
-            params.put("parameterValues", parameterValues);
-            params.put("metadata", sqlResult.metadata());
-            params.put("data", sqlResult.data());
+            params.put("sqlResult", SqlResult.builder()
+                    .sql(new SqlResult
+                            .Sql(sqlText, Map.of())) // TODO: populate parameters
+                    .datasourceName(dataSourceName)
+                    .hasMoreRows(false) // TODO
+                    .data(sqlResult)
+                    .build());
 
             StringOutput output = new StringOutput();
             templateEngine.render("sql-result-table.jte", params, output);
@@ -286,47 +290,56 @@ public class SqlExecutor {
 
         String previousSqlText = sqlNode.get("sqlText").asText();
         Map<String, String> previousParameterValues = objectMapper.convertValue(sqlNode.get("parameterValues"),
-                new TypeReference<>() {});
+                new TypeReference<>() {
+                });
 
-        SqlResult sqlResult = getResult(metadataNode, dataNode);
+        SqlResult.Data sqlResult = getResult(metadataNode, dataNode);
 
         Map<String, Object> params = new HashMap<>();
-        params.put("sqlText", previousSqlText);
         params.put("outputFileName", outputFileName);
         params.put("datasourceName", dataSourceName);
         params.put("markdownFileName", markdownFileName);
         params.put("parameterValues", previousParameterValues);
-        params.put("metadata", sqlResult.metadata());
-        params.put("data", sqlResult.data());
         params.put("sortColumn", sortColumn);
         params.put("sortDirection", sortDirection);
+        params.put("sqlResult", SqlResult.builder()
+                .sql(new SqlResult
+                        .Sql(previousSqlText, Map.of())) // TODO: populate parameters
+                        .datasourceName(dataSourceName)
+                        .hasMoreRows(false) // TODO
+                        .data(sqlResult)
+                .build());
 
         StringOutput output = new StringOutput();
         templateEngine.render("sql-result-table.jte", params, output);
         return output.toString();
     }
 
-    private static SqlResult getResult(JsonNode metadataNode, JsonNode dataNode) {
-        List<Map<String, String>> metadata = new ArrayList<>();
+    private static SqlResult.Data getResult(JsonNode metadataNode, JsonNode dataNode) {
+        List<SqlResult.Metadata> metadata = new ArrayList<>();
         for (JsonNode column : metadataNode) {
-            Map<String, String> columnInfo = new HashMap<>();
-            columnInfo.put("name", column.get("name").asText());
-            columnInfo.put("type", column.get("type").asText());
-            metadata.add(columnInfo);
+            metadata.add(new SqlResult.Metadata(column.get("name").asText(), column.get("type").asText()));
         }
 
-        List<Map<String, String>> data = new ArrayList<>();
+        List<Map<String, Object>> data = new ArrayList<>();
         for (JsonNode row : dataNode) {
-            Map<String, String> rowData = new HashMap<>();
-            for (JsonNode column : metadataNode) {
-                String columnName = column.get("name").asText();
-                rowData.put(columnName, row.get(columnName).asText());
+            Map<String, Object> rowData = new HashMap<>();
+            for (var colMeta : metadata) {
+                String columnName = colMeta.name();
+                String stringValue = row.get(columnName).textValue(); // default is to String
+                Object value = switch (colMeta.javaClass()) {
+                    case "java.lang.Integer" -> row.get(columnName).intValue();
+                    case "java.lang.Long" -> row.get(columnName).longValue();
+                    case "java.lang.Double" -> row.get(columnName).doubleValue();
+//                    case "java.sql.Date" -> java.sql.Date.valueOf(row.get(columnName).toString());
+                    case "java.math.BigDecimal" -> new java.math.BigDecimal(row.get(columnName).toString());
+                    default -> stringValue;
+                };
+                rowData.put(columnName, value);
             }
             data.add(rowData);
         }
-        return new SqlResult(metadata, data);
+        return new SqlResult.Data(metadata, data);
     }
 
-    private record SqlResult(List<Map<String, String>> metadata, List<Map<String, String>> data) {
-    }
 }
