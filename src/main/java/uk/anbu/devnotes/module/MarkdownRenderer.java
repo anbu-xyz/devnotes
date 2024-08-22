@@ -46,7 +46,6 @@ public class MarkdownRenderer {
         this.dataSourceConfigResolver = dataSourceConfigResolver;
     }
 
-
     public String convertMarkdown(String markdown, String fileNameWithRelativePath) {
         List<Extension> extensions = List.of(TablesExtension.create());
         Parser parser = Parser.builder()
@@ -83,7 +82,7 @@ public class MarkdownRenderer {
         }
 
         if (node instanceof FencedCodeBlock) {
-            processFencedCodeBlock((FencedCodeBlock) node, fileNameWithRelativePath, dataSourceConfigResolver);
+            processFencedCodeBlock((FencedCodeBlock) node, fileNameWithRelativePath);
         }
 
         // Process siblings
@@ -96,13 +95,12 @@ public class MarkdownRenderer {
         }
     }
 
-    private void processFencedCodeBlock(FencedCodeBlock codeBlock, String fileNameWithRelativePath, 
-                                        Function<String, DataSourceConfig> dataSourceConfigResolver) {
+    private void processFencedCodeBlock(FencedCodeBlock codeBlock, String fileNameWithRelativePath) {
         String codeType = codeBlock.getInfo();
         if (codeType.matches("^groovy:([^:]+)$")) {
             renderGroovyResult(codeBlock, fileNameWithRelativePath, codeType);
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
-            renderSqlResult(codeBlock, fileNameWithRelativePath, dataSourceConfigResolver, codeType);
+            renderSqlResult(codeBlock, fileNameWithRelativePath, codeType);
         }
     }
 
@@ -116,8 +114,7 @@ public class MarkdownRenderer {
         codeBlock.setInfo("hidden-groovy");
     }
 
-    private void renderSqlResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, 
-                                 Function<String, DataSourceConfig> dataSourceConfigResolver, String codeType) {
+    private void renderSqlResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, String codeType) {
         String dataSourceName = codeType.substring(4, codeType.length() - 1);
         String sql = codeBlock.getLiteral();
         Node node;
