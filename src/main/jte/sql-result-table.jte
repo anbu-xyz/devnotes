@@ -60,7 +60,7 @@
             <tfoot>
                 <tr>
                     <td colspan="${sqlResult.getData().metadata().size()}">
-                        <button class="btn-blue-glow" onclick='downloadExcel("${outputFileName}")'>
+                        <button class="btn-blue-glow" onclick='downloadExcel("${outputFileName}", "${markdownFileName}")'>
                             <i class="fas fa-file-excel"></i> <!-- Download Excel -->
                         </button>
                         <button class='btn-blue-glow'

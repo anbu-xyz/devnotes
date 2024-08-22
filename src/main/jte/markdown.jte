@@ -29,8 +29,8 @@
 <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
 <script src="/js/edit.js"></script>
 <script>
-    function downloadExcel(fileName) {
-        window.location.href = '/downloadExcel?fileName=' + fileName;
+    function downloadExcel(outputFileName, markdownFileName) {
+        window.location.href = '/downloadExcel?outputFileName=' + outputFileName + '&markdownFileName=' + markdownFileName;
     }
 
     function sortTable(table, column, dataType, outputFile, datasource, markdownFile) {

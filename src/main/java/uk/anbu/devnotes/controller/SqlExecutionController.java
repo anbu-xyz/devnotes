@@ -60,10 +60,10 @@ public class SqlExecutionController {
     }
 
     @GetMapping("/downloadExcel")
-    public ResponseEntity<Resource> downloadExcel(@RequestParam String fileName) {
+    public ResponseEntity<Resource> downloadExcel(@RequestParam String outputFileName, @RequestParam String markdownFileName) {
         File outputFile;
         try {
-            outputFile = sqlExecutor.getResourceResponseEntity(fileName);
+            outputFile = sqlExecutor.getResourceResponseEntity(outputFileName, markdownFileName);
             FileSystemResource resource = new FileSystemResource(outputFile);
 
             return ResponseEntity.ok()

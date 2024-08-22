@@ -154,8 +154,9 @@ public class SqlExecutor {
         return new NamedParameterJdbcTemplate(jdbcTemplate);
     }
 
-    public File getResourceResponseEntity(String fileName) throws IOException {
-        Path outputPath = Paths.get(configService.getDocsDirectory()).resolve(fileName);
+    public File getResourceResponseEntity(String fileName, String markdownFileName) throws IOException {
+        Path markdownFileDirectory = Paths.get(configService.getDocsDirectory()).resolve(markdownFileName).getParent();
+        Path outputPath = Paths.get(markdownFileDirectory.toString(), fileName);
         JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
 
         JsonNode sqlNode = rootNode.get("sql");
