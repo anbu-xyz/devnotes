@@ -11,6 +11,7 @@
     <link rel="stylesheet" type="text/css" href="/css/style.css">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/json-enc.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <title>${data.get("filename")}</title>
 </head>
 <body class="p-8">
