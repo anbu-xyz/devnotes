@@ -68,6 +68,7 @@ public class SqlExecutor {
         final Integer[] rowCount = {0};
         final Integer[] columnCount = {0};
         final List<String> columnNames = new ArrayList<>();
+        final Boolean[] hasReachedMaxRows = {false};
         try (FileWriter writer = new FileWriter(outputPath.toFile())) {
             JsonGenerator jsonGenerator = objectMapper.getFactory().createGenerator(writer);
             startOutermostObject(jsonGenerator);
@@ -86,6 +87,11 @@ public class SqlExecutor {
 
             jdbcTemplate.query(sql, parameterSource, (rs) -> {
                 try {
+                    if (rowCount[0] + 1 > configService.getSqlMaxRows()) {
+                        log.info("Reached max rows, stopping SQL query");
+                        hasReachedMaxRows[0] = true;
+                        return;
+                    }
                     rowCount[0]++;
                     if (rowCount[0] == 1) {
                         ResultSetMetaData metaData = rs.getMetaData();
@@ -100,6 +106,7 @@ public class SqlExecutor {
                 }
             });
             jsonGenerator.writeEndArray();
+            jsonGenerator.writeBooleanField("hasReachedMaxRows", hasReachedMaxRows[0]);
             endOutermostObject(jsonGenerator);
             jsonGenerator.close();
         } catch (Exception e) {
@@ -132,7 +139,7 @@ public class SqlExecutor {
         }
     }
 
-    private static NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(ConfigService.DataSourceConfig dataSourceConfig) {
+    private NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(ConfigService.DataSourceConfig dataSourceConfig) {
 
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(dataSourceConfig.driverClassName());
@@ -142,6 +149,7 @@ public class SqlExecutor {
 
         var jdbcTemplate = new JdbcTemplate(dataSource);
         jdbcTemplate.setFetchSize(500);
+        jdbcTemplate.setMaxRows(configService.getSqlMaxRows() + 1);
 
         return new NamedParameterJdbcTemplate(jdbcTemplate);
     }
