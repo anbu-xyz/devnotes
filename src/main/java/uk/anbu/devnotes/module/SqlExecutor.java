@@ -58,7 +58,6 @@ public class SqlExecutor {
     private final TemplateEngine templateEngine;
     private final ConfigService configService;
 
-
     public Path renderResultAsJsonFile(JsonGenerationRequest request) {
         var jdbcTemplate = getNamedParameterJdbcTemplate(request.dataSourceConfig());
 
@@ -278,23 +277,14 @@ public class SqlExecutor {
 
     public String convertToHtmlTable(HtmlTableRequest request) {
         try {
-            JsonNode rootNode = objectMapper.readTree(request.outputPath().toFile());
-            JsonNode metadataNode = rootNode.get("metadata");
-            JsonNode dataNode = rootNode.get("data");
 
-            SqlResult.Data sqlResult = getResult(metadataNode, dataNode);
+            SqlResult sqlResult = getResult(request);
 
             Map<String, Object> params = new HashMap<>();
             params.put("outputFileName", request.outputPath().getFileName().toString());
             params.put("datasourceName", request.dataSourceName());
             params.put("markdownFileName", request.markdownFileName());
-            params.put("sqlResult", SqlResult.builder()
-                    .sql(new SqlResult
-                            .Sql(request.sqlText(), Map.of())) // TODO: populate parameters
-                    .datasourceName(request.dataSourceName())
-                    .hasMoreRows(false) // TODO
-                    .data(sqlResult)
-                    .build());
+            params.put("sqlResult", sqlResult);
 
             StringOutput output = new StringOutput();
             templateEngine.render("sql-result-table.jte", params, output);
@@ -307,17 +297,19 @@ public class SqlExecutor {
     }
 
     public String convertToHtmlTable(JsonNode rootNode, String dataSourceName, String markdownFileName,
-                                     String outputFileName, String sortColumn, String sortDirection) {
-        JsonNode metadataNode = rootNode.get("metadata");
-        JsonNode dataNode = rootNode.get("data");
+                                     String outputFileName, String sortColumn, String sortDirection) throws IOException {
         JsonNode sqlNode = rootNode.get("sql");
-
         String previousSqlText = sqlNode.get("sqlText").asText();
+
         Map<String, String> previousParameterValues = objectMapper.convertValue(sqlNode.get("parameterValues"),
                 new TypeReference<>() {
                 });
 
-        SqlResult.Data sqlResult = getResult(metadataNode, dataNode);
+        var outputPath = Path.of(configService.getDocsDirectory()).resolve(markdownFileName).getParent()
+                .resolve(outputFileName);
+        HtmlTableRequest request = new HtmlTableRequest(previousSqlText, outputPath, previousParameterValues,
+                dataSourceName, markdownFileName);
+        SqlResult sqlResult = getResult(request);
 
         Map<String, Object> params = new HashMap<>();
         params.put("outputFileName", outputFileName);
@@ -326,22 +318,23 @@ public class SqlExecutor {
         params.put("parameterValues", previousParameterValues);
         params.put("sortColumn", sortColumn);
         params.put("sortDirection", sortDirection);
-        params.put("sqlResult", SqlResult.builder()
-                .sql(new SqlResult
-                        .Sql(previousSqlText, Map.of())) // TODO: populate parameters
-                        .datasourceName(dataSourceName)
-                        .hasMoreRows(false) // TODO
-                        .data(sqlResult)
-                .build());
+        params.put("sqlResult", sqlResult);
 
         StringOutput output = new StringOutput();
         templateEngine.render("sql-result-table.jte", params, output);
         return output.toString();
     }
 
-    static String humanReadableNumber(Number value) {
+    public record HumanReadableNumber(String value) {
+        @Override
+        public String toString() {
+            return value;
+        }
+    }
+
+    static HumanReadableNumber humanReadableNumber(Number value) {
         if (value == null) {
-            return "(null)";
+            return new HumanReadableNumber("(null)");
         }
 
         // Convert the number to BigDecimal to handle all types of numbers
@@ -375,10 +368,18 @@ public class SqlExecutor {
             formattedNumber = sb.toString();
         }
 
-        return formattedNumber;
+        return new HumanReadableNumber(formattedNumber);
     }
 
-    private static SqlResult.Data getResult(JsonNode metadataNode, JsonNode dataNode) {
+    SqlResult getResult(HtmlTableRequest request) throws IOException {
+        JsonNode rootNode = objectMapper.readTree(request.outputPath().toFile());
+        JsonNode metadataNode = rootNode.get("metadata");
+        JsonNode dataNode = rootNode.get("data");
+        JsonNode sqlNode = rootNode.get("sql");
+
+        String sql = sqlNode.get("sqlText").asText();
+        Map<String, Object> parameterValues = objectMapper.convertValue(sqlNode.get("parameterValues"), new TypeReference<>() {});
+
         List<SqlResult.Metadata> metadata = new ArrayList<>();
         for (JsonNode column : metadataNode) {
             metadata.add(new SqlResult.Metadata(column.get("name").asText(), column.get("type").asText()));
@@ -389,26 +390,30 @@ public class SqlExecutor {
             Map<String, Object> rowData = new HashMap<>();
             for (var colMeta : metadata) {
                 String columnName = colMeta.name();
-                String stringValue = row.get(columnName).textValue(); // default is to String
+                JsonNode valueNode = row.get(columnName);
                 Object value;
-                if (row.get(columnName).isNull()) {
-                     value = "(null)";
+                if (valueNode.isNull()) {
+                    value = "(null)";
                 } else {
                     value = switch (colMeta.javaClass()) {
-                        case "java.lang.Integer" -> humanReadableNumber(row.get(columnName).intValue());
-                        case "java.lang.Long" -> humanReadableNumber(row.get(columnName).longValue());
-                        case "java.lang.Double" -> humanReadableNumber(row.get(columnName).doubleValue());
-//                    case "java.sql.Date" -> java.sql.Date.valueOf(row.get(columnName).toString());
-                        case "java.math.BigDecimal" ->
-                                humanReadableNumber(new java.math.BigDecimal(row.get(columnName).toString()));
-                        default -> stringValue == null ? "(null)" : stringValue;
+                        case "java.lang.Integer", "java.lang.Long", "java.lang.Double", "java.math.BigDecimal" ->
+                                humanReadableNumber(new BigDecimal(valueNode.asText()));
+                        default -> valueNode.asText();
                     };
                 }
                 rowData.put(columnName, value);
             }
             data.add(rowData);
         }
-        return new SqlResult.Data(metadata, data);
+
+        boolean hasReachedMaxRows = rootNode.has("hasReachedMaxRows") && rootNode.get("hasReachedMaxRows").asBoolean();
+
+        return SqlResult.builder()
+                .sql(new SqlResult.Sql(sql, parameterValues))
+                .datasourceName(rootNode.get("datasourceName").asText())
+                .hasReachedMaxRows(hasReachedMaxRows)
+                .data(new SqlResult.Data(metadata, data))
+                .build();
     }
 
     public static List<Map<String, Object>> sortData(List<Map<String, Object>> data, String columnName, String columnType,

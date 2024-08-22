@@ -59,7 +59,14 @@
             @for(Map<String, Object> row : sqlResult.getData().rowData())
                 <tr>
                     @for(SqlResult.Metadata columnMetadata: sqlResult.getData().metadata())
-                        <td>${row.get(columnMetadata.name()).toString()}</td>
+                        @if(columnMetadata.javaClass().equals("java.lang.Integer")
+                               || columnMetadata.javaClass().equals("java.lang.Long")
+                               || columnMetadata.javaClass().equals("java.lang.Double")
+                               || columnMetadata.javaClass().equals("java.math.BigDecimal"))
+                            <td style="text-align: right">${row.get(columnMetadata.name()).toString()}</td>
+                        @else
+                            <td>${row.get(columnMetadata.name()).toString()}</td>
+                        @endif
                     @endfor
                 </tr>
             @endfor
@@ -70,7 +77,7 @@
                         <span>
                             @if(sqlResult.getRowCount() > 0)
                                 ${sqlResult.getRowCount()} rows
-                                @if (sqlResult.hasMoreRows())
+                                @if (sqlResult.hasReachedMaxRows())
                                     (truncated)
                                 @endif
                             @endif

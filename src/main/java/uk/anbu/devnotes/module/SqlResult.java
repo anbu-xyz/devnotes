@@ -11,7 +11,7 @@ import java.util.Map;
 public class SqlResult {
     private Sql sql;
     private String datasourceName;
-    private boolean hasMoreRows;
+    private boolean hasReachedMaxRows;
     private Data data;
 
     public record Sql(String sqlText, Map<String, Object> parameters) {
@@ -24,8 +24,8 @@ public class SqlResult {
         return data.rowData().size();
     }
 
-    public boolean hasMoreRows() {
-        return hasMoreRows;
+    public boolean hasReachedMaxRows() {
+        return hasReachedMaxRows;
     }
 
 }
