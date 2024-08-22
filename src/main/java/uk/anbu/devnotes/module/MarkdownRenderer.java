@@ -1,6 +1,5 @@
 package uk.anbu.devnotes.module;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.Extension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
@@ -13,8 +12,7 @@ import org.commonmark.node.Text;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.HtmlRenderer;
-import org.springframework.stereotype.Component;
-import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.service.DataSourceConfig;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -26,17 +24,28 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
-@Component
-@RequiredArgsConstructor
 public class MarkdownRenderer {
 
-    private final ConfigService configService;
-    private final SqlExecutor sqlExecutor;
-    private final GroovyExecutor groovyExecutor;
+    private final Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver;
+    private final Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver;
+    private final Function<GroovyExecutor.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver;
+    private final Function<String, DataSourceConfig> dataSourceConfigResolver;
+
+    public MarkdownRenderer(Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver,
+                            Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver,
+                            Function<GroovyExecutor.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver,
+                            Function<String, DataSourceConfig> dataSourceConfigResolver) {
+        this.sqlToJsonFileResolver = sqlToJsonFileResolver;
+        this.sqlToHtmlTableResolver = sqlToHtmlTableResolver;
+        this.groovyCodeBlockResolver = groovyCodeBlockResolver;
+        this.dataSourceConfigResolver = dataSourceConfigResolver;
+    }
+
 
     public String convertMarkdown(String markdown, String fileNameWithRelativePath) {
         List<Extension> extensions = List.of(TablesExtension.create());
@@ -74,7 +83,7 @@ public class MarkdownRenderer {
         }
 
         if (node instanceof FencedCodeBlock) {
-            processFencedCodeBlock((FencedCodeBlock) node, fileNameWithRelativePath);
+            processFencedCodeBlock((FencedCodeBlock) node, fileNameWithRelativePath, dataSourceConfigResolver);
         }
 
         // Process siblings
@@ -87,28 +96,42 @@ public class MarkdownRenderer {
         }
     }
 
-    private void processFencedCodeBlock(FencedCodeBlock codeBlock, String fileNameWithRelativePath) {
+    private void processFencedCodeBlock(FencedCodeBlock codeBlock, String fileNameWithRelativePath, 
+                                        Function<String, DataSourceConfig> dataSourceConfigResolver) {
         String codeType = codeBlock.getInfo();
         if (codeType.matches("^groovy:([^:]+)$")) {
-            String targetType = codeType.substring(7);
-            String groovyScript = codeBlock.getLiteral();
-            var node = groovyExecutor.processGroovyCodeBlock(groovyScript, targetType, fileNameWithRelativePath);
-            codeBlock.insertAfter(node);
-            codeBlock.setInfo("hidden-groovy");
+            renderGroovyResult(codeBlock, fileNameWithRelativePath, codeType);
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
-            String dataSourceName = codeType.substring(4, codeType.length() - 1);
-            String sql = codeBlock.getLiteral();
-            var node = processSqlCodeBlock(sql, dataSourceName, fileNameWithRelativePath);
-            codeBlock.insertAfter(node);
-            codeBlock.setInfo("hidden-sql");
+            renderSqlResult(codeBlock, fileNameWithRelativePath, dataSourceConfigResolver, codeType);
         }
     }
 
-    private Node processSqlCodeBlock(String sql, String dataSourceName, String fileNameWithRelativePath) {
-        ConfigService.DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
+    private void renderGroovyResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, String codeType) {
+        String targetType = codeType.substring(7);
+        String groovyScript = codeBlock.getLiteral();
+        var groovyCodeBlockRequest = new GroovyExecutor.GroovyCodeBlockRequest(groovyScript, targetType,
+                fileNameWithRelativePath);
+        var node = groovyCodeBlockResolver.apply(groovyCodeBlockRequest);
+        codeBlock.insertAfter(node);
+        codeBlock.setInfo("hidden-groovy");
+    }
+
+    private void renderSqlResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, 
+                                 Function<String, DataSourceConfig> dataSourceConfigResolver, String codeType) {
+        String dataSourceName = codeType.substring(4, codeType.length() - 1);
+        String sql = codeBlock.getLiteral();
+        Node node;
+        var dataSourceConfig = dataSourceConfigResolver.apply(dataSourceName);
         if (dataSourceConfig == null) {
-            return new Text("Error: DataSource '" + dataSourceName + "' not found.");
+            node = new Text("Error: DataSource '" + dataSourceName + "' not defined in config.");
+        } else {
+            node = processSqlCodeBlock(sql, dataSourceConfig, fileNameWithRelativePath);
         }
+        codeBlock.insertAfter(node);
+        codeBlock.setInfo("hidden-sql");
+    }
+
+    private Node processSqlCodeBlock(String sql, DataSourceConfig dataSourceConfig, String fileNameWithRelativePath) {
 
         List<String> parameterNames = extractParameterNames(sql);
         Map<String, String> parameterValues = new LinkedHashMap<>();
@@ -121,10 +144,12 @@ public class MarkdownRenderer {
             }
         }
 
-        var outputPath = sqlExecutor.executeSqlAndSaveOutput(dataSourceConfig, sql,
-                parameterValues, fileNameWithRelativePath);
+        var request = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, sql, parameterValues,
+                fileNameWithRelativePath);
+        var outputPath = sqlToJsonFileResolver.apply(request);
 
-        return renderSqlResultTable(sql, outputPath, parameterValues, dataSourceName, fileNameWithRelativePath);
+        return renderSqlResultTable(sql, outputPath, parameterValues, dataSourceConfig.name(),
+                fileNameWithRelativePath);
     }
 
     private List<String> extractParameterNames(String sql) {
@@ -139,7 +164,8 @@ public class MarkdownRenderer {
 
     private Node renderSqlResultTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
                                       String dataSourceName, String markdownFileName) {
-        String tableString = sqlExecutor.convertToHtmlTable(sqlText, outputPath, parameterValues, dataSourceName, markdownFileName);
+        var request = new SqlExecutor.HtmlTableRequest(sqlText, outputPath, parameterValues, dataSourceName, markdownFileName);
+        String tableString = sqlToHtmlTableResolver.apply(request);
         HtmlBlock htmlBlock = new HtmlBlock();
         htmlBlock.setLiteral(tableString);
         return htmlBlock;

@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Component;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.service.DataSourceConfig;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -57,15 +58,15 @@ public class SqlExecutor {
     private final TemplateEngine templateEngine;
     private final ConfigService configService;
 
-    public Path executeSqlAndSaveOutput(ConfigService.DataSourceConfig config, String sql,
-                                        Map<String, String> parameterValues, String markdownFilePath) {
-        var jdbcTemplate = getNamedParameterJdbcTemplate(config);
+
+    public Path renderResultAsJsonFile(JsonGenerationRequest request) {
+        var jdbcTemplate = getNamedParameterJdbcTemplate(request.dataSourceConfig());
 
         String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
-                markdownFilePath, sql + parameterValues.toString());
+                request.markdownFilePath(), request.sql() + request.parameterValues().toString());
         Path outputPath = Paths.get(outputFileName);
 
-        SqlParameterSource parameterSource = new MapSqlParameterSource(parameterValues);
+        SqlParameterSource parameterSource = new MapSqlParameterSource(request.parameterValues());
 
         final Integer[] rowCount = {0};
         final Integer[] columnCount = {0};
@@ -77,17 +78,17 @@ public class SqlExecutor {
 
             // Write SQL information
             jsonGenerator.writeObjectFieldStart("sql");
-            jsonGenerator.writeStringField("sqlText", sql);
+            jsonGenerator.writeStringField("sqlText", request.sql());
             jsonGenerator.writeObjectFieldStart("parameterValues");
-            for (Map.Entry<String, String> entry : parameterValues.entrySet()) {
+            for (Map.Entry<String, String> entry : request.parameterValues().entrySet()) {
                 jsonGenerator.writeStringField(entry.getKey(), entry.getValue());
             }
             jsonGenerator.writeEndObject(); // end parameterValues
             jsonGenerator.writeEndObject(); // end sql
 
-            jsonGenerator.writeStringField("datasourceName", config.name());
+            jsonGenerator.writeStringField("datasourceName", request.dataSourceConfig().name());
 
-            jdbcTemplate.query(sql, parameterSource, (rs) -> {
+            jdbcTemplate.query(request.sql(), parameterSource, (rs) -> {
                 try {
                     if (rowCount[0] + 1 > configService.getSqlMaxRows()) {
                         log.info("Reached max rows, stopping SQL query");
@@ -141,7 +142,7 @@ public class SqlExecutor {
         }
     }
 
-    private NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(ConfigService.DataSourceConfig dataSourceConfig) {
+    private NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(DataSourceConfig dataSourceConfig) {
 
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(dataSourceConfig.driverClassName());
@@ -168,7 +169,7 @@ public class SqlExecutor {
                 });
 
         String dataSourceName = rootNode.get("datasourceName").asText();
-        ConfigService.DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
+        DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
 
         NamedParameterJdbcTemplate jdbcTemplate = getNamedParameterJdbcTemplate(dataSourceConfig);
 
@@ -275,23 +276,22 @@ public class SqlExecutor {
         jsonGenerator.writeEndArray();
     }
 
-    public String convertToHtmlTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
-                                     String dataSourceName, String markdownFileName) {
+    public String convertToHtmlTable(HtmlTableRequest request) {
         try {
-            JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
+            JsonNode rootNode = objectMapper.readTree(request.outputPath().toFile());
             JsonNode metadataNode = rootNode.get("metadata");
             JsonNode dataNode = rootNode.get("data");
 
             SqlResult.Data sqlResult = getResult(metadataNode, dataNode);
 
             Map<String, Object> params = new HashMap<>();
-            params.put("outputFileName", outputPath.getFileName().toString());
-            params.put("datasourceName", dataSourceName);
-            params.put("markdownFileName", markdownFileName);
+            params.put("outputFileName", request.outputPath().getFileName().toString());
+            params.put("datasourceName", request.dataSourceName());
+            params.put("markdownFileName", request.markdownFileName());
             params.put("sqlResult", SqlResult.builder()
                     .sql(new SqlResult
-                            .Sql(sqlText, Map.of())) // TODO: populate parameters
-                    .datasourceName(dataSourceName)
+                            .Sql(request.sqlText(), Map.of())) // TODO: populate parameters
+                    .datasourceName(request.dataSourceName())
                     .hasMoreRows(false) // TODO
                     .data(sqlResult)
                     .build());
@@ -451,5 +451,9 @@ public class SqlExecutor {
         }
     }
 
+    public record JsonGenerationRequest(DataSourceConfig dataSourceConfig, String sql,
+                                        Map<String, String> parameterValues, String markdownFilePath) {}
 
+    public record HtmlTableRequest(String sqlText, Path outputPath, Map<String, String> parameterValues,
+                                   String dataSourceName, String markdownFileName) {}
 }

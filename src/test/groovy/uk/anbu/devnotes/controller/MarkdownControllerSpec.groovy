@@ -3,12 +3,14 @@ package uk.anbu.devnotes.controller
 import gg.jte.ContentType
 import gg.jte.TemplateEngine
 import gg.jte.resolve.DirectoryCodeResolver
+import org.commonmark.node.Text
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
 import org.springframework.http.HttpStatus
 import spock.lang.Specification
 import uk.anbu.devnotes.module.MarkdownRenderer
 import uk.anbu.devnotes.service.ConfigService
+import uk.anbu.devnotes.service.DataSourceConfig
 
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -19,9 +21,17 @@ class MarkdownControllerSpec extends Specification {
     MarkdownRenderer markdownRenderer
     TemplateEngine templateEngine
     ConfigService configService
+    def sqlToJsonFileResolver, sqlToHtmlTableResolver, groovyCodeBlockResolver, dataSourceConfigResolver
 
     def setup() {
-        markdownRenderer = new MarkdownRenderer()
+        sqlToJsonFileResolver = x -> Paths.get("src/test/resources/sql-result.json")
+        sqlToHtmlTableResolver = x -> "html-table"
+        groovyCodeBlockResolver = x -> new Text("groovy-code-block")
+        dataSourceConfigResolver = x -> new DataSourceConfig("testDB", "jdbc:test:url", "testUser", "testPass", "org.test.Driver")
+        markdownRenderer = new MarkdownRenderer(sqlToJsonFileResolver,
+                sqlToHtmlTableResolver,
+                groovyCodeBlockResolver,
+                dataSourceConfigResolver)
         var codeResolver = new DirectoryCodeResolver(Paths.get("src/main/jte"))
         templateEngine =  TemplateEngine.create(codeResolver, Paths.get("src/main/jte"), ContentType.Html)
         configService = Mock(ConfigService)

@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.service.DataSourceConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +38,7 @@ public class JdbcDatabaseController {
 
     @PostMapping("/database/fetch-metadata")
     public ResponseEntity<String> fetchDatabaseMetadata(@RequestParam String configName, @RequestParam String targetName) {
-        ConfigService.DataSourceConfig config = configService.getDataSourceConfig(configName);
+        DataSourceConfig config = configService.getDataSourceConfig(configName);
         if (config == null) {
             return ResponseEntity.badRequest().body("Invalid datasource configuration name");
         }
@@ -52,7 +53,7 @@ public class JdbcDatabaseController {
         }
     }
 
-    private Map<String, Object> fetchMetadata(ConfigService.DataSourceConfig config) throws SQLException {
+    private Map<String, Object> fetchMetadata(DataSourceConfig config) throws SQLException {
         Map<String, Object> metadata = new HashMap<>();
         try (Connection conn = DriverManager.getConnection(config.url(), config.username(), config.password())) {
             DatabaseMetaData dbMetaData = conn.getMetaData();

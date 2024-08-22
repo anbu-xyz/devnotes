@@ -19,13 +19,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.service.DataSourceConfig;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -43,18 +42,20 @@ public class SqlExecutionController {
     @PostMapping(value = "/reExecuteSql", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> reExecuteSql(@RequestBody SqlExecutionRequest request) {
         String dataSourceName = request.getDatasourceName();
-        ConfigService.DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
+        DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
 
         if (dataSourceConfig == null) {
             log.error("Invalid datasource name: {}", dataSourceName);
             return ResponseEntity.badRequest().body("Invalid datasource name:" + dataSourceName);
         }
 
-        var outputPath = sqlExecutor.executeSqlAndSaveOutput(dataSourceConfig, request.getSql(),
+        var jsonGenerationRequest = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, request.getSql(),
                 request.getParameterValues(), request.getMarkdownFileName());
+        var outputPath = sqlExecutor.renderResultAsJsonFile(jsonGenerationRequest);
 
-        String htmlTable = sqlExecutor.convertToHtmlTable(request.getSql(), outputPath,
+        var htmlGenerationRequest = new SqlExecutor.HtmlTableRequest(request.getSql(), outputPath,
                 request.getParameterValues(), request.getDatasourceName(), request.getMarkdownFileName());
+        String htmlTable = sqlExecutor.convertToHtmlTable(htmlGenerationRequest);
 
         return ResponseEntity.ok(htmlTable);
     }

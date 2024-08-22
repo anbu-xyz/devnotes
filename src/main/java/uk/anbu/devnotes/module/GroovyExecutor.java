@@ -24,9 +24,9 @@ import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 public class GroovyExecutor {
     private final ConfigService configService;
 
-    public Node processGroovyCodeBlock(String groovyScript, String targetType, String fileNameWithRelativePath) {
+    public Node processGroovyCodeBlock(GroovyCodeBlockRequest request) {
         String docsDirectory = configService.getDocsDirectory();
-        String outputFileName = generateOutputFileName(docsDirectory, fileNameWithRelativePath, groovyScript);
+        String outputFileName = generateOutputFileName(docsDirectory, request.fileNameWithRelativePath, request.groovyScript);
         Path outputPath = Paths.get(outputFileName);
 
         String output;
@@ -41,27 +41,27 @@ public class GroovyExecutor {
             }
         } else {
             // If the output file doesn't exist, execute the Groovy script and save the output
-            output = executeGroovyScript(groovyScript);
+            output = executeGroovyScript(request.groovyScript);
             saveOutput(outputFileName, output);
         }
 
         // Replace the code block with the output
-        if ("html".equals(targetType)) {
+        if ("html".equals(request.targetType)) {
             HtmlBlock htmlBlock = new HtmlBlock();
             htmlBlock.setLiteral(output);
             return htmlBlock;
-        } else if ("text".equals(targetType)) {
+        } else if ("text".equals(request.targetType)) {
             return new Text(output);
-        } else if ("code-block".equals(targetType)) {
+        } else if ("code-block".equals(request.targetType)) {
             FencedCodeBlock fencedCodeBlock = new FencedCodeBlock();
             fencedCodeBlock.setInfo("text");
             fencedCodeBlock.setLiteral(output);
             return fencedCodeBlock;
-        } else if ("csv-table".equals(targetType) || "csv-table-with-header".equals(targetType)) {
-            return csvToHtmlTable(targetType, output);
+        } else if ("csv-table".equals(request.targetType) || "csv-table-with-header".equals(request.targetType)) {
+            return csvToHtmlTable(request.targetType, output);
         } else {
             return new Text(String.format("Error: Unknown target type '%s', use target type 'html', 'text', " +
-                    "'code-block', 'csv-table' or 'csv-table-with-header'", targetType));
+                    "'code-block', 'csv-table' or 'csv-table-with-header'", request.targetType));
         }
     }
 
@@ -114,4 +114,5 @@ public class GroovyExecutor {
         }
     }
 
+    public record GroovyCodeBlockRequest(String groovyScript, String targetType, String fileNameWithRelativePath) {}
 }

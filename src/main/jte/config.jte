@@ -1,4 +1,4 @@
-@import uk.anbu.devnotes.service.ConfigService.DataSourceConfig
+@import uk.anbu.devnotes.service.DataSourceConfig
 @import java.util.Map
 
 @param String markdownDirectory
