@@ -35,6 +35,7 @@ import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
@@ -390,5 +391,46 @@ public class SqlExecutor {
         }
         return new SqlResult.Data(metadata, data);
     }
+
+    public static List<Map<String, Object>> sortData(List<Map<String, Object>> data, String columnName, String columnType,
+                                              String sortDirection) {
+
+        data.sort((a, b) -> {
+            int comparison = compare(a.get(columnName), b.get(columnName), columnType);
+            return sortDirection.equals("desc") ? -comparison : comparison;
+        });
+        return data;
+    }
+
+    private static int compare(Object a, Object b, String dataType) {
+        if (a == null || b == null) {
+            return a == null ? (b == null ? 0 : -1) : 1;
+        }
+        switch (dataType) {
+            case "java.lang.Integer":
+                var intA = Integer.parseInt(a.toString());
+                var intB = Integer.parseInt(b.toString());
+                return Integer.compare(intA, intB);
+            case "java.lang.Long":
+                var longA = Long.parseLong(a.toString());
+                var longB = Long.parseLong(b.toString());
+                return Long.compare(longA, longB);
+            case "java.lang.Double":
+                var doubleA = Double.parseDouble(a.toString());
+                var doubleB = Double.parseDouble(b.toString());
+                return Double.compare(doubleA, doubleB);
+            case "java.math.BigDecimal":
+                var decimalA = new BigDecimal(a.toString());
+                var decimalB = new BigDecimal(b.toString());
+                return decimalA.compareTo(decimalB);
+            case "java.sql.Timestamp":
+                var timestampA = Timestamp.valueOf(a.toString());
+                var timestampB = Timestamp.valueOf(b.toString());
+                return timestampA.compareTo(timestampB);
+            default:
+                return a.toString().compareTo(b.toString());
+        }
+    }
+
 
 }

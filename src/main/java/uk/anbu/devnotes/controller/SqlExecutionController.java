@@ -22,6 +22,7 @@ import uk.anbu.devnotes.service.ConfigService;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
@@ -87,17 +88,18 @@ public class SqlExecutionController {
             JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
             JsonNode dataNode = rootNode.get("data");
 
+            var columnName = request.getColumnName();
+            var columnType = request.getColumnType();
+            var sortDirection = request.getSortDirection();
+
             List<Map<String, Object>> data = new ArrayList<>();
             for (JsonNode row : dataNode) {
                 Map<String, Object> rowData = new HashMap<>();
-                row.fields().forEachRemaining(entry -> rowData.put(entry.getKey(), entry.getValue()));
+                row.fields().forEachRemaining(entry -> rowData.put(entry.getKey(), entry.getValue().isNull() ? null : entry.getValue()));
                 data.add(rowData);
             }
 
-            data.sort((a, b) -> {
-                int comparison = compare(a.get(request.getColumnName()), b.get(request.getColumnName()), request.getColumnType());
-                return request.getSortDirection().equals("desc") ? -comparison : comparison;
-            });
+            sqlExecutor.sortData(data, columnName, columnType, sortDirection);
 
             // Convert sorted data back to JSON
             ArrayNode sortedDataNode = objectMapper.createArrayNode();
@@ -117,32 +119,6 @@ public class SqlExecutionController {
         } catch (IOException e) {
             log.error("Error sorting table", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error sorting table");
-        }
-    }
-
-    private int compare(Object a, Object b, String dataType) {
-        if (a == null || b == null) {
-            return a == null ? (b == null ? 0 : -1) : 1;
-        }
-        switch (dataType) {
-            case "java.lang.Integer":
-                var intA = Integer.parseInt(a.toString());
-                var intB = Integer.parseInt(b.toString());
-                return Integer.compare(intA, intB);
-            case "java.lang.Long":
-                var longA = Long.parseLong(a.toString());
-                var longB = Long.parseLong(b.toString());
-                return Long.compare(longA, longB);
-            case "java.lang.Double":
-                var doubleA = Double.parseDouble(a.toString());
-                var doubleB = Double.parseDouble(b.toString());
-                return Double.compare(doubleA, doubleB);
-            case "java.sql.Timestamp":
-                var timestampA = Timestamp.valueOf(a.toString());
-                var timestampB = Timestamp.valueOf(b.toString());
-                return timestampA.compareTo(timestampB);
-            default:
-                return a.toString().compareTo(b.toString());
         }
     }
 
