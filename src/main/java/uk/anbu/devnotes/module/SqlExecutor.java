@@ -29,14 +29,18 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
@@ -315,6 +319,45 @@ public class SqlExecutor {
         return output.toString();
     }
 
+    static String humanReadableNumber(Number value) {
+        if (value == null) {
+            return "(null)";
+        }
+
+        // Convert the number to BigDecimal to handle all types of numbers
+        var bigDecimal = new BigDecimal(value.toString());
+
+        // Create a DecimalFormat instance
+        var symbols = new DecimalFormatSymbols(Locale.US);
+        symbols.setGroupingSeparator(',');
+        symbols.setDecimalSeparator('.');
+        DecimalFormat df = new DecimalFormat("#,##0.##################", symbols);
+        df.setMaximumFractionDigits(340); // Maximum possible double precision
+
+        // Format the number
+        String formattedNumber = df.format(bigDecimal);
+
+        // Handle special cases for very large or very small numbers
+        if (bigDecimal.abs().compareTo(new BigDecimal("1E16")) >= 0 ||
+                (bigDecimal.abs().compareTo(BigDecimal.ZERO) > 0 && bigDecimal.abs().compareTo(new BigDecimal("1E-3")) < 0)) {
+            // Use plain string for very large or very small numbers
+            formattedNumber = bigDecimal.toPlainString();
+
+            // Insert commas for the integer part
+            int dotIndex = formattedNumber.indexOf('.');
+            if (dotIndex == -1) {
+                dotIndex = formattedNumber.length();
+            }
+            StringBuilder sb = new StringBuilder(formattedNumber);
+            for (int i = dotIndex - 3; i > 0; i -= 3) {
+                sb.insert(i, ',');
+            }
+            formattedNumber = sb.toString();
+        }
+
+        return formattedNumber;
+    }
+
     private static SqlResult.Data getResult(JsonNode metadataNode, JsonNode dataNode) {
         List<SqlResult.Metadata> metadata = new ArrayList<>();
         for (JsonNode column : metadataNode) {
@@ -327,14 +370,20 @@ public class SqlExecutor {
             for (var colMeta : metadata) {
                 String columnName = colMeta.name();
                 String stringValue = row.get(columnName).textValue(); // default is to String
-                Object value = switch (colMeta.javaClass()) {
-                    case "java.lang.Integer" -> row.get(columnName).intValue();
-                    case "java.lang.Long" -> row.get(columnName).longValue();
-                    case "java.lang.Double" -> row.get(columnName).doubleValue();
+                Object value;
+                if (row.get(columnName).isNull()) {
+                     value = "(null)";
+                } else {
+                    value = switch (colMeta.javaClass()) {
+                        case "java.lang.Integer" -> humanReadableNumber(row.get(columnName).intValue());
+                        case "java.lang.Long" -> humanReadableNumber(row.get(columnName).longValue());
+                        case "java.lang.Double" -> humanReadableNumber(row.get(columnName).doubleValue());
 //                    case "java.sql.Date" -> java.sql.Date.valueOf(row.get(columnName).toString());
-                    case "java.math.BigDecimal" -> new java.math.BigDecimal(row.get(columnName).toString());
-                    default -> stringValue;
-                };
+                        case "java.math.BigDecimal" ->
+                                humanReadableNumber(new java.math.BigDecimal(row.get(columnName).toString()));
+                        default -> stringValue == null ? "(null)" : stringValue;
+                    };
+                }
                 rowData.put(columnName, value);
             }
             data.add(rowData);

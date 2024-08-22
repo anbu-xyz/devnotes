@@ -1,6 +1,6 @@
 spring.application.name: devnotes
 
-spring.profiles.active: default
+spring.profiles.active: prod
 
 devnotes:
   docsDirectory: @user.home@/docs

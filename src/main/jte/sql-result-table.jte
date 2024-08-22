@@ -1,6 +1,4 @@
 @import java.util.Map
-@import java.util.List
-@import gg.jte.support.ForSupport
 @import uk.anbu.devnotes.module.SqlResult
 
 @param String outputFileName
