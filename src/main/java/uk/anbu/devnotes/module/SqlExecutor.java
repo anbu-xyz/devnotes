@@ -32,6 +32,8 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Blob;
+import java.sql.Clob;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -246,7 +248,15 @@ public class SqlExecutor {
                                  List<String> columnNames) throws IOException, SQLException {
         jsonGenerator.writeStartObject();
         for (int i = 1; i <= columnCount[0]; i++) {
-            jsonGenerator.writeObjectField(columnNames.get(i - 1), rs.getObject(i));
+            // check if the value is a blob and if so, put a placeholder in the JSON
+            if (rs.getObject(i) instanceof Blob) {
+                jsonGenerator.writeObjectField(columnNames.get(i - 1), "<blob>");
+            } else if (rs.getObject(i) instanceof Clob) {
+                jsonGenerator.writeObjectField(columnNames.get(i - 1), "<clob>");
+            }
+            else {
+                jsonGenerator.writeObjectField(columnNames.get(i - 1), rs.getObject(i));
+            }
         }
         jsonGenerator.writeEndObject();
     }
