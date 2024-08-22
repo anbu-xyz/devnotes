@@ -20,4 +20,12 @@ public class SqlResult {
     }
     public record Data(List<Metadata> metadata, List<Map<String, Object>> rowData) {};
 
+    public int getRowCount() {
+        return data.rowData().size();
+    }
+
+    public boolean hasMoreRows() {
+        return hasMoreRows;
+    }
+
 }

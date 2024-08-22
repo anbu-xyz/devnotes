@@ -25,6 +25,13 @@
                data-markdown-file="${markdownFileName}">
             <thead>
             <tr>
+                <td colspan="${sqlResult.getData().metadata().size()}">
+                    <span>
+                        ${sqlResult.getDatasourceName()}
+                    </span>
+                </td>
+            </tr>
+            <tr>
                 @for(SqlResult.Metadata columnMetadata: sqlResult.getData().metadata())
                     <th data-type='${columnMetadata.javaClass()}' data-column='${columnMetadata.name()}' data-output-file="${outputFileName}"
                         data-datasource="${datasourceName}" data-markdown-file="${markdownFileName}"
@@ -60,6 +67,14 @@
             <tfoot>
                 <tr>
                     <td colspan="${sqlResult.getData().metadata().size()}">
+                        <span>
+                            @if(sqlResult.getRowCount() > 0)
+                                ${sqlResult.getRowCount()} rows
+                                @if (sqlResult.hasMoreRows())
+                                    (truncated)
+                                @endif
+                            @endif
+                        </span>
                         <button class="btn-blue-glow" onclick='downloadExcel("${outputFileName}", "${markdownFileName}")'>
                             <i class="fas fa-file-excel"></i> <!-- Download Excel -->
                         </button>
