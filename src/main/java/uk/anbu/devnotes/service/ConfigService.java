@@ -61,28 +61,28 @@ public class ConfigService {
     }
 
     public void updateDataSources(Map<String, String> newConfigs) {
+        Map<String, DataSourceConfig> updatedDataSources = new HashMap<>(dataSources);
+
         for (Map.Entry<String, String> entry : newConfigs.entrySet()) {
             String[] parts = entry.getKey().split("\\.");
-            if (parts.length == 2) {
-                String dataSourceName = parts[0].replace("datasources[", "").replace("]", "");
+            if (parts.length == 2 && parts[0].startsWith("datasources[") && parts[0].endsWith("]")) {
+                String dataSourceName = parts[0].substring(12, parts[0].length() - 1);
                 String property = parts[1];
-                DataSourceConfig config = dataSources.getOrDefault(dataSourceName, new DataSourceConfig(dataSourceName, "", "", "", ""));
-                switch (property) {
-                    case "url" ->
-                            config = new DataSourceConfig(dataSourceName, entry.getValue(), config.username(), config.password(), config.driverClassName());
-                    case "username" ->
-                            config = new DataSourceConfig(dataSourceName, config.url(), entry.getValue(), config.password(), config.driverClassName());
-                    case "password" -> {
-                        if (!entry.getValue().equals("********")) {
-                            config = new DataSourceConfig(dataSourceName, config.url(), config.username(), entry.getValue(), config.driverClassName());
-                        }
-                    }
-                    case "driverClassName" ->
-                            config = new DataSourceConfig(dataSourceName, config.url(), config.username(), config.password(), entry.getValue());
-                }
-                dataSources.put(dataSourceName, config);
+                DataSourceConfig config = updatedDataSources.getOrDefault(dataSourceName, new DataSourceConfig(dataSourceName, "", "", "", ""));
+
+                config = switch (property) {
+                    case "url" -> new DataSourceConfig(dataSourceName, entry.getValue(), config.username(), config.password(), config.driverClassName());
+                    case "username" -> new DataSourceConfig(dataSourceName, config.url(), entry.getValue(), config.password(), config.driverClassName());
+                    case "password" -> !entry.getValue().equals("********") ? new DataSourceConfig(dataSourceName, config.url(), config.username(), entry.getValue(), config.driverClassName()) : config;
+                    case "driverClassName" -> new DataSourceConfig(dataSourceName, config.url(), config.username(), config.password(), entry.getValue());
+                    default -> config;
+                };
+
+                updatedDataSources.put(dataSourceName, config);
             }
         }
+
+        this.dataSources = updatedDataSources;
     }
 
     public void saveAndReloadConfig() {
