@@ -19,7 +19,7 @@ class SqlExecutorTest {
     @ParameterizedTest
     @MethodSource("provideNumbersForFormatting")
     void testHumanReadableNumber(Number input, String expected) {
-        assertEquals(expected, SqlExecutor.humanReadableNumber(input));
+        assertEquals(new SqlExecutor.HumanReadableNumber(expected), SqlExecutor.humanReadableNumber(input));
     }
 
     private static Stream<Arguments> provideNumbersForFormatting() {

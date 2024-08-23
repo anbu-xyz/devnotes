@@ -8,7 +8,7 @@
 @param String sortDirection
 @param SqlResult sqlResult
 
-<div class='sql-result' x-data="{ showSql: false }">
+<div class='sql-result' x-data="{ showSql: false, editableSql: `${sqlResult.getSql().sqlText()}`, originalSql: `${sqlResult.getSql().sqlText()}` }">
     @if(sqlResult.getSql().parameters() != null && !sqlResult.getSql().parameters().keySet().isEmpty())
         <div class='parameters'>
             <h4>Parameters:</h4>
@@ -21,9 +21,8 @@
     @endif
 
     <div class="entry-container">
-        <div>
-            <table class='sortable' data-output-file="${outputFileName}" data-datasource="${datasourceName}"
-                   data-markdown-file="${markdownFileName}">
+        <table class='sortable' data-output-file="${outputFileName}" data-datasource="${datasourceName}"
+               data-markdown-file="${markdownFileName}">
                 <thead x-show="!showSql">
                     <tr>
                         <td colspan="${sqlResult.getData().metadata().size()}">
@@ -74,26 +73,28 @@
                     </tbody>
 
                     <tbody x-show="showSql">
-                        <tr>
-                            <td colspan="${sqlResult.getData().metadata().size()}">
-                                <pre><code class="language-sql">${sqlResult.getSql().sqlText()}</code></pre>
-                            </td>
-                        </tr>
+                    <tr>
+                        <td colspan="${sqlResult.getData().metadata().size()}">
+                            <textarea x-model="editableSql" class="w-full h-32 p-2 border rounded"></textarea>
+                        </td>
+                    </tr>
                     </tbody>
                     <tfoot>
                     <tr>
                         <td colspan="${sqlResult.getData().metadata().size()}">
-                            <span>
-                                @if(sqlResult.getRowCount() > 0)
-                                    ${sqlResult.getRowCount()} rows
-                                    @if (sqlResult.hasReachedMaxRows())
-                                        (truncated)
+                                <span>
+                                    @if(sqlResult.getRowCount() > 0)
+                                        ${sqlResult.getRowCount()} rows
+                                        @if (sqlResult.hasReachedMaxRows())
+                                            (truncated)
+                                        @endif
                                     @endif
-                                @endif
-                            </span>
+                                </span>
                             <button class="btn-blue-glow" @click="showSql = !showSql">
                                 <i class="fas" :class="showSql ? 'fa-table' : 'fa-code'"></i>
-                                <!-- Show Table/Show SQL -->
+                            </button>
+                            <button class="btn-blue-glow" x-show="showSql" @click="saveSqlChanges('${markdownFileName}', originalSql, editableSql)">
+                                <i class="fas fa-save"></i>
                             </button>
                             <button class="btn-blue-glow" onclick='downloadExcel("${outputFileName}", "${markdownFileName}")'>
                                 <i class="fas fa-file-excel"></i> <!-- Download Excel -->
@@ -115,9 +116,34 @@
                         </td>
                     </tr>
                 </tfoot>
-            </table>
-        </div>
-
-
+        </table>
     </div>
 </div>
+
+<script>
+    function saveSqlChanges(markdownFileName, oldSql, newSql) {
+        fetch('/saveSqlChanges', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                markdownFileName: markdownFileName,
+                oldSql: oldSql,
+                newSql: newSql
+            }),
+        })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('SQL changes saved successfully');
+                } else {
+                    alert('Error saving SQL changes: ' + (data.message || 'Unknown error'));
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('Error saving SQL changes');
+            });
+    }
+</script>

@@ -23,12 +23,15 @@ import uk.anbu.devnotes.service.DataSourceConfig;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @RestController
 @RequiredArgsConstructor
@@ -121,6 +124,41 @@ public class SqlExecutionController {
             log.error("Error sorting table", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error sorting table");
         }
+    }
+
+    @PostMapping("/saveSqlChanges")
+    public ResponseEntity<Map<String, Object>> saveSqlChanges(@RequestBody SqlChangeRequest request) {
+        try {
+            Path markdownPath = Paths.get(configService.getDocsDirectory())
+                    .resolve(request.markdownFileName);
+
+            String markdownContent = Files.readString(markdownPath);
+            String escapedOldSql = Pattern.quote(request.oldSql.trim());
+            Pattern pattern = Pattern.compile("(```sql\\s*\\n)" + escapedOldSql + "(\\n```)", Pattern.DOTALL);
+            Matcher matcher = pattern.matcher(markdownContent);
+
+            if (matcher.find()) {
+                String updatedContent = matcher.replaceFirst("$1" + Matcher.quoteReplacement(request.newSql.trim()) + "$2");
+                Files.writeString(markdownPath, updatedContent);
+
+                return ResponseEntity.ok(Map.of("success", true));
+            } else {
+                log.error("Original SQL block not found in the markdown file");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(Map.of("success", false, "message", "Original SQL block not found"));
+            }
+        } catch (IOException e) {
+            log.error("Error saving SQL changes", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "message", "Error saving changes"));
+        }
+    }
+
+    @lombok.Data
+    private static class SqlChangeRequest {
+        private String markdownFileName;
+        private String oldSql;
+        private String newSql;
     }
 
     @lombok.Data
