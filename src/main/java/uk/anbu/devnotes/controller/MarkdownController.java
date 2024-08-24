@@ -25,6 +25,7 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
 import java.util.Map;
 
 import static uk.anbu.devnotes.controller.ImageController.isImage;
@@ -41,7 +42,8 @@ public class MarkdownController {
     private final ConfigService configService;
 
     @GetMapping("/markdown")
-    public ResponseEntity<Object> markdown(@RequestParam(name = "filename", required = false) String filename) throws IOException {
+    public ResponseEntity<Object> markdown(@RequestParam(name = "filename", required = false) String filename,
+                                           @RequestParam(name = "edit", required = false, defaultValue = "false") boolean editMode) throws IOException {
         try {
             if (filename == null) {
                 return ResponseEntity.status(HttpStatus.FOUND)
@@ -72,7 +74,7 @@ public class MarkdownController {
             } else if (!filePath.toFile().exists() && fileExtension.equals("md")) {
                 return handleMissingMarkdownFile(filename);
             } else {
-                return readFileContent(filename, fileExtension, markdownRoot);
+                return readFileContent(filename, fileExtension, markdownRoot, editMode);
             }
         } catch (Exception e) {
             log.error("Error rendering markdown", e);
@@ -89,9 +91,9 @@ public class MarkdownController {
                 .body(output.toString());
     }
 
-    private ResponseEntity<Object> readFileContent(String filename, String fileExtension, Path markdownRoot) throws IOException {
+    private ResponseEntity<Object> readFileContent(String filename, String fileExtension, Path markdownRoot, boolean editMode) throws IOException {
         if ("md".equals(fileExtension)) {
-            var content = fetchMarkdownContent(filename);
+            var content = fetchMarkdownContent(filename, editMode);
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)
                     .body(content.content());
@@ -129,7 +131,7 @@ public class MarkdownController {
     public record ContentWithType(String content, String contentType) {
     }
 
-    public ContentWithType fetchMarkdownContent(String filename) throws IOException {
+    public ContentWithType fetchMarkdownContent(String filename, boolean editMode) throws IOException {
         Assert.isTrue(filename.endsWith(".md"), "filename must end with .md");
         Path markdownRoot = Paths.get(configService.getDocsDirectory());
         log.info("Fetching file: {}", filename);
@@ -139,13 +141,15 @@ public class MarkdownController {
         log.info("Rendering markdown: {}", markdownFile);
         String markdownContent = new String(Files.readAllBytes(markdownFile));
         String originalMarkdown = getOriginalMarkdown(markdownFile);
-        var htmlContent = markdownRenderer.convertMarkdown(markdownContent, filename);
+        String htmlContent = markdownRenderer.convertMarkdown(markdownContent, filename);
 
         TemplateOutput output = new StringOutput();
-        var page = Map.of("htmlContent", htmlContent,
-                "filename", markdownFile.getFileName().toString(),
-                "originalMarkdown", escapeHtml(originalMarkdown));
-        templateEngine.render("markdown.jte", page, output);
+        var params = new HashMap<String, Object>();
+        params.put("htmlContent", htmlContent);
+        params.put("filename", markdownFile.getFileName().toString());
+        params.put("originalMarkdown", escapeHtml(originalMarkdown));
+        params.put("editMode", editMode);
+        templateEngine.render("markdown.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");
     }

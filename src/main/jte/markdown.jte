@@ -1,6 +1,9 @@
-@import java.util.Map
+@import gg.jte.html.HtmlContent
 
-@param Map<String, String> data
+@param String htmlContent
+@param String filename
+@param String originalMarkdown
+@param boolean editMode
 
 <!DOCTYPE html>
 <html>
@@ -17,13 +20,13 @@
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/json-enc.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <title>${data.get("filename")}</title>
+    <title>${filename}</title>
 </head>
 <body class="p-8">
-<div x-cloak x-data="{ editMode: false }">
-<div id="viewContent" x-show="!editMode">$unsafe{data.get("htmlContent")}</div>
+<div x-cloak x-data="{ editMode: ${editMode} }">
+<div id="viewContent" x-show="!editMode">$unsafe{htmlContent}</div>
 <div id="editContent" x-show="editMode">
-    <textarea id="editor">$unsafe{data.get("originalMarkdown")}</textarea>
+    <textarea id="editor">$unsafe{originalMarkdown.toString()}</textarea>
 </div>
 <button id="editButton" x-on:click="editMode = true" class="btn-blue-glow" x-show="!editMode">
     <i class="fas fa-edit"></i>Edit
