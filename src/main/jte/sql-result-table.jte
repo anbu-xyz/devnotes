@@ -82,14 +82,14 @@
                     <tfoot>
                     <tr>
                         <td colspan="${sqlResult.getData().metadata().size()}">
-                                <span>
-                                    @if(sqlResult.getRowCount() > 0)
-                                        ${sqlResult.getRowCount()} rows
-                                        @if (sqlResult.hasReachedMaxRows())
-                                            (truncated)
-                                        @endif
+                            <span>
+                                @if(sqlResult.getRowCount() > 0)
+                                    ${sqlResult.getRowCount()} rows
+                                    @if (sqlResult.hasReachedMaxRows())
+                                        (truncated)
                                     @endif
-                                </span>
+                                @endif
+                            </span>
                             <button class="btn-blue-glow" @click="showSql = !showSql">
                                 <i class="fas" :class="showSql ? 'fa-table' : 'fa-code'"></i>
                             </button>

@@ -46,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 
@@ -107,7 +108,9 @@ public class SqlExecutor {
                     throw new RuntimeException("Error writing SQL result to file", e);
                 }
             });
-            jsonGenerator.writeEndArray();
+            if (rowCount[0] > 0) {
+                jsonGenerator.writeEndArray();
+            }
             jsonGenerator.writeBooleanField("hasReachedMaxRows", hasReachedMaxRows[0]);
             endOutermostObject(jsonGenerator);
             jsonGenerator.close();
@@ -371,43 +374,48 @@ public class SqlExecutor {
 
     SqlResult getResult(HtmlTableRequest request) throws IOException {
         JsonNode rootNode = objectMapper.readTree(request.outputPath().toFile());
-        JsonNode metadataNode = rootNode.get("metadata");
-        JsonNode dataNode = rootNode.get("data");
-        JsonNode sqlNode = rootNode.get("sql");
+        var metadataNode = Optional.ofNullable(rootNode.get("metadata"));
+        var dataNode = Optional.ofNullable(rootNode.get("data"));
+        var sqlNode = Optional.ofNullable(rootNode.get("sql"));
 
-        String sql = sqlNode.get("sqlText").asText();
-        Map<String, Object> parameterValues = objectMapper.convertValue(sqlNode.get("parameterValues"), new TypeReference<>() {});
+        var sql = sqlNode.map(s -> s.get("sqlText").asText());
+
+        Map<String, Object> parameterValues = objectMapper.convertValue(sqlNode.map(s -> s.get("parameterValues")), new TypeReference<>() {});
 
         List<SqlResult.Metadata> metadata = new ArrayList<>();
-        for (JsonNode column : metadataNode) {
-            metadata.add(new SqlResult.Metadata(column.get("name").asText(), column.get("type").asText()));
+        if (metadataNode.isPresent()) {
+            for (JsonNode column : metadataNode.get()) {
+                metadata.add(new SqlResult.Metadata(column.get("name").asText(), column.get("type").asText()));
+            }
         }
 
         List<Map<String, Object>> data = new ArrayList<>();
-        for (JsonNode row : dataNode) {
-            Map<String, Object> rowData = new HashMap<>();
-            for (var colMeta : metadata) {
-                String columnName = colMeta.name();
-                JsonNode valueNode = row.get(columnName);
-                Object value;
-                if (valueNode.isNull()) {
-                    value = "(null)";
-                } else {
-                    value = switch (colMeta.javaClass()) {
-                        case "java.lang.Integer", "java.lang.Long", "java.lang.Double", "java.math.BigDecimal" ->
-                                humanReadableNumber(new BigDecimal(valueNode.asText()));
-                        default -> valueNode.asText();
-                    };
+        if (dataNode.isPresent()) {
+            for (JsonNode row : dataNode.get()) {
+                Map<String, Object> rowData = new HashMap<>();
+                for (var colMeta : metadata) {
+                    String columnName = colMeta.name();
+                    JsonNode valueNode = row.get(columnName);
+                    Object value;
+                    if (valueNode.isNull()) {
+                        value = "(null)";
+                    } else {
+                        value = switch (colMeta.javaClass()) {
+                            case "java.lang.Integer", "java.lang.Long", "java.lang.Double", "java.math.BigDecimal" ->
+                                    humanReadableNumber(new BigDecimal(valueNode.asText()));
+                            default -> valueNode.asText();
+                        };
+                    }
+                    rowData.put(columnName, value);
                 }
-                rowData.put(columnName, value);
+                data.add(rowData);
             }
-            data.add(rowData);
         }
 
         boolean hasReachedMaxRows = rootNode.has("hasReachedMaxRows") && rootNode.get("hasReachedMaxRows").asBoolean();
 
         return SqlResult.builder()
-                .sql(new SqlResult.Sql(sql, parameterValues))
+                .sql(new SqlResult.Sql(sql.orElse(""), parameterValues))
                 .datasourceName(rootNode.get("datasourceName").asText())
                 .hasReachedMaxRows(hasReachedMaxRows)
                 .data(new SqlResult.Data(metadata, data))
