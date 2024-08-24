@@ -29,8 +29,7 @@ public class SqlParameterExtractor {
             SelectDeParser selectDeParser = new SelectDeParser(expressionDeParser, new StringBuilder());
             expressionDeParser.setSelectVisitor(selectDeParser);
 
-            if (statement instanceof Select) {
-                var selectStatement = (Select) statement;
+            if (statement instanceof Select selectStatement) {
                 var plainSelect = (PlainSelect) selectStatement.getSelectBody();
                 plainSelect.accept(selectDeParser);
             }

@@ -22,7 +22,6 @@ import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DataSourceConfig;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -44,23 +43,29 @@ public class SqlExecutionController {
 
     @PostMapping(value = "/reExecuteSql", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> reExecuteSql(@RequestBody SqlExecutionRequest request) {
-        String dataSourceName = request.getDatasourceName();
-        DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
+        try {
+            String dataSourceName = request.getDatasourceName();
+            DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
 
-        if (dataSourceConfig == null) {
-            log.error("Invalid datasource name: {}", dataSourceName);
-            return ResponseEntity.badRequest().body("Invalid datasource name:" + dataSourceName);
+            if (dataSourceConfig == null) {
+                log.error("Invalid datasource name: {}", dataSourceName);
+                return ResponseEntity.badRequest().body("Invalid datasource name:" + dataSourceName);
+            }
+
+            var jsonGenerationRequest = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, request.getSql(),
+                    request.getParameterValues(), request.getMarkdownFileName());
+            var outputPath = sqlExecutor.renderResultAsJsonFile(jsonGenerationRequest);
+
+            var htmlGenerationRequest = new SqlExecutor.HtmlTableRequest(request.getSql(), outputPath,
+                    request.getParameterValues(), request.getDatasourceName(), request.getMarkdownFileName());
+            String htmlTable = sqlExecutor.convertToHtmlTable(htmlGenerationRequest);
+
+            return ResponseEntity.ok(htmlTable);
+        } catch (Exception e) {
+            log.error("Error executing SQL", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error executing SQL: " + e.getMessage());
         }
-
-        var jsonGenerationRequest = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, request.getSql(),
-                request.getParameterValues(), request.getMarkdownFileName());
-        var outputPath = sqlExecutor.renderResultAsJsonFile(jsonGenerationRequest);
-
-        var htmlGenerationRequest = new SqlExecutor.HtmlTableRequest(request.getSql(), outputPath,
-                request.getParameterValues(), request.getDatasourceName(), request.getMarkdownFileName());
-        String htmlTable = sqlExecutor.convertToHtmlTable(htmlGenerationRequest);
-
-        return ResponseEntity.ok(htmlTable);
     }
 
     @GetMapping("/downloadExcel")
@@ -75,9 +80,10 @@ public class SqlExecutionController {
                     .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                     .contentLength(resource.contentLength())
                     .body(resource);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error generating Excel file", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
         }
     }
 
@@ -109,20 +115,19 @@ public class SqlExecutionController {
             ArrayNode sortedDataNode = objectMapper.createArrayNode();
             data.forEach(row -> sortedDataNode.add(objectMapper.valueToTree(row)));
 
-            // Replace the original data with sorted data
             ((ObjectNode) rootNode).set("data", sortedDataNode);
 
             // Write the sorted data back to the file
             objectMapper.writeValue(outputPath.toFile(), rootNode);
 
-            // Convert to HTML table
             String htmlTable = sqlExecutor.convertToHtmlTable(rootNode, request.getDatasourceName(),
                     request.getMarkdownFileName(), request.getOutputFileName(), request.getColumnName(), request.getSortDirection());
 
             return ResponseEntity.ok(htmlTable);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error sorting table", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error sorting table");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error sorting table " + e.getMessage());
         }
     }
 
@@ -147,7 +152,7 @@ public class SqlExecutionController {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body(Map.of("success", false, "message", "Original SQL block not found"));
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error saving SQL changes", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("success", false, "message", "Error saving changes"));

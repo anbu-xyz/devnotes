@@ -277,7 +277,6 @@ public class SqlExecutor {
 
     public String convertToHtmlTable(HtmlTableRequest request) {
         try {
-
             SqlResult sqlResult = getResult(request);
 
             Map<String, Object> params = new HashMap<>();
@@ -290,9 +289,9 @@ public class SqlExecutor {
             templateEngine.render("sql-result-table.jte", params, output);
             return output.toString();
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error rendering SQL result table", e);
-            return "Error: Unable to render SQL result table";
+            return "Error: Unable to render SQL result table - reason: " + e.getMessage();
         }
     }
 
@@ -337,7 +336,6 @@ public class SqlExecutor {
             return new HumanReadableNumber("(null)");
         }
 
-        // Convert the number to BigDecimal to handle all types of numbers
         var bigDecimal = new BigDecimal(value.toString());
 
         // Create a DecimalFormat instance

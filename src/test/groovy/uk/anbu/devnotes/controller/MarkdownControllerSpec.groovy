@@ -156,4 +156,25 @@ class MarkdownControllerSpec extends Specification {
         cleanup:
         Files.deleteIfExists(tempFile)
     }
+
+    def "Markdown with a sql error should render the error message"() {
+        given:
+        def tempFile = Files.createTempFile("test", ".md")
+        configService.getDocsDirectory() >> tempFile.toFile().parentFile.absolutePath
+        Files.write(tempFile, "# Test\n```sql(missing-database)\nselect * from user\n```".getBytes())
+
+        when:
+        def response = controller.markdown(tempFile.fileName.toString())
+
+        then:
+        Document doc = Jsoup.parse(response.body.toString())
+        response.statusCode == HttpStatus.OK
+        doc.select("h1").text() == "Test"
+        doc.select("h1 + p > pre").text() == "select * from user"
+        doc.select("h1 + p > pre").get(0).attr("class") == "language-sql"
+        // TODO: check for error message
+
+        cleanup:
+        Files.deleteIfExists(tempFile)
+    }
 }

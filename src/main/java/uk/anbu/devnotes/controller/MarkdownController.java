@@ -42,36 +42,41 @@ public class MarkdownController {
 
     @GetMapping("/markdown")
     public ResponseEntity<Object> markdown(@RequestParam(name = "filename", required = false) String filename) throws IOException {
-        if (filename == null) {
-            return ResponseEntity.status(HttpStatus.FOUND)
-                    .header(HttpHeaders.LOCATION, "/markdown?filename=index.md")
-                    .build();
-        }
-
-        if (filename.equals("/")) {
-            filename = ".";
-        } else if (filename.startsWith("/")) {
-            filename = filename.substring(1);
-        }
-
-        Path markdownRoot = Paths.get(configService.getDocsDirectory());
-        Path filePath;
         try {
-            filePath = markdownRoot.resolve(filename);
-        } catch (InvalidPathException e) {
-            log.error("Invalid path: {}", filename);
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Invalid path " + filename);
-        }
+            if (filename == null) {
+                return ResponseEntity.status(HttpStatus.FOUND)
+                        .header(HttpHeaders.LOCATION, "/markdown?filename=index.md")
+                        .build();
+            }
 
-        String fileExtension = FileUtil.getFileExtension(filename).toLowerCase();
-        if (Files.isDirectory(filePath)) {
-            return ResponseEntity.status(HttpStatus.FOUND)
-                    .header(HttpHeaders.LOCATION, "/renderDirectoryContents?directoryName=" + filename)
-                    .build();
-        } else if (!filePath.toFile().exists() && fileExtension.equals("md")) {
-            return handleMissingMarkdownFile(filename);
-        } else {
-            return readFileContent(filename, fileExtension, markdownRoot);
+            if (filename.equals("/")) {
+                filename = ".";
+            } else if (filename.startsWith("/")) {
+                filename = filename.substring(1);
+            }
+
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
+            Path filePath;
+            try {
+                filePath = markdownRoot.resolve(filename);
+            } catch (InvalidPathException e) {
+                log.error("Invalid path: {}", filename);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Invalid path " + filename);
+            }
+
+            String fileExtension = FileUtil.getFileExtension(filename).toLowerCase();
+            if (Files.isDirectory(filePath)) {
+                return ResponseEntity.status(HttpStatus.FOUND)
+                        .header(HttpHeaders.LOCATION, "/renderDirectoryContents?directoryName=" + filename)
+                        .build();
+            } else if (!filePath.toFile().exists() && fileExtension.equals("md")) {
+                return handleMissingMarkdownFile(filename);
+            } else {
+                return readFileContent(filename, fileExtension, markdownRoot);
+            }
+        } catch (Exception e) {
+            log.error("Error rendering markdown", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error rendering markdown: " + e.getMessage());
         }
     }
 
@@ -115,7 +120,7 @@ public class MarkdownController {
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/markdown?filename=" + filename)
                     .build();
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error creating markdown file", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error creating file");
         }
@@ -169,7 +174,7 @@ public class MarkdownController {
             Path filePath = Paths.get(configService.getDocsDirectory(), decodedFilename);
             Files.write(filePath, content.getBytes());
             return ResponseEntity.ok("Saved successfully");
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Error saving markdown file", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error saving file");
         }

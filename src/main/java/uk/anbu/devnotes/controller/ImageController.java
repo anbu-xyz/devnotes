@@ -35,7 +35,7 @@ public class ImageController {
                     .contentType(org.springframework.http.MediaType.parseMediaType(contentType))
                     .body(resource.get());
 
-        } catch (IOException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
