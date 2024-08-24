@@ -7,6 +7,7 @@
 @param String sortColumn
 @param String sortDirection
 @param SqlResult sqlResult
+@param Integer codeBlockCounter
 
 <div class='sql-result' x-data="{ showSql: false, editableSql: `${sqlResult.getSql().sqlText()}`, originalSql: `${sqlResult.getSql().sqlText()}` }">
     @if(sqlResult.getSql().parameters() != null && !sqlResult.getSql().parameters().keySet().isEmpty())
@@ -90,13 +91,13 @@
                                     @endif
                                 @endif
                             </span>
-                            <button class="btn-blue-glow" @click="showSql = !showSql">
+                            <button class="btn-blue-glow" @click="showSql = !showSql" x-show="!showSql">
                                 <i class="fas" :class="showSql ? 'fa-table' : 'fa-code'"></i>
                             </button>
-                            <button class="btn-blue-glow" x-show="showSql" @click="saveSqlChanges('${markdownFileName}', originalSql, editableSql)">
+                            <button class="btn-blue-glow" x-show="showSql" @click="saveSqlChanges('${markdownFileName}', originalSql, editableSql, ${codeBlockCounter})">
                                 <i class="fas fa-save"></i>
                             </button>
-                            <button class="btn-blue-glow" onclick='downloadExcel("${outputFileName}", "${markdownFileName}")'>
+                            <button class="btn-blue-glow" onclick='downloadExcel("${outputFileName}", "${markdownFileName}")' x-show="!showSql">
                                 <i class="fas fa-file-excel"></i> <!-- Download Excel -->
                             </button>
                             <button class='btn-blue-glow'
@@ -110,7 +111,8 @@
                                                    "parameterValues":  {}
                                                    }'
                                     hx-target='closest div.sql-result'
-                                    hx-swap='outerHTML'>
+                                    hx-swap='outerHTML'
+                                    x-show="!showSql">
                                 <i class="fas fa-sync"></i> <!-- Re-execute SQL -->
                             </button>
                         </td>
@@ -121,7 +123,7 @@
 </div>
 
 <script>
-    function saveSqlChanges(markdownFileName, oldSql, newSql) {
+    function saveSqlChanges(markdownFileName, oldSql, newSql, codeBlockCounter) {
         fetch('/saveSqlChanges', {
             method: 'POST',
             headers: {
@@ -130,13 +132,15 @@
             body: JSON.stringify({
                 markdownFileName: markdownFileName,
                 oldSql: oldSql,
-                newSql: newSql
+                newSql: newSql,
+                codeBlockCounter: codeBlockCounter
             }),
         })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     alert('SQL changes saved successfully');
+                    location.href = '/markdown?filename=' + markdownFileName + '&edit=false';
                 } else {
                     alert('Error saving SQL changes: ' + (data.message || 'Unknown error'));
                 }

@@ -47,12 +47,13 @@ public class MarkdownRenderer {
     }
 
     public String convertMarkdown(String markdown, String fileNameWithRelativePath) {
+        Integer codeBlockCounter = 0;
         List<Extension> extensions = List.of(TablesExtension.create());
         Parser parser = Parser.builder()
                 .extensions(extensions)
                 .build();
         Node document = parser.parse(markdown);
-        processDocument(document, fileNameWithRelativePath);
+        processDocument(document, fileNameWithRelativePath, codeBlockCounter);
         HtmlRenderer renderer = HtmlRenderer.builder()
                 .extensions(extensions)
                 .attributeProviderFactory(context -> new ImageAttributeProvider())
@@ -60,7 +61,7 @@ public class MarkdownRenderer {
         return renderer.render(document);
     }
 
-    private void processDocument(Node node, String fileNameWithRelativePath) {
+    private void processDocument(Node node, String fileNameWithRelativePath, Integer codeBlockCounter) {
         // Traverse the node tree
         log.trace("Rendering type: {}", node);
         if (node instanceof Link link) {
@@ -79,28 +80,27 @@ public class MarkdownRenderer {
             }
 
             image.setDestination("/image?filename=" + fileLocation + "/" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
-        }
-
-        if (node instanceof FencedCodeBlock) {
-            processFencedCodeBlock((FencedCodeBlock) node, fileNameWithRelativePath);
+        } else if (node instanceof FencedCodeBlock) {
+            codeBlockCounter++;
+            processFencedCodeBlock((FencedCodeBlock) node, fileNameWithRelativePath, codeBlockCounter);
         }
 
         // Process siblings
         if (node.getNext() != null) {
-            processDocument(node.getNext(), fileNameWithRelativePath);
+            processDocument(node.getNext(), fileNameWithRelativePath, codeBlockCounter);
         }
         // Process children
         if (node.getFirstChild() != null) {
-            processDocument(node.getFirstChild(), fileNameWithRelativePath);
+            processDocument(node.getFirstChild(), fileNameWithRelativePath, codeBlockCounter);
         }
     }
 
-    private void processFencedCodeBlock(FencedCodeBlock codeBlock, String fileNameWithRelativePath) {
+    private void processFencedCodeBlock(FencedCodeBlock codeBlock, String fileNameWithRelativePath, Integer codeBlockCounter) {
         String codeType = codeBlock.getInfo();
         if (codeType.matches("^groovy:([^:]+)$")) {
             renderGroovyResult(codeBlock, fileNameWithRelativePath, codeType);
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
-            renderSqlResult(codeBlock, fileNameWithRelativePath, codeType);
+            renderSqlResult(codeBlock, fileNameWithRelativePath, codeType, codeBlockCounter);
         }
     }
 
@@ -114,7 +114,8 @@ public class MarkdownRenderer {
         codeBlock.setInfo("hidden-groovy");
     }
 
-    private void renderSqlResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, String codeType) {
+    private void renderSqlResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, String codeType,
+                                 Integer codeBlockCounter) {
         String dataSourceName = codeType.substring(4, codeType.length() - 1);
         String sql = codeBlock.getLiteral();
         Node node;
@@ -122,13 +123,14 @@ public class MarkdownRenderer {
         if (dataSourceConfig == null) {
             node = new Text("Error: DataSource '" + dataSourceName + "' not defined in config.");
         } else {
-            node = processSqlCodeBlock(sql, dataSourceConfig, fileNameWithRelativePath);
+            node = processSqlCodeBlock(sql, dataSourceConfig, fileNameWithRelativePath, codeBlockCounter);
         }
         codeBlock.insertAfter(node);
         codeBlock.setInfo("hidden-sql");
     }
 
-    private Node processSqlCodeBlock(String sql, DataSourceConfig dataSourceConfig, String fileNameWithRelativePath) {
+    private Node processSqlCodeBlock(String sql, DataSourceConfig dataSourceConfig, String fileNameWithRelativePath,
+                                     Integer codeBlockCounter) {
 
         List<String> parameterNames = extractParameterNames(sql);
         Map<String, String> parameterValues = new LinkedHashMap<>();
@@ -146,7 +148,7 @@ public class MarkdownRenderer {
         var outputPath = sqlToJsonFileResolver.apply(request);
 
         return renderSqlResultTable(sql, outputPath, parameterValues, dataSourceConfig.name(),
-                fileNameWithRelativePath);
+                fileNameWithRelativePath, codeBlockCounter);
     }
 
     private List<String> extractParameterNames(String sql) {
@@ -160,8 +162,9 @@ public class MarkdownRenderer {
     }
 
     private Node renderSqlResultTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
-                                      String dataSourceName, String markdownFileName) {
-        var request = new SqlExecutor.HtmlTableRequest(sqlText, outputPath, parameterValues, dataSourceName, markdownFileName);
+                                      String dataSourceName, String markdownFileName, Integer codeBlockCounter) {
+        var request = new SqlExecutor.HtmlTableRequest(sqlText, outputPath, parameterValues, dataSourceName,
+                markdownFileName, codeBlockCounter);
         String tableString = sqlToHtmlTableResolver.apply(request);
         HtmlBlock htmlBlock = new HtmlBlock();
         htmlBlock.setLiteral(tableString);

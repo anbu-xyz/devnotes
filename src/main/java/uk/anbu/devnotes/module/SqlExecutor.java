@@ -287,6 +287,7 @@ public class SqlExecutor {
             params.put("datasourceName", request.dataSourceName());
             params.put("markdownFileName", request.markdownFileName());
             params.put("sqlResult", sqlResult);
+            params.put("codeBlockCounter", request.codeBlockCounter());
 
             StringOutput output = new StringOutput();
             templateEngine.render("sql-result-table.jte", params, output);
@@ -299,7 +300,8 @@ public class SqlExecutor {
     }
 
     public String convertToHtmlTable(JsonNode rootNode, String dataSourceName, String markdownFileName,
-                                     String outputFileName, String sortColumn, String sortDirection) throws IOException {
+                                     String outputFileName, String sortColumn, String sortDirection,
+                                     Integer codeBlockCounter) throws IOException {
         JsonNode sqlNode = rootNode.get("sql");
         String previousSqlText = sqlNode.get("sqlText").asText();
 
@@ -310,7 +312,7 @@ public class SqlExecutor {
         var outputPath = Path.of(configService.getDocsDirectory()).resolve(markdownFileName).getParent()
                 .resolve(outputFileName);
         HtmlTableRequest request = new HtmlTableRequest(previousSqlText, outputPath, previousParameterValues,
-                dataSourceName, markdownFileName);
+                dataSourceName, markdownFileName, codeBlockCounter);
         SqlResult sqlResult = getResult(request);
 
         Map<String, Object> params = new HashMap<>();
@@ -466,5 +468,5 @@ public class SqlExecutor {
                                         Map<String, String> parameterValues, String markdownFilePath) {}
 
     public record HtmlTableRequest(String sqlText, Path outputPath, Map<String, String> parameterValues,
-                                   String dataSourceName, String markdownFileName) {}
+                                   String dataSourceName, String markdownFileName, Integer codeBlockCounter) {}
 }

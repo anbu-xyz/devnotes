@@ -29,8 +29,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @RestController
 @RequiredArgsConstructor
@@ -57,7 +55,8 @@ public class SqlExecutionController {
             var outputPath = sqlExecutor.renderResultAsJsonFile(jsonGenerationRequest);
 
             var htmlGenerationRequest = new SqlExecutor.HtmlTableRequest(request.getSql(), outputPath,
-                    request.getParameterValues(), request.getDatasourceName(), request.getMarkdownFileName());
+                    request.getParameterValues(), request.getDatasourceName(), request.getMarkdownFileName(),
+                    request.getCodeBlockCounter());
             String htmlTable = sqlExecutor.convertToHtmlTable(htmlGenerationRequest);
 
             return ResponseEntity.ok(htmlTable);
@@ -121,7 +120,8 @@ public class SqlExecutionController {
             objectMapper.writeValue(outputPath.toFile(), rootNode);
 
             String htmlTable = sqlExecutor.convertToHtmlTable(rootNode, request.getDatasourceName(),
-                    request.getMarkdownFileName(), request.getOutputFileName(), request.getColumnName(), request.getSortDirection());
+                    request.getMarkdownFileName(), request.getOutputFileName(), request.getColumnName(),
+                    request.getSortDirection(), request.getCodeBlockCounter());
 
             return ResponseEntity.ok(htmlTable);
         } catch (Exception e) {
@@ -138,25 +138,67 @@ public class SqlExecutionController {
                     .resolve(request.markdownFileName);
 
             String markdownContent = Files.readString(markdownPath);
-            String escapedOldSql = Pattern.quote(request.oldSql.trim());
-            Pattern pattern = Pattern.compile("(```sql\\s*\\n)" + escapedOldSql + "(\\n```)", Pattern.DOTALL);
-            Matcher matcher = pattern.matcher(markdownContent);
+            String[] lines = markdownContent.split("\n");
 
-            if (matcher.find()) {
-                String updatedContent = matcher.replaceFirst("$1" + Matcher.quoteReplacement(request.newSql.trim()) + "$2");
-                Files.writeString(markdownPath, updatedContent);
+            List<String> linesUptoNthCodeblock = linesUptoNthCodeBlock(lines, request.codeBlockCounter);
+            List<String> linesAfterNthCodeblock = linesAfterNthCodeBlock(linesUptoNthCodeblock.size(), lines, request.codeBlockCounter);
+            List<String> updatedLines = combineLines(linesUptoNthCodeblock, request.newSql, linesAfterNthCodeblock);
 
-                return ResponseEntity.ok(Map.of("success", true));
-            } else {
-                log.error("Original SQL block not found in the markdown file");
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("success", false, "message", "Original SQL block not found"));
-            }
+            String updatedContent = String.join("\n", updatedLines);
+            Files.writeString(markdownPath, updatedContent);
+
+            return ResponseEntity.ok(Map.of("success", true, "message", "SQL changes saved successfully"));
         } catch (Exception e) {
             log.error("Error saving SQL changes", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("success", false, "message", "Error saving changes"));
+                    .body(Map.of("success", false, "message", "Error saving changes: " + e.getMessage()));
         }
+    }
+
+    private List<String> linesUptoNthCodeBlock(String[] lines, int n) {
+        List<String> result = new ArrayList<>();
+        int codeBlockCount = 0;
+        boolean insideCodeBlock = false;
+        for (String line : lines) {
+            result.add(line);
+            if (line.startsWith("```")) {
+                if (insideCodeBlock) {
+                    insideCodeBlock = false;
+                } else {
+                    insideCodeBlock = true;
+                    codeBlockCount++;
+                    if (codeBlockCount == n) {
+                        break;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    private List<String> linesAfterNthCodeBlock(int startIndex, String[] lines, int n) {
+        // skip the first n lines
+        List<String> result = new ArrayList<>();
+        // find end of code block
+        int counter = 0;
+        for (int i = startIndex; i < lines.length; i++) {
+            counter++;
+            if (lines[i].startsWith("```")) {
+                break;
+            }
+        }
+        for (int i = startIndex + counter; i < lines.length; i++) {
+            result.add(lines[i]);
+        }
+        return result;
+    }
+
+    private List<String> combineLines(List<String> before, String newSql, List<String> after) {
+        List<String> result = new ArrayList<>(before);
+        result.addAll(List.of(newSql.split("\n")));
+        result.add("```");
+        result.addAll(after);
+        return result;
     }
 
     @lombok.Data
@@ -164,6 +206,7 @@ public class SqlExecutionController {
         private String markdownFileName;
         private String oldSql;
         private String newSql;
+        private Integer codeBlockCounter;
     }
 
     @lombok.Data
@@ -171,6 +214,7 @@ public class SqlExecutionController {
         private String datasourceName;
         private String sql;
         private String markdownFileName;
+        private Integer codeBlockCounter;
         private Map<String, String> parameterValues;
     }
 
@@ -182,5 +226,6 @@ public class SqlExecutionController {
         private String datasourceName;
         private String markdownFileName;
         private String sortDirection;
+        private Integer codeBlockCounter;
     }
 }

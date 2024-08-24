@@ -91,7 +91,7 @@ public class SqlExecutorResultReadWriteTest {
 
         // Read back and verify
         SqlExecutor.HtmlTableRequest htmlTableRequest = new SqlExecutor.HtmlTableRequest(sql, jsonFilePath,
-                parameterValues, dataSourceConfig.name(), markdownFilePath);
+                parameterValues, dataSourceConfig.name(), markdownFilePath, 0); // TODO: codeBlockCounter
         SqlResult result = sqlExecutor.getResult(htmlTableRequest);
 
         assertNotNull(result);
