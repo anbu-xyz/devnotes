@@ -3,7 +3,7 @@ let simplemde= new SimpleMDE({ autofocus: true, element: document.getElementById
 
 function saveContent() {
     const content = simplemde.value();
-    const filename = window.location.search.split('filename=')[1];
+    const filename = window.location.search.split('filename=')[1].split('&')[0];
 
     fetch('/saveMarkdown?filename=' + encodeURIComponent(filename), {
         method: 'POST',
@@ -15,7 +15,7 @@ function saveContent() {
         .then(response => response.text())
         .then(result => {
             console.log(result);
-            location.reload(); // Reload the page to show updated content
+            location.href = '/markdown?filename=' + filename + '&edit=false';
         })
         .catch(error => console.error('Error:', error));
 }

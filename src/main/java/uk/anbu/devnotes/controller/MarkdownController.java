@@ -172,12 +172,16 @@ public class MarkdownController {
     }
 
     @PostMapping("/saveMarkdown")
-    public ResponseEntity<String> saveMarkdown(@RequestParam String filename, @RequestBody String content) {
+    public ResponseEntity<String> saveMarkdown(@RequestParam(name = "filename", required = false) String filename,
+                                               @RequestParam(name = "edit", required = false, defaultValue = "false") boolean editMode,
+                                               @RequestBody String content) {
         try {
             var decodedFilename = URLDecoder.decode(filename, StandardCharsets.UTF_8);
             Path filePath = Paths.get(configService.getDocsDirectory(), decodedFilename);
             Files.write(filePath, content.getBytes());
-            return ResponseEntity.ok("Saved successfully");
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(HttpHeaders.LOCATION, "/markdown?filename=" + decodedFilename + "&edit=false")
+                    .build();
         } catch (Exception e) {
             log.error("Error saving markdown file", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error saving file");
