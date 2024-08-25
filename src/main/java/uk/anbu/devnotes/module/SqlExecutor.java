@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 
@@ -62,8 +63,12 @@ public class SqlExecutor {
     public Path renderResultAsJsonFile(JsonGenerationRequest request) {
         var jdbcTemplate = getNamedParameterJdbcTemplate(request.dataSourceConfig());
 
+        var parametersAsString = request.parameterValues() != null ?
+                request.parameterValues().entrySet().stream()
+                        .map(entry -> entry.getKey() + "=" + entry.getValue())
+                        .collect(Collectors.joining("&")) : "";
         String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
-                request.markdownFilePath(), request.sql() + request.parameterValues().toString());
+                request.markdownFilePath(), request.sql() + ";" + parametersAsString);
         Path outputPath = Paths.get(outputFileName);
 
         SqlParameterSource parameterSource = new MapSqlParameterSource(request.parameterValues());
@@ -80,8 +85,10 @@ public class SqlExecutor {
             jsonGenerator.writeObjectFieldStart("sql");
             jsonGenerator.writeStringField("sqlText", request.sql());
             jsonGenerator.writeObjectFieldStart("parameterValues");
-            for (Map.Entry<String, String> entry : request.parameterValues().entrySet()) {
-                jsonGenerator.writeStringField(entry.getKey(), entry.getValue());
+            if (request.parameterValues() != null) {
+                for (Map.Entry<String, String> entry : request.parameterValues().entrySet()) {
+                    jsonGenerator.writeStringField(entry.getKey(), entry.getValue());
+                }
             }
             jsonGenerator.writeEndObject(); // end parameterValues
             jsonGenerator.writeEndObject(); // end sql
@@ -256,8 +263,7 @@ public class SqlExecutor {
                 jsonGenerator.writeObjectField(columnNames.get(i - 1), "<blob>");
             } else if (rs.getObject(i) instanceof Clob) {
                 jsonGenerator.writeObjectField(columnNames.get(i - 1), "<clob>");
-            }
-            else {
+            } else {
                 jsonGenerator.writeObjectField(columnNames.get(i - 1), rs.getObject(i));
             }
         }
@@ -382,7 +388,8 @@ public class SqlExecutor {
 
         var sql = sqlNode.map(s -> s.get("sqlText").asText());
 
-        Map<String, Object> parameterValues = objectMapper.convertValue(sqlNode.map(s -> s.get("parameterValues")), new TypeReference<>() {});
+        Map<String, Object> parameterValues = objectMapper.convertValue(sqlNode.map(s -> s.get("parameterValues")), new TypeReference<>() {
+        });
 
         List<SqlResult.Metadata> metadata = new ArrayList<>();
         if (metadataNode.isPresent()) {
@@ -425,7 +432,7 @@ public class SqlExecutor {
     }
 
     public static List<Map<String, Object>> sortData(List<Map<String, Object>> data, String columnName, String columnType,
-                                              String sortDirection) {
+                                                     String sortDirection) {
 
         data.sort((a, b) -> {
             int comparison = compare(a.get(columnName), b.get(columnName), columnType);

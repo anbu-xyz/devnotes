@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import gg.jte.TemplateEngine;
+import gg.jte.TemplateOutput;
+import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.FileSystemResource;
@@ -38,6 +41,18 @@ public class SqlExecutionController {
     private final ConfigService configService;
     private final SqlExecutor sqlExecutor;
     private final ObjectMapper objectMapper;
+    private final TemplateEngine templateEngine;
+
+    @GetMapping("/reExecuteSql")
+    public ResponseEntity<String> reExecuteSql() {
+        TemplateOutput output = new StringOutput();
+        var params = new HashMap<String, Object>();
+        params.put("dataSources", configService.getDataSources().keySet());
+        templateEngine.render("sql-executor.jte", params, output);
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(output.toString());
+    }
 
     @PostMapping(value = "/reExecuteSql", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> reExecuteSql(@RequestBody SqlExecutionRequest request) {

@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.anbu.devnotes.service.ConfigService;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -21,12 +22,11 @@ public class ConfigController {
 
     @GetMapping("/config")
     public ResponseEntity<String> configPage() {
-        Map<String, Object> model = Map.of(
-                "markdownDirectory", configService.getDocsDirectory(),
-                "sshKeyFile", configService.getSshKey().orElse("Not set"),
-                "dataSources", configService.getDataSources(),
-                "sqlMaxRows", configService.getSqlMaxRows()
-        );
+        var model = new HashMap<String, Object>();
+        model.put("markdownDirectory", configService.getDocsDirectory());
+        model.put("sshKeyFile", configService.getSshKey().orElse("Not set"));
+        model.put("dataSources", configService.getDataSources());
+        model.put("sqlMaxRows", configService.getSqlMaxRows());
         TemplateOutput output = new StringOutput();
         templateEngine.render("config.jte", model, output);
         return ResponseEntity.status(HttpStatus.OK)

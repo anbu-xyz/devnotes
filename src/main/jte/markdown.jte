@@ -1,5 +1,3 @@
-@import gg.jte.html.HtmlContent
-
 @param String htmlContent
 @param String filename
 @param String originalMarkdown
