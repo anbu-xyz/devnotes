@@ -50,14 +50,14 @@ public class GitService {
                 return false;
             }
 
-            log.debug("Changes detected, adding all changes to Git repository");
-
             git.add().addFilepattern(".").call();
             // Add all changes, including new files, modifications, and deletions
             git.add().setUpdate(true).addFilepattern(".").call();
+            Set<String> changes = git.status().call().getUncommittedChanges();
+            String changesString = String.join(", ", changes);
 
-            // Commit the changes
-            git.commit().setMessage("Auto-commit: " + java.time.LocalDateTime.now()).call();
+            git.commit().setMessage("Auto-commit changed files: " + changesString).call();
+            log.info("Auto-commit changed files: " + changesString);
 
             if (hasRemote(git)) {
                 pushChanges(git);

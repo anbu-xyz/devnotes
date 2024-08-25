@@ -20,7 +20,7 @@ public class GitScheduledTasks {
         this.gitService = gitService;
     }
 
-    @Scheduled(fixedRate = 300000)
+    @Scheduled(fixedRate = 1000 * 60 * 5)
     public void scheduleGitCommit() {
         try {
             boolean committed = gitService.commitAndPushChanges();
