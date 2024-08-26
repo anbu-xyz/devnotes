@@ -146,7 +146,7 @@ public class MarkdownController {
         TemplateOutput output = new StringOutput();
         var params = new HashMap<String, Object>();
         params.put("htmlContent", htmlContent);
-        params.put("filename", markdownFile.getFileName().toString());
+        params.put("markdownFile", markdownFile);
         params.put("originalMarkdown", escapeHtml(originalMarkdown));
         params.put("editMode", editMode);
         templateEngine.render("markdown.jte", params, output);

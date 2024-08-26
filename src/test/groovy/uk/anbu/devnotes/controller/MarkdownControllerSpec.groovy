@@ -40,7 +40,7 @@ class MarkdownControllerSpec extends Specification {
 
     def "markdown() should redirect to index.md when filename is null"() {
         when:
-        def response = controller.markdown(null)
+        def response = controller.markdown(null, false)
 
         then:
         response.statusCode == HttpStatus.FOUND
@@ -53,7 +53,7 @@ class MarkdownControllerSpec extends Specification {
         configService.getDocsDirectory() >> tempDir.toFile().parentFile.absolutePath
 
         when:
-        def response = controller.markdown(tempDir.fileName.toString())
+        def response = controller.markdown(tempDir.fileName.toString(), false)
 
         then:
         response.statusCode == HttpStatus.FOUND
@@ -69,7 +69,7 @@ class MarkdownControllerSpec extends Specification {
         configService.getDocsDirectory() >> tempFile.toFile().parentFile.absolutePath
 
         when:
-        def response = controller.markdown("non-existent.md")
+        def response = controller.markdown("non-existent.md", false)
 
         then:
         Document doc = Jsoup.parse(response.body.toString())
@@ -86,7 +86,7 @@ class MarkdownControllerSpec extends Specification {
         Files.write(tempFile, "# Test".getBytes())
 
         when:
-        def response = controller.markdown(tempFile.fileName.toString())
+        def response = controller.markdown(tempFile.fileName.toString(), false)
 
         then:
         Document doc = Jsoup.parse(response.body.toString())
@@ -108,7 +108,7 @@ class MarkdownControllerSpec extends Specification {
         configService.getDocsDirectory() >> tempDirectory.absolutePath
 
         when:
-        def response = controller.markdown("nested1/nested2/new-file.md")
+        def response = controller.markdown("nested1/nested2/new-file.md", false)
 
         then:
         Document doc = Jsoup.parse(response.body.toString())
@@ -146,7 +146,7 @@ class MarkdownControllerSpec extends Specification {
         Files.write(tempFile, content.getBytes())
 
         when:
-        def response = controller.saveMarkdown(tempFile.fileName.toString(), content)
+        def response = controller.saveMarkdown(tempFile.fileName.toString(), false, content)
 
         then:
         response.statusCode == HttpStatus.OK
@@ -164,7 +164,7 @@ class MarkdownControllerSpec extends Specification {
         Files.write(tempFile, "# Test\n```sql(missing-database)\nselect * from user\n```".getBytes())
 
         when:
-        def response = controller.markdown(tempFile.fileName.toString())
+        def response = controller.markdown(tempFile.fileName.toString(), false)
 
         then:
         Document doc = Jsoup.parse(response.body.toString())

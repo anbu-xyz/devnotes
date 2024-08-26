@@ -22,8 +22,7 @@
     @endif
 
     <div class="entry-container">
-        <table class='sortable' data-output-file="${outputFileName}" data-datasource="${datasourceName}"
-               data-markdown-file="${markdownFileName}">
+        <table class='sortable'>
                 <thead x-show="!showSql">
                     <tr>
                         <td colspan="${sqlResult.getData().metadata().size()}">
@@ -34,9 +33,7 @@
                     </tr>
                     <tr>
                         @for(SqlResult.Metadata columnMetadata: sqlResult.getData().metadata())
-                            <th data-type='${columnMetadata.javaClass()}' data-column='${columnMetadata.name()}' data-output-file="${outputFileName}"
-                                data-datasource="${datasourceName}" data-markdown-file="${markdownFileName}"
-                                hx-post='/sortTable'
+                            <th hx-post='/sortTable'
                                 hx-trigger='click'
                                 hx-target='closest div.sql-result'
                                 hx-ext='json-enc'

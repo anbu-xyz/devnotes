@@ -1,5 +1,5 @@
 @param String htmlContent
-@param String filename
+@param java.nio.file.Path markdownFile
 @param String originalMarkdown
 @param boolean editMode
 
@@ -18,7 +18,7 @@
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/json-enc.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <title>${filename}</title>
+    <title>${markdownFile.toString().replaceAll(".md$", "")}</title>
 </head>
 <body class="p-8">
 <div x-cloak x-data="{ editMode: ${editMode} }">
