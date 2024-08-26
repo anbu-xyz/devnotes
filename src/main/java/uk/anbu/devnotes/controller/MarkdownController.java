@@ -41,6 +41,28 @@ public class MarkdownController {
 
     private final ConfigService configService;
 
+    @GetMapping("/fetchRawMarkdown")
+    public ResponseEntity<String> fetchRawMarkdown(@RequestParam String filename) {
+        try {
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
+            Path filePath = markdownRoot.resolve(filename);
+            Assert.isTrue(filePath.toFile().exists(), "File does not exist " + filename);
+            String fileContent = new String(Files.readAllBytes(filePath));
+
+            TemplateOutput output = new StringOutput();
+            var params = new HashMap<String, Object>();
+            params.put("originalMarkdown", escapeHtml(fileContent));
+            templateEngine.render("raw-markdown.jte", params, output);
+
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                    .body(output.toString());
+        } catch (Exception e) {
+            log.error("Error fetching raw markdown", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching raw markdown: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/markdown")
     public ResponseEntity<Object> markdown(@RequestParam(name = "filename", required = false) String filename,
                                            @RequestParam(name = "edit", required = false, defaultValue = "false") boolean editMode) throws IOException {
@@ -140,14 +162,12 @@ public class MarkdownController {
 
         log.info("Rendering markdown: {}", markdownFile);
         String markdownContent = new String(Files.readAllBytes(markdownFile));
-        String originalMarkdown = getOriginalMarkdown(markdownFile);
         String htmlContent = markdownRenderer.convertMarkdown(markdownContent, filename);
 
         TemplateOutput output = new StringOutput();
         var params = new HashMap<String, Object>();
         params.put("htmlContent", htmlContent);
-        params.put("markdownFile", markdownFile);
-        params.put("originalMarkdown", escapeHtml(originalMarkdown));
+        params.put("markdownFile", filename);
         params.put("editMode", editMode);
         templateEngine.render("markdown.jte", params, output);
 
@@ -169,11 +189,6 @@ public class MarkdownController {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
-    }
-
-    public static String escapeJson(String html) {
-        return html.replace("\n", "\\n")
-                .replace("\"", "\\\"");
     }
 
     @PostMapping("/saveMarkdown")
