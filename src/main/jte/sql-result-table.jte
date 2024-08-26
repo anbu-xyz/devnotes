@@ -108,7 +108,8 @@
                                                    "datasourceName": "${sqlResult.getDatasourceName()}",
                                                    "outputFileName": "${outputFileName}",
                                                    "markdownFileName": "${markdownFileName}",
-                                                   "parameterValues":  {}
+                                                   "parameterValues":  {},
+                                                   "forceExecute": true
                                                    }'
                                     hx-target='closest div.sql-result'
                                     hx-swap='outerHTML'

@@ -11,8 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.ImageRenderer;
 import uk.anbu.devnotes.util.FileUtil;
 
-import java.io.IOException;
-
 @Slf4j
 @RequiredArgsConstructor
 @RestController

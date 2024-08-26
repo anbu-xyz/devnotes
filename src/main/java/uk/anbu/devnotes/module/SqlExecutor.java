@@ -72,7 +72,7 @@ public class SqlExecutor {
                 request.markdownFilePath(), request.sql() + ";" + parametersAsString);
         Path outputPath = Paths.get(outputFileName);
 
-        if (outputPath.toFile().exists()) {
+        if (outputPath.toFile().exists() && !request.forceExecute()) {
             log.info("Output file already exists, skipping SQL query");
             return outputPath;
         }
