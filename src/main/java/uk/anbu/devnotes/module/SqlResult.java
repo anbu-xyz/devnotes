@@ -3,6 +3,7 @@ package uk.anbu.devnotes.module;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -10,6 +11,7 @@ import java.util.Map;
 @Builder
 public class SqlResult {
     private Sql sql;
+    private LocalDateTime executionTime;
     private String datasourceName;
     private boolean hasReachedMaxRows;
     private Data data;

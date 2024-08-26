@@ -41,6 +41,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -99,6 +100,7 @@ public class SqlExecutor {
             jsonGenerator.writeEndObject(); // end sql
 
             jsonGenerator.writeStringField("datasourceName", request.dataSourceConfig().name());
+            jsonGenerator.writeStringField("executionTime", LocalDateTime.now().toString());
 
             jdbcTemplate.query(request.sql(), parameterSource, (rs) -> {
                 try {
@@ -430,9 +432,15 @@ public class SqlExecutor {
 
         boolean hasReachedMaxRows = rootNode.has("hasReachedMaxRows") && rootNode.get("hasReachedMaxRows").asBoolean();
 
+        var executionTime = Optional.ofNullable(rootNode.get("executionTime"))
+                .map(JsonNode::toString)
+                .orElse("").isEmpty() ?
+                LocalDateTime.of(1970, 1, 1, 0, 0)
+                : LocalDateTime.parse(rootNode.get("executionTime").asText());
         return SqlResult.builder()
                 .sql(new SqlResult.Sql(sql, parameterValues))
                 .datasourceName(rootNode.get("datasourceName").asText())
+                .executionTime(executionTime)
                 .hasReachedMaxRows(hasReachedMaxRows)
                 .data(new SqlResult.Data(metadata, data))
                 .build();
