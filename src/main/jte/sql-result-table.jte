@@ -45,6 +45,7 @@
                                       "outputFileName": "${outputFileName}",
                                       "datasourceName": "${datasourceName}",
                                       "markdownFileName": "${markdownFileName}",
+                                      "codeBlockCounter": ${codeBlockCounter},
                                       "sortDirection": "${columnMetadata.name().equals(sortColumn) ? (sortDirection.equals("asc") ? "desc" : "asc") : "asc"}"
                                      }'
                             >
@@ -99,7 +100,7 @@
                                     hx-post="/saveSqlChanges"
                                     hx-trigger="click"
                                     hx-ext="json-enc"
-                                    :hx-vals="encodeSaveSqlChangesRequest({
+                                    :hx-vals="JSON.stringify({
                                                 datasourceName: '${datasourceName}',
                                                 markdownFileName: '${markdownFileName}',
                                                 codeBlockCounter: ${codeBlockCounter},
@@ -125,6 +126,7 @@
                                                    "outputFileName": "${outputFileName}",
                                                    "markdownFileName": "${markdownFileName}",
                                                    "parameterValues":  {},
+                                                   "codeBlockCounter": ${codeBlockCounter},
                                                    "forceExecute": true
                                                    }'
                                     hx-target='closest div.sql-result'
@@ -138,10 +140,3 @@
         </table>
     </div>
 </div>
-
-<script>
-    function encodeSaveSqlChangesRequest(request) {
-        console.log(request);
-        return JSON.stringify(request);
-    }
-</script>

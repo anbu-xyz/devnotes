@@ -75,6 +75,8 @@ public class SqlExecutor {
         if (outputPath.toFile().exists() && !request.forceExecute()) {
             log.info("Output file already exists, skipping SQL query");
             return outputPath;
+        } else {
+            log.info("Executing SQL query against {}", request.dataSourceConfig().name());
         }
 
         SqlParameterSource parameterSource = new MapSqlParameterSource(request.parameterValues());
@@ -336,6 +338,7 @@ public class SqlExecutor {
         params.put("sortColumn", sortColumn);
         params.put("sortDirection", sortDirection);
         params.put("sqlResult", sqlResult);
+        params.put("codeBlockCounter", codeBlockCounter);
 
         StringOutput output = new StringOutput();
         templateEngine.render("sql-result-table.jte", params, output);
