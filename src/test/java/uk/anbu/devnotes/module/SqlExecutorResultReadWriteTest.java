@@ -86,7 +86,7 @@ public class SqlExecutorResultReadWriteTest {
 
         // Write JSON file
         SqlExecutor.JsonGenerationRequest request = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, sql,
-                parameterValues, markdownFilePath);
+                parameterValues, markdownFilePath, false);
         Path jsonFilePath = sqlExecutor.renderResultAsJsonFile(request);
 
         // Read back and verify

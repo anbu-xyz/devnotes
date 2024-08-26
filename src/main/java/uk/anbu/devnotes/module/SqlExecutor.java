@@ -71,6 +71,11 @@ public class SqlExecutor {
                 request.markdownFilePath(), request.sql() + ";" + parametersAsString);
         Path outputPath = Paths.get(outputFileName);
 
+        if (outputPath.toFile().exists()) {
+            log.info("Output file already exists, skipping SQL query");
+            return outputPath;
+        }
+
         SqlParameterSource parameterSource = new MapSqlParameterSource(request.parameterValues());
 
         final Integer[] rowCount = {0};
@@ -474,7 +479,8 @@ public class SqlExecutor {
     }
 
     public record JsonGenerationRequest(DataSourceConfig dataSourceConfig, String sql,
-                                        Map<String, String> parameterValues, String markdownFilePath) {}
+                                        Map<String, String> parameterValues, String markdownFilePath,
+                                        boolean forceExecute) {}
 
     public record HtmlTableRequest(String sqlText, Path outputPath, Map<String, String> parameterValues,
                                    String dataSourceName, String markdownFileName, Integer codeBlockCounter) {}

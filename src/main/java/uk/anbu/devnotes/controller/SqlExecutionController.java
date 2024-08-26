@@ -66,7 +66,7 @@ public class SqlExecutionController {
             }
 
             var jsonGenerationRequest = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, request.getSql(),
-                    request.getParameterValues(), request.getMarkdownFileName());
+                    request.getParameterValues(), request.getMarkdownFileName(), request.isForceExecute());
             var outputPath = sqlExecutor.renderResultAsJsonFile(jsonGenerationRequest);
 
             var htmlGenerationRequest = new SqlExecutor.HtmlTableRequest(request.getSql(), outputPath,
@@ -231,6 +231,7 @@ public class SqlExecutionController {
         private String markdownFileName;
         private Integer codeBlockCounter;
         private Map<String, String> parameterValues;
+        private boolean forceExecute;
     }
 
     @lombok.Data

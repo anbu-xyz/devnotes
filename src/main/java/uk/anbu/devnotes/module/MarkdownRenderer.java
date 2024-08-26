@@ -144,7 +144,7 @@ public class MarkdownRenderer {
         }
 
         var request = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, sql, parameterValues,
-                fileNameWithRelativePath);
+                fileNameWithRelativePath, false);
         var outputPath = sqlToJsonFileResolver.apply(request);
 
         return renderSqlResultTable(sql, outputPath, parameterValues, dataSourceConfig.name(),
