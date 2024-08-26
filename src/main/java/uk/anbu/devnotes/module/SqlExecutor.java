@@ -386,10 +386,12 @@ public class SqlExecutor {
         var dataNode = Optional.ofNullable(rootNode.get("data"));
         var sqlNode = Optional.ofNullable(rootNode.get("sql"));
 
-        var sql = sqlNode.map(s -> s.get("sqlText").asText());
+        var sql = sqlNode.map(s -> s.get("sqlText").asText()).orElse("");
 
-        Map<String, Object> parameterValues = objectMapper.convertValue(sqlNode.map(s -> s.get("parameterValues")), new TypeReference<>() {
-        });
+        Map<String, Object> parameterValues = objectMapper.convertValue(
+                sqlNode.map(s -> s.get("parameterValues")).orElse(null),
+                new TypeReference<>() {}
+        );
 
         List<SqlResult.Metadata> metadata = new ArrayList<>();
         if (metadataNode.isPresent()) {
@@ -424,7 +426,7 @@ public class SqlExecutor {
         boolean hasReachedMaxRows = rootNode.has("hasReachedMaxRows") && rootNode.get("hasReachedMaxRows").asBoolean();
 
         return SqlResult.builder()
-                .sql(new SqlResult.Sql(sql.orElse(""), parameterValues))
+                .sql(new SqlResult.Sql(sql, parameterValues))
                 .datasourceName(rootNode.get("datasourceName").asText())
                 .hasReachedMaxRows(hasReachedMaxRows)
                 .data(new SqlResult.Data(metadata, data))
