@@ -9,7 +9,7 @@
 @param SqlResult sqlResult
 @param Integer codeBlockCounter
 
-<div class='sql-result' x-data="{ showSql: false, editableSql: `${sqlResult.getSql().sqlText()}`, originalSql: `${sqlResult.getSql().sqlText()}` }">
+<div class='sql-result' x-data="{ showSql: false, changedSql: `${sqlResult.getSql().sqlText()}`, originalSql: `${sqlResult.getSql().sqlText()}` }">
     @if(sqlResult.getSql().parameters() != null && !sqlResult.getSql().parameters().keySet().isEmpty())
         <div class='parameters'>
             <h4>Parameters:</h4>
@@ -76,7 +76,7 @@
                     <tbody x-show="showSql">
                     <tr>
                         <td colspan="${sqlResult.getData().metadata().size()}">
-                            <textarea x-model="editableSql" class="w-full h-32 p-2 border rounded"></textarea>
+                            <textarea x-model="changedSql" class="w-full h-32 p-2 border rounded"></textarea>
                         </td>
                     </tr>
                     </tbody>
@@ -94,7 +94,23 @@
                             <button class="btn-blue-glow" @click="showSql = !showSql" x-show="!showSql">
                                 <i class="fas" :class="showSql ? 'fa-table' : 'fa-code'"></i>
                             </button>
-                            <button class="btn-blue-glow" x-show="showSql" @click="saveSqlChanges('${markdownFileName}', originalSql, editableSql, ${codeBlockCounter})">
+                            <button class="btn-blue-glow"
+                                    x-show="showSql"
+                                    hx-post="/saveSqlChanges"
+                                    hx-trigger="click"
+                                    hx-ext="json-enc"
+                                    :hx-vals="encodeSaveSqlChangesRequest({
+                                                datasourceName: '${datasourceName}',
+                                                markdownFileName: '${markdownFileName}',
+                                                codeBlockCounter: ${codeBlockCounter},
+                                                oldSql: originalSql,
+                                                newSql: changedSql,
+                                                parameterValues: {},
+                                                forceExecute: true
+                                          })"
+                                    hx-target="closest div.sql-result"
+                                    hx-swap="outerHTML"
+                                    >
                                 <i class="fas fa-save"></i>
                             </button>
                             <button class="btn-blue-glow" onclick='downloadExcel("${outputFileName}", "${markdownFileName}")' x-show="!showSql">
@@ -124,31 +140,8 @@
 </div>
 
 <script>
-    function saveSqlChanges(markdownFileName, oldSql, newSql, codeBlockCounter) {
-        fetch('/saveSqlChanges', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                markdownFileName: markdownFileName,
-                oldSql: oldSql,
-                newSql: newSql,
-                codeBlockCounter: codeBlockCounter
-            }),
-        })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('SQL changes saved successfully');
-                    location.href = '/markdown?filename=' + markdownFileName + '&edit=false';
-                } else {
-                    alert('Error saving SQL changes: ' + (data.message || 'Unknown error'));
-                }
-            })
-            .catch((error) => {
-                console.error('Error:', error);
-                alert('Error saving SQL changes');
-            });
+    function encodeSaveSqlChangesRequest(request) {
+        console.log(request);
+        return JSON.stringify(request);
     }
 </script>

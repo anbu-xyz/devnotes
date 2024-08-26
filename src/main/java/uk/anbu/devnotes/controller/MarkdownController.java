@@ -163,12 +163,17 @@ public class MarkdownController {
         }
     }
 
-    private String escapeHtml(String html) {
+    public static String escapeHtml(String html) {
         return html.replace("&", "&amp;")
                 .replace("<", "&lt;")
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+    public static String escapeJson(String html) {
+        return html.replace("\n", "\\n")
+                .replace("\"", "\\\"");
     }
 
     @PostMapping("/saveMarkdown")

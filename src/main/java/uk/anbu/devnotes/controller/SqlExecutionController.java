@@ -147,7 +147,7 @@ public class SqlExecutionController {
     }
 
     @PostMapping("/saveSqlChanges")
-    public ResponseEntity<Map<String, Object>> saveSqlChanges(@RequestBody SqlChangeRequest request) {
+    public ResponseEntity<?> saveSqlChanges(@RequestBody SqlChangeRequest request) {
         try {
             Path markdownPath = Paths.get(configService.getDocsDirectory())
                     .resolve(request.markdownFileName);
@@ -162,7 +162,14 @@ public class SqlExecutionController {
             String updatedContent = String.join("\n", updatedLines);
             Files.writeString(markdownPath, updatedContent);
 
-            return ResponseEntity.ok(Map.of("success", true, "message", "SQL changes saved successfully"));
+            var sqlExecutionRequest = new SqlExecutionRequest();
+            sqlExecutionRequest.setDatasourceName(request.datasourceName);
+            sqlExecutionRequest.setMarkdownFileName(request.markdownFileName);
+            sqlExecutionRequest.setCodeBlockCounter(request.codeBlockCounter);
+            sqlExecutionRequest.setParameterValues(request.parameterValues);
+            sqlExecutionRequest.setForceExecute(request.forceExecute);
+            sqlExecutionRequest.setSql(request.newSql);
+            return reExecuteSql(sqlExecutionRequest);
         } catch (Exception e) {
             log.error("Error saving SQL changes", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -218,10 +225,13 @@ public class SqlExecutionController {
 
     @lombok.Data
     private static class SqlChangeRequest {
+        public String datasourceName;
         private String markdownFileName;
         private String oldSql;
         private String newSql;
         private Integer codeBlockCounter;
+        public Map<String, String> parameterValues;
+        public boolean forceExecute;
     }
 
     @lombok.Data

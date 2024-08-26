@@ -43,20 +43,6 @@
     function downloadExcel(outputFileName, markdownFileName) {
         window.location.href = '/downloadExcel?outputFileName=' + outputFileName + '&markdownFileName=' + markdownFileName;
     }
-
-    function sortTable(table, column, dataType, outputFile, datasource, markdownFile) {
-        htmx.ajax('POST', '/sortTable', {
-            target: table.closest('.sql-result'),
-            swap: 'outerHTML',
-            values: {
-                column: column,
-                dataType: dataType,
-                outputFile: outputFile,
-                datasource: datasource,
-                markdownFile: markdownFile
-            }
-        });
-    }
 </script>
 </div>
 </body>
