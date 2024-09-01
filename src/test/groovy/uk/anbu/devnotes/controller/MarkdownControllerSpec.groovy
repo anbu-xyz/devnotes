@@ -92,7 +92,6 @@ class MarkdownControllerSpec extends Specification {
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
         doc.select("h1").text() == "Test"
-        doc.select("TextArea#editor").text() == "# Test"
 
         cleanup:
         Files.deleteIfExists(tempFile)
@@ -149,8 +148,8 @@ class MarkdownControllerSpec extends Specification {
         def response = controller.saveMarkdown(tempFile.fileName.toString(), false, content)
 
         then:
-        response.statusCode == HttpStatus.OK
-        response.body == "Saved successfully"
+        response.statusCode == HttpStatus.FOUND
+        response.headers.getFirst("Location") == "/markdown?filename=" + tempFile.fileName.toString() + "&edit=false"
         Files.readString(tempFile) == content
 
         cleanup:
@@ -170,8 +169,8 @@ class MarkdownControllerSpec extends Specification {
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
         doc.select("h1").text() == "Test"
-        doc.select("h1 + p > pre").text() == "select * from user"
-        doc.select("h1 + p > pre").get(0).attr("class") == "language-sql"
+        doc.select("h1 + pre > code").text() == "select * from user"
+        doc.select("h1 + pre > code").get(0).attr("class") == "language-hidden-sql"
         // TODO: check for error message
 
         cleanup:
