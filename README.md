@@ -134,6 +134,27 @@ To run the project, run the following command:
 java -Ddevnotes.docsDirectory=/path/to/docs -jar target/devnotes-0.0.1-SNAPSHOT.jar prod
 ```
 
+### Constructing dynamic URLs
+
+To construct a dynamic URL, you can use the following code:
+
+```html
+Source: <input type="text" id="source" name="source"><br>
+<a id="result" href="">link</a><br>
+<script>
+const source = document.getElementById('source');
+const result = document.getElementById('result');
+
+const inputHandler = function(e) {
+  console.log(e.target.value);
+    const link = "https://your-url.com/text_search_exact_match.do?search_term=" + e.target.value;
+  result.href = link;
+    result.innerText = link;
+}
+
+source.addEventListener('input', inputHandler);
+</script>
+```
 ## License
 This project is licensed under MIT license.
 
