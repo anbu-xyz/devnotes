@@ -91,7 +91,7 @@ class MarkdownControllerSpec extends Specification {
         then:
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
-        doc.select("h1").text() == "Test"
+        doc.select("#viewContent > h1").text() == "Test"
 
         cleanup:
         Files.deleteIfExists(tempFile)
@@ -112,8 +112,8 @@ class MarkdownControllerSpec extends Specification {
         then:
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
-        doc.select("h1").text() == "Test"
-        doc.select("h1 + p > img").get(0).attr("src").endsWith("filename=nested1/nested2/image.png")
+        doc.select("#viewContent > h1").text() == "Test"
+        doc.select("#viewContent > h1 + p > img").get(0).attr("src").endsWith("filename=nested1/nested2/image.png")
 
         cleanup:
         tempDirectory.deleteDir()
@@ -168,9 +168,9 @@ class MarkdownControllerSpec extends Specification {
         then:
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
-        doc.select("h1").text() == "Test"
-        doc.select("h1 + pre > code").text() == "select * from user"
-        doc.select("h1 + pre > code").get(0).attr("class") == "language-hidden-sql"
+        doc.select("#viewContent > h1").text() == "Test"
+        doc.select("#viewContent > h1 + pre > code").text() == "select * from user"
+        doc.select("#viewContent > h1 + pre > code").get(0).attr("class") == "language-hidden-sql"
         // TODO: check for error message
 
         cleanup:

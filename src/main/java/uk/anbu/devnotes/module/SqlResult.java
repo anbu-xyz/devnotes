@@ -16,11 +16,9 @@ public class SqlResult {
     private boolean hasReachedMaxRows;
     private Data data;
 
-    public record Sql(String sqlText, Map<String, Object> parameters) {
-    }
-    public record Metadata(String name, String javaClass) {
-    }
-    public record Data(List<Metadata> metadata, List<Map<String, Object>> rowData) {};
+    public record Sql(String sqlText, Map<String, Object> parameters) {}
+    public record Metadata(String name, String javaClass) {}
+    public record Data(List<Metadata> metadata, List<Map<String, Object>> rowData) {}
 
     public int getRowCount() {
         return data.rowData().size();
