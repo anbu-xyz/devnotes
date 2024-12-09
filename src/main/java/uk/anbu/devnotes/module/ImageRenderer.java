@@ -22,7 +22,9 @@ public class ImageRenderer {
 
     public Optional<Resource> image(String path, String filename) throws IOException {
         Path markdownRoot = Paths.get(configService.getDocsDirectory());
-        File imageFile = markdownRoot.resolve(path == null ? "" : path).resolve(filename).toFile();
+        File imageFile = markdownRoot.resolve(path == null ? "" : path)
+                .resolve(filename.replaceFirst("^/", ""))
+                .toFile();
         log.info("Fetching image {}", imageFile);
         if (!imageFile.exists() || !imageFile.isFile()) {
             return Optional.empty();

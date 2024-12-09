@@ -76,10 +76,13 @@ public class MarkdownRenderer {
                     .replaceAll("\\\\", "/") // Windows
                     .replaceFirst("/[^/]+$", ""); // Remove filename
             if (fileLocation.isEmpty() || fileLocation.equals(fileNameWithRelativePath)) { // If the file is in the root directory
-                fileLocation = ".";
+                image.setDestination("/image?filename=" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
+            } else if (image.getDestination().startsWith("/")) {
+                image.setDestination("/image?filename=" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
+            } else {
+                image.setDestination("/image?filename=" + fileLocation + "/" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
             }
 
-            image.setDestination("/image?filename=" + fileLocation + "/" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
         } else if (node instanceof FencedCodeBlock) {
             codeBlockCounter++;
             processFencedCodeBlock((FencedCodeBlock) node, fileNameWithRelativePath, codeBlockCounter);
