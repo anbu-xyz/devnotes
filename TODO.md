@@ -5,3 +5,4 @@
 
 ## Features
 * Add a way to run parameterized queries
+* Render JSON results as custom HTML

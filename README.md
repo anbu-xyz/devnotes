@@ -86,6 +86,28 @@ outputString
 ```
 ````
 
+### Playwright Scripting
+
+To embed executable playwright code in a markdown file, use the following syntax:
+
+````
+```groovy:text
+import com.microsoft.playwright.Browser
+import com.microsoft.playwright.Page
+import com.microsoft.playwright.Playwright
+
+def pageTitle = "Unable to get"
+
+try (Playwright playwright = Playwright.create()) {
+		Browser browser = playwright.chromium().launch()
+		Page page = browser.newPage()
+		page.navigate("http://playwright.dev")
+     pageTitle = page.title()
+}
+pageTitle
+```
+````
+
 The code will be executed and the result will be rendered in the markdown file.
 
 ### Sql Scripting
@@ -146,10 +168,9 @@ const source = document.getElementById('source');
 const result = document.getElementById('result');
 
 const inputHandler = function(e) {
-  console.log(e.target.value);
-    const link = "https://your-url.com/text_search_exact_match.do?search_term=" + e.target.value;
+  const link = "https://your-url.com/text_search_exact_match.do?search_term=" + e.target.value;
   result.href = link;
-    result.innerText = link;
+  result.innerText = link;
 }
 
 source.addEventListener('input', inputHandler);
