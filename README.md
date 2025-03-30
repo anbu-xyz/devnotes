@@ -110,12 +110,20 @@ pageTitle
 
 The code will be executed and the result will be rendered in the markdown file.
 
+#### Groovy code optional configuration
+
+To enable caching use the following syntax in the code block header:
+
+```
+groovy:csv-table-with-header(cacheEnabled:false)
+```
+
 ### Sql Scripting
 
 To embed executable sql code in a markdown file, use the following syntax:
 
 ````
-```sql(datasource1)
+```sql(datasource:datasource1)
 SELECT * FROM users
 ```
 ````

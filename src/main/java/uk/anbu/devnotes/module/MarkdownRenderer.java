@@ -12,7 +12,7 @@ import org.commonmark.node.Text;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.HtmlRenderer;
-import uk.anbu.devnotes.service.DataSourceConfig;
+import uk.anbu.devnotes.service.ConfigService;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -21,6 +21,7 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +35,12 @@ public class MarkdownRenderer {
     private final Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver;
     private final Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver;
     private final Function<GroovyExecutor.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver;
-    private final Function<String, DataSourceConfig> dataSourceConfigResolver;
+    private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
 
     public MarkdownRenderer(Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver,
                             Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver,
                             Function<GroovyExecutor.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver,
-                            Function<String, DataSourceConfig> dataSourceConfigResolver) {
+                            Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver) {
         this.sqlToJsonFileResolver = sqlToJsonFileResolver;
         this.sqlToHtmlTableResolver = sqlToHtmlTableResolver;
         this.groovyCodeBlockResolver = groovyCodeBlockResolver;
@@ -100,18 +101,43 @@ public class MarkdownRenderer {
 
     private void processFencedCodeBlock(FencedCodeBlock codeBlock, String fileNameWithRelativePath, Integer codeBlockCounter) {
         String codeType = codeBlock.getInfo();
-        if (codeType.matches("^groovy:([^:]+)$")) {
+        // match codeType of format "groovy:targetType(config1:value1,config2:value2) or "groovy:targetType"
+        if (codeType.matches("^groovy:([^(]+)\\(.*\\)$") || codeType.matches("^groovy:([^(]+)(.*)$")) {
             renderGroovyResult(codeBlock, fileNameWithRelativePath, codeType);
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
             renderSqlResult(codeBlock, fileNameWithRelativePath, codeType, codeBlockCounter);
+        } else {
+            log.error("Unknown code type: {}, ignoring code block", codeType);
         }
     }
 
     private void renderGroovyResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, String codeType) {
-        String targetType = codeType.substring(7);
+        // Assuming codeType string is of format "groovy:targetType(config1:value1,config2:value2)"
+        // find location of first opening parenthesis
+        int openParenIndex = codeType.indexOf('(');
+        Map<String, String> configMap = new HashMap<>();
+        if (openParenIndex == -1) {
+            log.debug("Open parenthesis not found in config string {}, using default config", codeType);
+            openParenIndex = codeType.length();
+        } else {
+            // find location of last closing parenthesis
+            int closeParenIndex = codeType.lastIndexOf(')');
+            if (closeParenIndex == -1) {
+                log.error("Error rendering Groovy result: missing closing parenthesis. Unable to read config from {}", codeType);
+                return;
+            }
+            String[] configParts = codeType.substring(openParenIndex + 1, closeParenIndex).split(",");
+            for (String configKeyValue : configParts) {
+                String[] keyValue = configKeyValue.split(":");
+                configMap.put(keyValue[0], keyValue[1]);
+            }
+        }
+
         String groovyScript = codeBlock.getLiteral();
+
+        String targetType = codeType.substring("groovy:".length(), openParenIndex);
         var groovyCodeBlockRequest = new GroovyExecutor.GroovyCodeBlockRequest(groovyScript, targetType,
-                fileNameWithRelativePath);
+                fileNameWithRelativePath, GroovyExecutor.GroovyCodeBlockConfig.fromMap(configMap));
         var node = groovyCodeBlockResolver.apply(groovyCodeBlockRequest);
         codeBlock.insertAfter(node);
         codeBlock.setInfo("hidden-groovy");
@@ -119,12 +145,28 @@ public class MarkdownRenderer {
 
     private void renderSqlResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, String codeType,
                                  Integer codeBlockCounter) {
-        String dataSourceName = codeType.substring(4, codeType.length() - 1);
+        String configString = codeType.substring(4, codeType.length() - 1);
+        String[] configParts = configString.split(",");
+        Map<String, String> configMap = new HashMap<>();
+        for (String configKeyValue : configParts) {
+            // if colon is not found, assume the configKeyValue is the datasource name
+            if (configKeyValue.indexOf(':') == -1) {
+                configMap.put("datasource", configKeyValue);
+                continue;
+            }
+            String[] keyValue = configKeyValue.split(":");
+            configMap.put(keyValue[0], keyValue[1]);
+        }
+        if (!configMap.containsKey("datasource")) {
+            log.error("Error rendering SQL result: datasource not specified in config");
+            return;
+        }
+
         String sql = codeBlock.getLiteral();
         Node node;
-        var dataSourceConfig = dataSourceConfigResolver.apply(dataSourceName);
+        var dataSourceConfig = dataSourceConfigResolver.apply(configMap.get("datasource"));
         if (dataSourceConfig == null) {
-            node = new Text("Error: DataSource '" + dataSourceName + "' not defined in config.");
+            node = new Text("Error: DataSource '" + configMap.get("datasource") + "' not defined in config.");
         } else {
             node = processSqlCodeBlock(sql, dataSourceConfig, fileNameWithRelativePath, codeBlockCounter);
         }
@@ -132,8 +174,8 @@ public class MarkdownRenderer {
         codeBlock.setInfo("hidden-sql");
     }
 
-    private Node processSqlCodeBlock(String sql, DataSourceConfig dataSourceConfig, String fileNameWithRelativePath,
-                                     Integer codeBlockCounter) {
+    private Node processSqlCodeBlock(String sql, ConfigService.DataSourceConfig dataSourceConfig,
+                                     String fileNameWithRelativePath, Integer codeBlockCounter) {
 
         List<String> parameterNames = extractParameterNames(sql);
         Map<String, String> parameterValues = new LinkedHashMap<>();

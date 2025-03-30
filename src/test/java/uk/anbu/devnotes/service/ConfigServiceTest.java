@@ -16,8 +16,8 @@ class ConfigServiceTest {
     void setUp() {
         configService = new ConfigService();
         // Initialize with a sample data source
-        Map<String, DataSourceConfig> initialDataSources = new HashMap<>();
-        initialDataSources.put("testDB", new DataSourceConfig("testDB", "jdbc:test:url",
+        Map<String, ConfigService.DataSourceConfig> initialDataSources = new HashMap<>();
+        initialDataSources.put("testDB", new ConfigService.DataSourceConfig("testDB", "jdbc:test:url",
                 "testUser", "testPass", "org.test.Driver"));
         configService.setDataSources(initialDataSources);
     }
@@ -30,7 +30,7 @@ class ConfigServiceTest {
 
         configService.updateDataSources(newConfigs);
 
-        DataSourceConfig updatedConfig = configService.getDataSourceConfig("testDB");
+        ConfigService.DataSourceConfig updatedConfig = configService.getDataSourceConfig("testDB");
         assertEquals("jdbc:new:url", updatedConfig.url());
         assertEquals("newUser", updatedConfig.username());
         assertEquals("testPass", updatedConfig.password()); // Should remain unchanged
@@ -47,7 +47,7 @@ class ConfigServiceTest {
 
         configService.updateDataSources(newConfigs);
 
-        DataSourceConfig newConfig = configService.getDataSourceConfig("newDB");
+        ConfigService.DataSourceConfig newConfig = configService.getDataSourceConfig("newDB");
         assertNotNull(newConfig);
         assertEquals("jdbc:new:url", newConfig.url());
         assertEquals("newUser", newConfig.username());
@@ -62,7 +62,7 @@ class ConfigServiceTest {
 
         configService.updateDataSources(newConfigs);
 
-        DataSourceConfig updatedConfig = configService.getDataSourceConfig("testDB");
+        var updatedConfig = configService.getDataSourceConfig("testDB");
         assertEquals("newPassword", updatedConfig.password());
     }
 
@@ -73,7 +73,7 @@ class ConfigServiceTest {
 
         configService.updateDataSources(newConfigs);
 
-        DataSourceConfig updatedConfig = configService.getDataSourceConfig("testDB");
+        var updatedConfig = configService.getDataSourceConfig("testDB");
         assertEquals("testPass", updatedConfig.password()); // Should remain unchanged
     }
 
@@ -85,7 +85,7 @@ class ConfigServiceTest {
 
         configService.updateDataSources(newConfigs);
 
-        DataSourceConfig updatedConfig = configService.getDataSourceConfig("testDB");
+        var updatedConfig = configService.getDataSourceConfig("testDB");
         assertEquals("jdbc:new:url", updatedConfig.url());
         assertEquals(1, configService.getDataSources().size()); // Should not add unrelated config
     }
@@ -103,8 +103,8 @@ class ConfigServiceTest {
 
         configService.updateDataSources(newConfigs);
 
-        DataSourceConfig updatedTestDB = configService.getDataSourceConfig("testDB");
-        DataSourceConfig updatedAnotherDB = configService.getDataSourceConfig("anotherDB");
+        var updatedTestDB = configService.getDataSourceConfig("testDB");
+        var updatedAnotherDB = configService.getDataSourceConfig("anotherDB");
 
         assertEquals("jdbc:new:url", updatedTestDB.url());
         assertEquals("anotherUser", updatedAnotherDB.username());

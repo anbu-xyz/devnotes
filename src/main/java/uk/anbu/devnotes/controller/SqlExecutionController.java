@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
-import uk.anbu.devnotes.service.DataSourceConfig;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -58,7 +57,7 @@ public class SqlExecutionController {
     public ResponseEntity<String> reExecuteSql(@RequestBody SqlExecutionRequest request) {
         try {
             String dataSourceName = request.getDatasourceName();
-            DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
+            ConfigService.DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
 
             if (dataSourceConfig == null) {
                 log.error("Invalid datasource name: {}", dataSourceName);

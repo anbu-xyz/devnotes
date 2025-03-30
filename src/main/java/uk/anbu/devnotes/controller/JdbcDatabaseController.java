@@ -11,7 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import uk.anbu.devnotes.service.ConfigService;
-import uk.anbu.devnotes.service.DataSourceConfig;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,7 +37,7 @@ public class JdbcDatabaseController {
 
     @PostMapping("/database/fetch-metadata")
     public ResponseEntity<String> fetchDatabaseMetadata(@RequestParam String configName, @RequestParam String targetName) {
-        DataSourceConfig config = configService.getDataSourceConfig(configName);
+        ConfigService.DataSourceConfig config = configService.getDataSourceConfig(configName);
         if (config == null) {
             return ResponseEntity.badRequest().body("Invalid datasource configuration name");
         }
@@ -53,9 +52,9 @@ public class JdbcDatabaseController {
         }
     }
 
-    private Map<String, Object> fetchMetadata(DataSourceConfig config) throws SQLException {
+    private Map<String, Object> fetchMetadata(ConfigService.DataSourceConfig dbConfig) throws SQLException {
         Map<String, Object> metadata = new HashMap<>();
-        try (Connection conn = DriverManager.getConnection(config.url(), config.username(), config.password())) {
+        try (Connection conn = DriverManager.getConnection(dbConfig.url(), dbConfig.username(), dbConfig.password())) {
             DatabaseMetaData dbMetaData = conn.getMetaData();
             metadata.put("database_product_name", dbMetaData.getDatabaseProductName());
             metadata.put("database_product_version", dbMetaData.getDatabaseProductVersion());
@@ -85,7 +84,11 @@ public class JdbcDatabaseController {
 
     private void saveMetadataToYaml(Map<String, Object> metadata, String targetName) throws IOException {
         File targetFile = new File(configService.getDocsDirectory(), "database/" + targetName + ".yaml");
-        targetFile.getParentFile().mkdirs();
+        var result = targetFile.getParentFile().mkdirs();
+        if (!result) {
+            log.error("Failed to create directory {}", targetFile.getParentFile().getAbsolutePath());
+            return;
+        }
         ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
         yamlMapper.writeValue(targetFile, metadata);
     }

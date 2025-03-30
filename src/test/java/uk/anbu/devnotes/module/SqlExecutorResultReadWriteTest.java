@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import uk.anbu.devnotes.service.ConfigService;
-import uk.anbu.devnotes.service.DataSourceConfig;
 
 import java.io.StringReader;
 import java.nio.file.Path;
@@ -75,7 +74,7 @@ public class SqlExecutorResultReadWriteTest {
     @Test
     void testWriteAndReadBackJson() throws Exception {
         // Prepare test data
-        var dataSourceConfig = new DataSourceConfig("testDB", dataSource.getUrl(), dataSource.getUsername(),
+        var dataSourceConfig = new ConfigService.DataSourceConfig("testDB", dataSource.getUrl(), dataSource.getUsername(),
                 dataSource.getPassword(), "org.h2.Driver");
         configService.getDataSources().put("testDB", dataSourceConfig);
 

@@ -10,7 +10,6 @@ import org.springframework.http.HttpStatus
 import spock.lang.Specification
 import uk.anbu.devnotes.module.MarkdownRenderer
 import uk.anbu.devnotes.service.ConfigService
-import uk.anbu.devnotes.service.DataSourceConfig
 
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -27,7 +26,7 @@ class MarkdownControllerSpec extends Specification {
         sqlToJsonFileResolver = x -> Paths.get("src/test/resources/sql-result.json")
         sqlToHtmlTableResolver = x -> "html-table"
         groovyCodeBlockResolver = x -> new Text("groovy-code-block")
-        dataSourceConfigResolver = x -> new DataSourceConfig("testDB", "jdbc:test:url", "testUser", "testPass", "org.test.Driver")
+        dataSourceConfigResolver = x -> new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "testUser", "testPass", "org.test.Driver")
         markdownRenderer = new MarkdownRenderer(sqlToJsonFileResolver,
                 sqlToHtmlTableResolver,
                 groovyCodeBlockResolver,

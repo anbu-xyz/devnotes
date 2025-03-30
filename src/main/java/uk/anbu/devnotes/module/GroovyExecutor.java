@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Map;
 
 import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 
@@ -30,19 +31,15 @@ public class GroovyExecutor {
         Path outputPath = Paths.get(outputFileName);
 
         String output;
-        if (Files.exists(outputPath)) {
-            // If the output file already exists, read its content
-            try {
-                output = Files.readString(outputPath);
-                log.info("Using existing output file: {}", outputFileName);
-            } catch (IOException e) {
-                log.error("Error reading existing output file: {}", outputFileName, e);
-                output = "Error: Unable to read existing output file";
+        if (request.config().cachingEnabled()) {
+            if (Files.exists(outputPath)) {
+                output = readFromFile(outputPath, outputFileName);
+            } else {
+                output = executeGroovyScript(request.groovyScript);
+                saveOutput(outputFileName, output);
             }
         } else {
-            // If the output file doesn't exist, execute the Groovy script and save the output
             output = executeGroovyScript(request.groovyScript);
-            saveOutput(outputFileName, output);
         }
 
         // Replace the code block with the output
@@ -63,6 +60,19 @@ public class GroovyExecutor {
             return new Text(String.format("Error: Unknown target type '%s', use target type 'html', 'text', " +
                     "'code-block', 'csv-table' or 'csv-table-with-header'", request.targetType));
         }
+    }
+
+    private static String readFromFile(Path outputPath, String outputFileName) {
+        String output;
+        // If the output file already exists, read its content
+        try {
+            output = Files.readString(outputPath);
+            log.info("Using existing output file: {}", outputFileName);
+        } catch (IOException e) {
+            log.error("Error reading existing output file: {}", outputFileName, e);
+            output = "Error: Unable to read existing output file";
+        }
+        return output;
     }
 
     private static Node csvToHtmlTable(String targetType, String output) {
@@ -96,6 +106,8 @@ public class GroovyExecutor {
     private String executeGroovyScript(String script) {
         GroovyShell shell = new GroovyShell();
         try {
+            log.info("Executing Groovy script");
+            log.trace("Script source:\n{}", script);
             Object result = shell.evaluate(script);
             return result != null ? result.toString() : "";
         } catch (Exception e) {
@@ -114,5 +126,14 @@ public class GroovyExecutor {
         }
     }
 
-    public record GroovyCodeBlockRequest(String groovyScript, String targetType, String fileNameWithRelativePath) {}
+    public record GroovyCodeBlockConfig(Boolean cachingEnabled) {
+        // constructor to parse from Map<String, String>
+        public static GroovyCodeBlockConfig fromMap(Map<String, String> configMap) {
+            var cachingEnabled = Boolean.parseBoolean(configMap.getOrDefault("cacheEnabled", "true"));
+            return new GroovyCodeBlockConfig(cachingEnabled);
+        }
+    }
+
+    public record GroovyCodeBlockRequest(String groovyScript, String targetType, String fileNameWithRelativePath,
+                                         GroovyCodeBlockConfig config) {}
 }

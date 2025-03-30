@@ -24,7 +24,6 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Component;
 import uk.anbu.devnotes.service.ConfigService;
-import uk.anbu.devnotes.service.DataSourceConfig;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -160,7 +159,7 @@ public class SqlExecutor {
         }
     }
 
-    private NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(DataSourceConfig dataSourceConfig) {
+    private NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(ConfigService.DataSourceConfig dataSourceConfig) {
 
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(dataSourceConfig.driverClassName());
@@ -187,7 +186,7 @@ public class SqlExecutor {
                 });
 
         String dataSourceName = rootNode.get("datasourceName").asText();
-        DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
+        ConfigService.DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
 
         NamedParameterJdbcTemplate jdbcTemplate = getNamedParameterJdbcTemplate(dataSourceConfig);
 
@@ -489,7 +488,7 @@ public class SqlExecutor {
         }
     }
 
-    public record JsonGenerationRequest(DataSourceConfig dataSourceConfig, String sql,
+    public record JsonGenerationRequest(ConfigService.DataSourceConfig dataSourceConfig, String sql,
                                         Map<String, String> parameterValues, String markdownFilePath,
                                         boolean forceExecute) {}
 
