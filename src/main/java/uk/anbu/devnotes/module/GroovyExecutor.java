@@ -109,6 +109,8 @@ public class GroovyExecutor {
             log.info("Executing Groovy script");
             log.trace("Script source:\n{}", script);
             Object result = shell.evaluate(script);
+            log.info("Finished executing Groovy script");
+            log.trace("Script result:\n{}", result);
             return result != null ? result.toString() : "";
         } catch (Exception e) {
             log.error("Error executing Groovy script", e);
