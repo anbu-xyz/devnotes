@@ -102,12 +102,12 @@ public class MarkdownRenderer {
     private void processFencedCodeBlock(FencedCodeBlock codeBlock, String fileNameWithRelativePath, Integer codeBlockCounter) {
         String codeType = codeBlock.getInfo();
         // match codeType of format "groovy:targetType(config1:value1,config2:value2) or "groovy:targetType"
-        if (codeType.matches("^groovy:([^(]+)\\(.*\\)$") || codeType.matches("^groovy:([^(]+)(.*)$")) {
+        if (codeType.matches("^groovy:([^(]+)\\(.*\\)$") || codeType.matches("^groovy:([^(]+)$")) {
             renderGroovyResult(codeBlock, fileNameWithRelativePath, codeType);
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
             renderSqlResult(codeBlock, fileNameWithRelativePath, codeType, codeBlockCounter);
         } else {
-            log.error("Unknown code type: {}, ignoring code block", codeType);
+            log.debug("unhandled code type: {}, delegating to default handler", codeType);
         }
     }
 
