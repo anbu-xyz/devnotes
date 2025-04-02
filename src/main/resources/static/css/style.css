@@ -38,6 +38,10 @@ pre, code {
     padding: 0.2em 0.4em;
     border-radius: 4px;
     font-family: 'Courier New', Courier, monospace;
+    max-height: calc(1.2em * 6); /* 6 lines, based on typical line height of 1.2em */
+    overflow-y: auto;
+    white-space: pre-wrap; /* To ensure long lines are wrapped */
+    text-indent: -.4em; /* To indent the first line of code and make it alight with the rest of the code */
 }
 
 pre.language-hidden-sql {
