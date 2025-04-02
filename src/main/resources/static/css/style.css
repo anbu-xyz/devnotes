@@ -44,6 +44,10 @@ pre, code {
     text-indent: -.4em; /* To indent the first line of code and make it alight with the rest of the code */
 }
 
+.CodeMirror-wrap pre {
+    text-indent: 0; /* To remove the indentation of the first line of code in CodeMirror (markdown editor) */
+}
+
 pre.language-hidden-sql {
     display: none;
 }
