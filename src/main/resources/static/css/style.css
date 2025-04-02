@@ -12,13 +12,26 @@ body {
 /* Headings */
 h1, h2, h3, h4, h5, h6 {
     color: #f0f0f0;
-    margin-top: 1em;
-    margin-bottom: 0.5em;
+    margin: 0
+}
+
+h1 {
+    border-bottom: 0.1em double gray;
+}
+
+h2 {
+    font-weight: 600;
+}
+
+h3 {
+    font-weight: 800;
+    font-size: 1.2em;
 }
 
 /* Paragraphs */
 p {
     margin: 1em 0;
+    font-size: 0.8em;
 }
 
 /* Links */
@@ -40,8 +53,14 @@ pre, code {
     font-family: 'Courier New', Courier, monospace;
     max-height: calc(1.2em * 6); /* 6 lines, based on typical line height of 1.2em */
     overflow-y: auto;
+    overflow-x: hidden;
     white-space: pre-wrap; /* To ensure long lines are wrapped */
     text-indent: -.4em; /* To indent the first line of code and make it alight with the rest of the code */
+}
+
+pre[class*="language-"] {
+    padding: 0.25em 0;
+    overflow-x: hidden;
 }
 
 .CodeMirror-wrap pre {
@@ -62,12 +81,12 @@ pre.language-hidden-groovy {
 
 /* Lists */
 ul, ol {
-    margin: 1em 0;
+    margin: 0;
     padding-left: 1.5em;
 }
 
 li {
-    margin: 0.5em 0;
+    margin: 0;
 }
 
 /* Blockquotes */
@@ -82,7 +101,7 @@ blockquote {
 /* Tables */
 table {
     border-collapse: collapse;
-    margin: 1em 0;
+    margin: 0.2em 0;
 }
 
 th, td {
