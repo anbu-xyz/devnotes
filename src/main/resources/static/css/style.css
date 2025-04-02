@@ -56,6 +56,10 @@ pre.language-hidden-groovy {
     display: none;
 }
 
+.sql-execution-time {
+    margin-left: 2em;
+}
+
 /* Lists */
 ul, ol {
     margin: 1em 0;

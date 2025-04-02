@@ -29,7 +29,7 @@
                         <span>
                             ${sqlResult.getDatasourceName()}
                         </span>
-                        <span style="float: right;">
+                        <span style="float: right;" class="sql-execution-time">
                             ${sqlResult.getExecutionTime().format(java.time.format.DateTimeFormatter.ofPattern("dd/MMM HH:mm"))}
                         </span>
                         </td>
