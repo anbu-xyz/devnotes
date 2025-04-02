@@ -98,7 +98,8 @@ import com.microsoft.playwright.Playwright
 
 def pageTitle = "Unable to get"
 
-try (Playwright playwright = Playwright.create()) {
+def env = ["PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD":"1"]
+try (Playwright playwright = Playwright.create(new Playwright.CreateOptions().setEnv(env))) {
 		Browser browser = playwright.chromium().launch()
 		Page page = browser.newPage()
 		page.navigate("http://playwright.dev")
