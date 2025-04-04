@@ -294,7 +294,7 @@ public class SqlExecutor {
 
     public String convertToHtmlTable(HtmlTableRequest request) {
         try {
-            SqlResult sqlResult = getResult(request);
+            var sqlResult = getResult(request);
 
             Map<String, Object> params = new HashMap<>();
             params.put("outputFileName", request.outputPath().getFileName().toString());
@@ -327,7 +327,7 @@ public class SqlExecutor {
                 .resolve(outputFileName);
         HtmlTableRequest request = new HtmlTableRequest(previousSqlText, outputPath, previousParameterValues,
                 dataSourceName, markdownFileName, codeBlockCounter);
-        SqlResult sqlResult = getResult(request);
+        var sqlResult = getResult(request);
 
         Map<String, Object> params = new HashMap<>();
         params.put("outputFileName", outputFileName);
@@ -439,13 +439,20 @@ public class SqlExecutor {
                 .orElse("").isEmpty() ?
                 LocalDateTime.of(1970, 1, 1, 0, 0)
                 : LocalDateTime.parse(rootNode.get("executionTime").asText());
-        return SqlResult.builder()
-                .sql(new SqlResult.Sql(sql, parameterValues))
-                .datasourceName(rootNode.get("datasourceName").asText())
-                .executionTime(executionTime)
-                .hasReachedMaxRows(hasReachedMaxRows)
-                .data(new SqlResult.Data(metadata, data))
-                .build();
+        var dataSourceName = rootNode.get("datasourceName");
+        if (dataSourceName == null) {
+            log.error("Error rendering SQL result table: datasourceName not found in JSON");
+            return SqlResult.builder().isError(true).build();
+        } else {
+            return SqlResult.builder()
+                    .sql(new SqlResult.Sql(sql, parameterValues))
+                    .datasourceName(rootNode.get("datasourceName").asText())
+                    .executionTime(executionTime)
+                    .hasReachedMaxRows(hasReachedMaxRows)
+                    .data(new SqlResult.Data(metadata, data))
+                    .isError(false)
+                    .build();
+        }
     }
 
     public static List<Map<String, Object>> sortData(List<Map<String, Object>> data, String columnName, String columnType,

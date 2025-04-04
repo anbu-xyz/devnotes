@@ -15,6 +15,7 @@ public class SqlResult {
     private String datasourceName;
     private boolean hasReachedMaxRows;
     private Data data;
+    private boolean isError;
 
     public record Sql(String sqlText, Map<String, Object> parameters) {}
     public record Metadata(String name, String javaClass) {}
