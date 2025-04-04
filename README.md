@@ -85,6 +85,7 @@ def outputString = "Hello World"
 outputString
 ```
 ````
+The code will be executed and the result will be rendered in the markdown file.
 
 ### Playwright Scripting
 
@@ -109,7 +110,23 @@ pageTitle
 ```
 ````
 
-The code will be executed and the result will be rendered in the markdown file.
+Another playwright example:
+
+````
+import com.microsoft.playwright.BrowserType
+import com.microsoft.playwright.Playwright
+
+def pageTitle = "Unable to get"
+
+try (Playwright playwright = Playwright.create()) {
+		// channel can be - "chrome" or "msedge"
+		def browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setChannel("chrome"))
+		def page = browser.newPage()
+		page.navigate("http://playwright.dev")
+    pageTitle = page.title()
+}
+pageTitle
+````
 
 #### Groovy code optional configuration
 
