@@ -1,5 +1,5 @@
 function saveContent() {
-    const content = simpleMDE.value();
+    const content = easyMDE.value();
     const filename = window.location.search.split('filename=')[1].split('&')[0];
 
     fetch('/saveMarkdown?filename=' + encodeURIComponent(filename), {

@@ -129,7 +129,7 @@ img {
                        SimpleMDE overrides
    ========================================================================== */
 
-.editor-toolbar {
+.editor-toolbar, .editor-toolbar.fullscreen {
     background-color: #1e1e1e;
     border-color: #333;
 }
