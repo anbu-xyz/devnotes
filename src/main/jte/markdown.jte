@@ -86,6 +86,17 @@
             document.getElementById('editButton').style.display = 'none';
         }
     });
+
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault(); // Prevent the browser's save dialog
+
+            // If save button is visible.
+            if (document.querySelector('#saveButton').style.display !== 'none') {
+                document.getElementById('saveButton').click();
+            }
+        }
+    });
 </script>
 </div>
 </body>
