@@ -61,19 +61,29 @@
         const h1 = viewContent.querySelector('h1');
 
         if (h1) {
-            // Create a edit link
+            // Create home link
+            const folderLink = document.createElement('a');
+            folderLink.href = 'renderDirectoryContents?directoryName=' +
+                encodeURIComponent('${markdownFile}'.split('/').slice(0, -1).join('/'));
+
+            folderLink.classList.add('text-blue-500', 'hover:text-blue-700', 'mr-2');
+            folderLink.innerHTML = '<i class="fas fa-folder-open" style="padding-right: 0.2em"></i>';
+
+            // Create edit link
             const editLink = document.createElement('a');
             editLink.href = '#';
             editLink.classList.add('text-blue-500', 'hover:text-blue-700');
-            editLink.innerHTML = '<i class="fas fa-edit"></i>';
-            editLink.onclick = function() {
-                console.log('Edit Link clicked');
-                // simulate a click on the edit button
+            editLink.innerHTML = '<i class="fas fa-edit" style="padding-left: 0.2em"></i>';
+            editLink.onclick = function(e) {
+                e.preventDefault();
                 document.getElementById('editButton').click();
             };
 
-            // put the edit inside h1
+            h1.insertBefore(folderLink, h1.firstChild);
             h1.appendChild(editLink);
+
+            // hide the edit button
+            document.getElementById('editButton').style.display = 'none';
         }
     });
 </script>
