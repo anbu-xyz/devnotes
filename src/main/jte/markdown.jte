@@ -48,9 +48,34 @@
         window.location.href = '/downloadExcel?outputFileName=' + outputFileName + '&markdownFileName=' + markdownFileName;
     }
 
+    function h1IsAbsent() {
+        return document.getElementById('viewContent').querySelector('h1') == null;
+    }
+
     document.addEventListener('htmx:afterRequest', function(evt) {
         easyMDE = new EasyMDE({ element: document.querySelector("#editor") });
     })
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const viewContent = document.getElementById('viewContent');
+        const h1 = viewContent.querySelector('h1');
+
+        if (h1) {
+            // Create a edit link
+            const editLink = document.createElement('a');
+            editLink.href = '#';
+            editLink.classList.add('text-blue-500', 'hover:text-blue-700');
+            editLink.innerHTML = '<i class="fas fa-edit"></i>';
+            editLink.onclick = function() {
+                console.log('Edit Link clicked');
+                // simulate a click on the edit button
+                document.getElementById('editButton').click();
+            };
+
+            // put the edit inside h1
+            h1.appendChild(editLink);
+        }
+    });
 </script>
 </div>
 </body>
