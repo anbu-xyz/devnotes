@@ -98,6 +98,17 @@
             }
         }
     });
+
+    document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+            e.preventDefault(); // Prevent the browser's save dialog
+
+            const element = document.querySelector('#viewContent > h1 > a:nth-child(2) > i');
+            if (element) {
+                element.click();
+            }
+        }
+    });
 </script>
 </div>
 </body>
