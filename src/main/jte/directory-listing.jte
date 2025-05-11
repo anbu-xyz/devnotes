@@ -18,7 +18,7 @@
 <ul class="directory-list">
     @if(directoryName.length() > 1)
         <li>
-            <a href="/markdown?filename=${directoryName.substring(0, directoryName.lastIndexOf('/'))}" class="text-blue-500 hover:text-blue-700">
+            <a href="/markdown?filename=${directoryName.substring(0, directoryName.lastIndexOf('/')==-1?directoryName.length():directoryName.lastIndexOf('/'))}" class="text-blue-500 hover:text-blue-700">
                 <i class="fas fa-level-up-alt mr-2"></i>..
             </a>
         </li>
