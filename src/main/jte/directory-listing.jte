@@ -2,6 +2,7 @@
 @import uk.anbu.devnotes.controller.DirectoryListingController.FileEntry
 
 @param String directoryName
+@param String parentDirectoryName
 @param List<FileEntry> entries
 
 <!DOCTYPE html>
@@ -9,7 +10,7 @@
 <head>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <title>Directory Listing - ${directoryName}</title>
+    <title>${directoryName}</title>
     <style>
     </style>
 </head>
@@ -18,7 +19,7 @@
 <ul class="directory-list">
     @if(directoryName.length() > 1)
         <li>
-            <a href="/markdown?filename=${directoryName.substring(0, directoryName.lastIndexOf('/')==-1?directoryName.length():directoryName.lastIndexOf('/'))}" class="text-blue-500 hover:text-blue-700">
+            <a href="/markdown?filename=${parentDirectoryName}" class="text-blue-500 hover:text-blue-700">
                 <i class="fas fa-level-up-alt mr-2"></i>..
             </a>
         </li>

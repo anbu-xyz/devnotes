@@ -99,9 +99,20 @@ public class DirectoryListingController {
 
     @GetMapping("/renderDirectoryContents")
     public ResponseEntity<String> renderDirectoryContents(@RequestParam String directoryName) throws IOException {
+        if (directoryName.startsWith("/")) {
+            // prevent directory traversal to root directory
+            directoryName = directoryName.replaceAll("^/+", "");
+        }
         Path markdownRoot = Paths.get(configService.getDocsDirectory());
         Path filePath = markdownRoot.resolve(directoryName);
+        String parentDirectoryName = filePath.getParent().toString();
+        // in the following line replaceFirst escapes the regex, so we need to unescape it
+        parentDirectoryName= parentDirectoryName.replaceFirst(markdownRoot.toString().replaceAll("\\\\", "\\\\\\\\"), "");
 
+        // if the directory doesn't exist or is not a directory, return a 404 error
+        if (!Files.exists(filePath) || !Files.isDirectory(filePath)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(String.format("<h1>Directory %s not found</h1>", directoryName));
+        }
         try (var filesList = Files.list(filePath)) {
             var entries = filesList
                     .map(path -> new FileEntry(path.getFileName().toString(), Files.isDirectory(path)))
@@ -112,6 +123,7 @@ public class DirectoryListingController {
 
             var model = Map.of(
                     "directoryName", directoryName,
+                    "parentDirectoryName", parentDirectoryName,
                     "entries", entries
             );
             TemplateOutput output = new StringOutput();
