@@ -51,6 +51,7 @@ public class MarkdownController {
 
             TemplateOutput output = new StringOutput();
             var params = new HashMap<String, Object>();
+            params.put("filename", filename);
             params.put("originalMarkdown", escapeHtml(fileContent));
             templateEngine.render("raw-markdown.jte", params, output);
 
