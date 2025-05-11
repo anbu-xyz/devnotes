@@ -17,7 +17,9 @@
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/json-enc.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <title>${markdownFile.replaceAll(".md$", "")}</title>
+    !{var title = markdownFile.substring(markdownFile.lastIndexOf('/')==-1?0:markdownFile.lastIndexOf('/')+1);}
+    !{var title_md = title.replaceAll(".md$", "");}
+    <title>${title_md}</title>
 </head>
 <body class="p-8">
 <div x-cloak x-data="{ editMode: ${editMode} }">
@@ -91,7 +93,6 @@
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
             e.preventDefault(); // Prevent the browser's save dialog
 
-            // If save button is visible.
             if (document.querySelector('#saveButton').style.display !== 'none') {
                 document.getElementById('saveButton').click();
             }
