@@ -122,7 +122,7 @@
                                         hx-post='/reExecuteSql'
                                         hx-trigger='click'
                                         hx-ext='json-enc'
-                                        hx-vals='{"sql": "${sqlResult.getSql().sqlText().replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"") }",
+                                        hx-vals='{"sql": "${sqlResult.getSql().sqlText().replaceAll("\n", "\\\\n").replaceAll("\"", "\\\\\"").replaceAll("\t", "\\\\t") }",
                                                        "datasourceName": "${sqlResult.getDatasourceName()}",
                                                        "outputFileName": "${outputFileName}",
                                                        "markdownFileName": "${markdownFileName}",
