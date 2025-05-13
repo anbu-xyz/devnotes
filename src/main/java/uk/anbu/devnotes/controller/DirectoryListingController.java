@@ -107,7 +107,9 @@ public class DirectoryListingController {
         Path filePath = markdownRoot.resolve(directoryName);
         String parentDirectoryName = filePath.getParent().toString();
         // in the following line replaceFirst escapes the regex, so we need to unescape it
-        parentDirectoryName= parentDirectoryName.replaceFirst(markdownRoot.toString().replaceAll("\\\\", "\\\\\\\\"), "");
+        parentDirectoryName= parentDirectoryName
+                .replaceFirst(markdownRoot.toString().replaceAll("\\\\", "\\\\\\\\"), "")
+                .replaceAll("\\\\", "/");
 
         // if the directory doesn't exist or is not a directory, return a 404 error
         if (!Files.exists(filePath) || !Files.isDirectory(filePath)) {
