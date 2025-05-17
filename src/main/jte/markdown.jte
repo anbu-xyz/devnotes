@@ -1,5 +1,6 @@
 @param String htmlContent
 @param String markdownFile
+@param String title
 @param boolean editMode
 
 <!DOCTYPE html>
@@ -17,9 +18,7 @@
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12/dist/ext/json-enc.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    !{var title = markdownFile.substring(markdownFile.lastIndexOf('/')==-1?0:markdownFile.lastIndexOf('/')+1);}
-    !{var title_md = title.replaceAll(".md$", "");}
-    <title>${title_md}</title>
+    <title>${title}</title>
 </head>
 <body class="p-8">
 <div x-cloak x-data="{ editMode: ${editMode} }">

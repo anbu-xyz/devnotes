@@ -116,7 +116,7 @@ public class MarkdownController {
 
     private ResponseEntity<Object> readFileContent(String filename, String fileExtension, Path markdownRoot, boolean editMode) throws IOException {
         if ("md".equals(fileExtension)) {
-            var content = fetchMarkdownContent(filename, editMode);
+            var content = fetchMarkdownContent(filename, markdownRoot, editMode);
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)
                     .body(content.content());
@@ -154,9 +154,9 @@ public class MarkdownController {
     public record ContentWithType(String content, String contentType) {
     }
 
-    public ContentWithType fetchMarkdownContent(String filename, boolean editMode) throws IOException {
+    public ContentWithType fetchMarkdownContent(String filename,
+                                                Path markdownRoot, boolean editMode) throws IOException {
         Assert.isTrue(filename.endsWith(".md"), "filename must end with .md");
-        Path markdownRoot = Paths.get(configService.getDocsDirectory());
         log.info("Fetching file: {}", filename);
         var markdownFile = markdownRoot.resolve(filename);
         Assert.isTrue(markdownFile.toFile().exists(), "File does not exist " + filename);
@@ -165,23 +165,30 @@ public class MarkdownController {
         String markdownContent = new String(Files.readAllBytes(markdownFile));
         String htmlContent = markdownRenderer.convertMarkdown(markdownContent, filename);
 
+        String title = constructMarkdownTitle(filename, markdownRoot);
+
         TemplateOutput output = new StringOutput();
         var params = new HashMap<String, Object>();
         params.put("htmlContent", htmlContent);
         params.put("markdownFile", filename);
         params.put("editMode", editMode);
+        params.put("title", title);
         templateEngine.render("markdown.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");
     }
 
-    private String getOriginalMarkdown(Path filename) {
-        try {
-            return new String(Files.readAllBytes(filename));
-        } catch (IOException e) {
-            log.error("Error reading markdown file", e);
-            return "";
+    private static String constructMarkdownTitle(String filename, Path markdownRoot) {
+        String fileNameWithoutExtension = filename.substring(filename.lastIndexOf('/')==-1?0: filename.lastIndexOf('/')+1);
+        fileNameWithoutExtension = fileNameWithoutExtension.replaceAll(".md$", "");
+        Path fullPath = markdownRoot.resolve(filename);
+        String title = fileNameWithoutExtension;
+
+        if (fileNameWithoutExtension.startsWith("_")) {
+            title = fullPath.getParent().getFileName().toString() + " > " + fileNameWithoutExtension;
         }
+
+        return title;
     }
 
     public static String escapeHtml(String html) {
