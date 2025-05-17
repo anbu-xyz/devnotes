@@ -1,7 +1,8 @@
-function saveContent() {
+function saveContent(redirect= true) {
     const content = easyMDE.value();
     const filename = window.location.search.split('filename=')[1].split('&')[0];
 
+    // console.log("Saving content to " + filename);
     fetch('/saveMarkdown?filename=' + encodeURIComponent(filename), {
         method: 'POST',
         headers: {
@@ -11,7 +12,9 @@ function saveContent() {
     })
         .then(response => response.text())
         .then(result => {
-            location.href = '/markdown?filename=' + filename + '&edit=false';
+            if(redirect) {
+                location.href = '/markdown?filename=' + filename + '&edit=false';
+            }
         })
         .catch(error => console.error('Error:', error));
 }

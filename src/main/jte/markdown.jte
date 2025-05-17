@@ -36,6 +36,10 @@
 <button id="saveButton" @click="editMode = false; saveContent()" class="btn-blue-glow" x-show="editMode">
     <i class="fas fa-save"></i>Save
 </button>
+<label class="checkbox-label" x-show="editMode">
+    <input type="checkbox" id="autoSaveCheckbox" checked>
+    <span class="checkbox-label-text">Auto Save</span>
+</label>
 <!-- JavaScript -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
@@ -108,6 +112,15 @@
             }
         }
     });
+
+    // Auto-save every 60 seconds if the 'autoSave' checkbox is checked
+    (function() {
+        setInterval(function() {
+            if (document.getElementById('autoSaveCheckbox').checked) {
+                saveContent(false);
+            }
+        }, 60000);
+    })();
 </script>
 </div>
 </body>
