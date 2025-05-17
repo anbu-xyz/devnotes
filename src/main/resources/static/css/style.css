@@ -86,6 +86,10 @@ ul, ol {
     font-size: 0.8em;
 }
 
+ul ul, ol ol, ul ol, ol ul {
+    font-size: 1em;
+}
+
 li {
     margin: 0;
 }
