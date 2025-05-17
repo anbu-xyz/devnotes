@@ -4,18 +4,19 @@
 @param String directoryName
 @param String parentDirectoryName
 @param List<FileEntry> entries
+@param String title
 
 <!DOCTYPE html>
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <title>${directoryName}</title>
+    <title>${title}</title>
     <style>
     </style>
 </head>
 <body class="p-8">
-<h1>Directory: ${directoryName}</h1>
+<h1>Directory: ${directoryName}</h1><br>
 <ul class="directory-list">
     @if(directoryName.length() > 1)
         <li>

@@ -123,9 +123,18 @@ public class DirectoryListingController {
                     .filter(e -> !e.filename.endsWith(".output"))
                     .toList();
 
+            String title;
+            Path directoryPath = markdownRoot.resolve(directoryName);
+            if (directoryName.equals(".")) {
+                title = "Home";
+            } else {
+                title = directoryPath.getFileName().toString() + "/";
+            }
+
             var model = Map.of(
                     "directoryName", directoryName,
                     "parentDirectoryName", parentDirectoryName,
+                    "title", title,
                     "entries", entries
             );
             TemplateOutput output = new StringOutput();
