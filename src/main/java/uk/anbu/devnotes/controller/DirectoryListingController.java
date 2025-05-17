@@ -135,7 +135,8 @@ public class DirectoryListingController {
                     "directoryName", directoryName,
                     "parentDirectoryName", parentDirectoryName,
                     "title", title,
-                    "entries", entries
+                    "entries", entries,
+                    "fileSystemPath", directoryPath.toAbsolutePath().toString()
             );
             TemplateOutput output = new StringOutput();
             templateEngine.render("directory-listing.jte", model, output);

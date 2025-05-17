@@ -70,6 +70,20 @@ function createSubdirectory() {
     }
 }
 
+function writeToClipboard(text) {
+    if (text) {
+        const type = "text/plain";
+        const clipboardItemData = {
+            [type]: text,
+        };
+        const clipboardItem = new ClipboardItem(clipboardItemData);
+        navigator.clipboard.write([clipboardItem])
+            .then(() => {
+                alert("location copied to clipboard");
+            })
+    }
+}
+
 function createMarkdown() {
     hideActions();
     let fileName = prompt("Enter markdown file name (without .md extension):");

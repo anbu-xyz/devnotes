@@ -3,6 +3,7 @@
 
 @param String directoryName
 @param String parentDirectoryName
+@param String fileSystemPath
 @param List<FileEntry> entries
 @param String title
 
@@ -16,7 +17,7 @@
     </style>
 </head>
 <body class="p-8">
-<h1>Directory: ${directoryName}</h1><br>
+<h1>Directory: ${directoryName} <i class="fas fa-copy" onclick="writeToClipboard('${fileSystemPath}')"></i></h1><br>
 <ul class="directory-list">
     @if(directoryName.length() > 1)
         <li>
