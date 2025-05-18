@@ -10,6 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import uk.anbu.devnotes.module.sql.SqlOutput;
 import uk.anbu.devnotes.service.ConfigService;
 
 import java.io.StringReader;
@@ -88,35 +89,32 @@ public class SqlExecutorResultReadWriteTest {
                 parameterValues, markdownFilePath,  Integer.MAX_VALUE, false);
         Path jsonFilePath = sqlExecutor.renderResultAsJsonFile(request);
 
-        // Read back and verify
-        SqlExecutor.HtmlTableRequest htmlTableRequest = new SqlExecutor.HtmlTableRequest(sql, jsonFilePath,
-                parameterValues, dataSourceConfig.name(), markdownFilePath, 0); // TODO: codeBlockCounter
-        SqlResult result = sqlExecutor.getResult(htmlTableRequest);
+        SqlOutput output = SqlOutput.fromJson(jsonFilePath.toString());
 
-        assertNotNull(result);
-        assertEquals(sql, result.getSql().sqlText());
-        assertEquals(dataSourceConfig.name(), result.getDatasourceName());
-        assertFalse(result.dbHasMoreRowsThanMaxConfig());
+        assertNotNull(output);
+        assertEquals(sql, output.getSql().getSqlText());
+        assertEquals(dataSourceConfig.name(), output.getDatasourceName());
+        assertFalse(output.isDbHasMoreRowsThanMaxConfig());
 
         // Verify metadata
-        assertNotNull(result.getData().metadata());
-        assertEquals(3, result.getData().metadata().size());
-        assertEquals("ID", result.getData().metadata().get(0).name());
-        assertEquals("NAME", result.getData().metadata().get(1).name());
-        assertEquals("AMOUNT", result.getData().metadata().get(2).name());
+        assertNotNull(output.getMetadata());
+        assertEquals(3, output.getMetadata().size());
+        assertEquals("ID", output.getMetadata().get(0).getName());
+        assertEquals("NAME", output.getMetadata().get(1).getName());
+        assertEquals("AMOUNT", output.getMetadata().get(2).getName());
 
         // Verify data
-        assertNotNull(result.getData().rowData());
-        assertEquals(2, result.getData().rowData().size());
+        assertNotNull(output.getData());
+        assertEquals(2, output.getData().size());
 
-        Map<String, Object> firstRow = result.getData().rowData().get(0);
-        assertEquals(new SqlExecutor.HumanReadableNumber("2"), firstRow.get("ID"));
+        Map<String, Object> firstRow = output.getData().get(0);
+        assertEquals(2, firstRow.get("ID"));
         assertEquals("Test2", firstRow.get("NAME"));
-        assertEquals(new SqlExecutor.HumanReadableNumber("20.7"), firstRow.get("AMOUNT")); // TODO: better to handle human readable number conversion in the UI
+        assertEquals(20.7, firstRow.get("AMOUNT"));
 
-        Map<String, Object> secondRow = result.getData().rowData().get(1);
-        assertEquals(new SqlExecutor.HumanReadableNumber("3"), secondRow.get("ID"));
+        Map<String, Object> secondRow = output.getData().get(1);
+        assertEquals(30.9, secondRow.get("AMOUNT"));
         assertEquals("Test3", secondRow.get("NAME"));
-        assertEquals(new SqlExecutor.HumanReadableNumber("30.9"), secondRow.get("AMOUNT"));
+        assertEquals(3, secondRow.get("ID"));
     }
 }
