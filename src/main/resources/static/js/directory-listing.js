@@ -127,6 +127,12 @@ function renameEntry(oldName) {
     }
 }
 
+function renderPlantUml(name) {
+    hideActions();
+    const params = new URLSearchParams({filename: currentDirectoryName + "/" + name});
+    window.location.href = `/plantuml?${params.toString()}`;
+}
+
 function deleteEntry(name) {
     hideActions();
     if (confirm(`Are you sure you want to delete ${name}?`)) {

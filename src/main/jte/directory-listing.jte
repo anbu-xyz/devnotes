@@ -35,6 +35,12 @@
                 ${entry.filename()}
             </a>
             <div class="entry-actions" id="actions-${entry.filename()}">
+                @if(entry.fileType().equals("puml"))
+                    <button onclick="renderPlantUml('${entry.filename()}')">
+                        <i class="fas fa-draw-polygon"></i>Render
+                    </button>
+                    <hr>
+                @endif
                 <button onclick="renameEntry('${entry.filename()}')">
                     <i class="fas fa-edit"></i>Rename
                 </button>

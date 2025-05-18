@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.PlantumlRenderer;
+import uk.anbu.devnotes.util.FileUtil;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -19,7 +20,7 @@ public class PlantumlController {
     @GetMapping("/plantuml")
     public ResponseEntity<Resource> renderPlantuml(@RequestParam("filename") String filename) {
         try {
-            var resource = plantumlRenderer.renderPlantuml("", filename);
+            var resource = plantumlRenderer.renderPlantuml("", FileUtil.cleanDirectoryName(filename));
 
             if (resource.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);

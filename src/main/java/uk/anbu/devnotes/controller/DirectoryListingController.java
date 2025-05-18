@@ -122,7 +122,9 @@ public class DirectoryListingController {
         }
         try (var filesList = Files.list(filePath)) {
             var entries = filesList
-                    .map(path -> new FileEntry(path.getFileName().toString(), Files.isDirectory(path)))
+                    .map(path -> new FileEntry(path.getFileName().toString(),
+                            fileExtension(path.getFileName().toString()),
+                            Files.isDirectory(path)))
                     .sorted(Comparator.<FileEntry>comparingInt(e -> e.isDirectory() ? 0 : 1)
                             .thenComparing(f -> f.filename))
                     .filter(e -> !e.filename.endsWith(".output"))
@@ -149,7 +151,15 @@ public class DirectoryListingController {
         }
     }
 
-    public record FileEntry(String filename, boolean isDirectory) {
+    private String fileExtension(String filename) {
+        int lastDotIndex = filename.lastIndexOf('.');
+        if (lastDotIndex == -1) {
+            return "";
+        }
+        return filename.substring(lastDotIndex + 1);
+    }
+
+    public record FileEntry(String filename, String fileType, boolean isDirectory) {
     }
 
     @PostMapping("/uploadFile")
