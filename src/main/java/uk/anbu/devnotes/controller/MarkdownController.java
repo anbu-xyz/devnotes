@@ -114,7 +114,8 @@ public class MarkdownController {
                 .body(output.toString());
     }
 
-    private ResponseEntity<Object> readFileContent(String filename, String fileExtension, Path markdownRoot, boolean editMode) throws IOException {
+    private ResponseEntity<Object> readFileContent(String filename, String fileExtension,
+                                                   Path markdownRoot, boolean editMode) throws IOException {
         if ("md".equals(fileExtension)) {
             var content = fetchMarkdownContent(filename, markdownRoot, editMode);
             return ResponseEntity.ok()
@@ -124,6 +125,10 @@ public class MarkdownController {
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/image?filename=" + filename)
                     .build();
+        } else if (isJavascript(fileExtension)) {
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                    .body(fetchJavascriptContent(filename, markdownRoot).content());
         } else {
             // For other text files, set content type to plain text
             String content = Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8);
@@ -131,6 +136,22 @@ public class MarkdownController {
                     .contentType(org.springframework.http.MediaType.TEXT_PLAIN)
                     .body(content);
         }
+    }
+
+    private ContentWithType fetchJavascriptContent(String filename, Path markdownRoot) throws IOException {
+        String fileContent = new String(Files.readAllBytes(markdownRoot.resolve(filename)));
+
+        TemplateOutput output = new StringOutput();
+        var params = new HashMap<String, Object>();
+        params.put("javascriptContent", fileContent);
+        params.put("title", filename);
+        templateEngine.render("javascript.jte", params, output);
+
+        return new ContentWithType(output.toString(), "text/html");
+    }
+
+    private boolean isJavascript(String fileExtension) {
+        return "js".equals(fileExtension) || "mjs".equals(fileExtension);
     }
 
     @PostMapping("/createNewMarkdown")

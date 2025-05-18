@@ -23,7 +23,7 @@ public class JsFileFetcher {
         Path markdownRoot = Paths.get(configService.getDocsDirectory());
 
         File jsFile = markdownRoot.resolve(path == null ? "" : path)
-                .resolve(filename.replaceFirst("^/", ""))
+                .resolve(filename)
                 .toFile();
         log.info("Javascript file {}", jsFile);
         if (!jsFile.exists() || !jsFile.isFile()) {
