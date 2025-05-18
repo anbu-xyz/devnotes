@@ -32,4 +32,18 @@ public class PlantumlController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    @GetMapping("/plantumlContent")
+    public ResponseEntity<Resource> renderPlantumlContent(@RequestParam("content") String content) {
+        try {
+            var resource = plantumlRenderer.renderPlantuml(content);
+
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.IMAGE_PNG)
+                    .body(resource);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
 }

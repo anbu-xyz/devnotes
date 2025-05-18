@@ -76,7 +76,9 @@ public class MarkdownRenderer {
             String fileLocation = fileNameWithRelativePath
                     .replaceAll("\\\\", "/") // Windows
                     .replaceFirst("/[^/]+$", ""); // Remove filename
-            if (fileLocation.isEmpty() || fileLocation.equals(fileNameWithRelativePath)) { // If the file is in the root directory
+            if (((Image) node).getDestination().startsWith("/plantumlContent?")) {
+                // do nothing - this is to allow the plantuml renderer to render the image
+            } else if (fileLocation.isEmpty() || fileLocation.equals(fileNameWithRelativePath)) { // If the file is in the root directory
                 image.setDestination("/image?filename=" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
             } else if (image.getDestination().startsWith("/")) {
                 image.setDestination("/image?filename=" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
@@ -106,9 +108,21 @@ public class MarkdownRenderer {
             renderGroovyResult(codeBlock, fileNameWithRelativePath, codeType);
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
             renderSqlResult(codeBlock, fileNameWithRelativePath, codeType, codeBlockCounter);
+        } else if (codeType.matches("^plantuml\\(([^)]*)\\)$") || codeType.matches("^plantuml$")) {
+            renderPlantUmlResult(codeBlock);
         } else {
             log.debug("unhandled code type: {}, delegating to default handler", codeType);
         }
+    }
+
+    private void renderPlantUmlResult(FencedCodeBlock codeBlock) {
+        var request = codeBlock.getLiteral();
+        var urlEncodedRequest = URLEncoder.encode(request, StandardCharsets.UTF_8);
+        String url = "/plantumlContent?content=" + urlEncodedRequest;
+        log.info("Rendering plantuml: {}", url);
+        var image = new Image(url, "plantuml");
+        codeBlock.insertAfter(image);
+        codeBlock.setInfo("hidden-plantuml");
     }
 
     private void renderGroovyResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, String codeType) {

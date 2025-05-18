@@ -202,6 +202,46 @@ const inputHandler = function(e) {
 source.addEventListener('input', inputHandler);
 </script>
 ```
+
+## PlantUML
+PlantUML diagrams can be rendered using calling the URL `/plantuml?filename=diagram.puml`.
+
+Embedding plantuml diagrams in markdown files is supported using the following syntax:
+````
+```plantuml
+@startuml
+!theme black-knight
+skinparam backgroundColor #121212
+
+Bob -> Alice :  hello
+Bob <- Alice :  $success("success: hello B.")
+Bob -x Alice :  $failure("failure")
+Bob ->> Alice : $warning("warning")
+@enduml
+```
+````
+
+### Javascript support
+
+Javascript script tags can be embedded in markdown files using the following syntax:
+
+```html
+<script src="//js?filename=script.js">
+</script>
+```
+
+Note the doulbe slash before the filename.
+
+if the filename starts with dot (e.g. `./script.js`) the file will be searched in the same directory as the markdown file.
+
+### SQL support
+
+SQL code blocks can be embedded in markdown files using the following syntax:
+
+```sql(datasource:datasource1)
+SELECT * FROM users
+```
+
 ## License
 This project is licensed under MIT license.
 

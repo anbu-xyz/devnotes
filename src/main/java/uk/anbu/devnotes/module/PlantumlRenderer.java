@@ -11,6 +11,7 @@ import uk.anbu.devnotes.service.ConfigService;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,13 +31,23 @@ public class PlantumlRenderer {
                 .toFile();
         try {
             String content = FileUtils.readFileToString(plantumlFile, StandardCharsets.UTF_8);
-            ByteArrayOutputStream png = new ByteArrayOutputStream();
-            SourceStringReader reader = new SourceStringReader(content);
-            reader.outputImage(png);
+            ByteArrayOutputStream png = imageStream(content);
             return Optional.of(new ByteArrayResource(png.toByteArray()));
         } catch (Exception e) {
             log.error("Failed to render plantuml file: {}", filename, e);
             return Optional.empty();
         }
+    }
+
+    public Resource renderPlantuml(String content) throws IOException {
+        var png = imageStream(content);
+        return new ByteArrayResource(png.toByteArray());
+    }
+
+    private static ByteArrayOutputStream imageStream(String content) throws IOException {
+        ByteArrayOutputStream png = new ByteArrayOutputStream();
+        SourceStringReader reader = new SourceStringReader(content);
+        reader.outputImage(png);
+        return png;
     }
 }

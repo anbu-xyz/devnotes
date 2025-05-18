@@ -75,6 +75,10 @@ pre.language-hidden-groovy {
     display: none;
 }
 
+pre.language-hidden-plantuml {
+    display: none;
+}
+
 .sql-execution-time {
     margin-left: 2em;
 }
