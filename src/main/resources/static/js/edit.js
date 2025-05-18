@@ -1,4 +1,8 @@
 function saveContent(redirect= true) {
+    if (!easyMDE) {
+        console.error('easyMDE is not defined');
+        return;
+    }
     const content = easyMDE.value();
     const filename = window.location.search.split('filename=')[1].split('&')[0];
 
