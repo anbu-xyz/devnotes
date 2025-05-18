@@ -126,9 +126,10 @@ public class MarkdownController {
                     .header(HttpHeaders.LOCATION, "/image?filename=" + filename)
                     .build();
         } else if (isJavascript(fileExtension)) {
+            var content = fetchJavascriptContent(filename, markdownRoot);
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)
-                    .body(fetchJavascriptContent(filename, markdownRoot).content());
+                    .body(content.content());
         } else {
             // For other text files, set content type to plain text
             String content = Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8);
@@ -200,7 +201,7 @@ public class MarkdownController {
     }
 
     private static String constructMarkdownTitle(String filename, Path markdownRoot) {
-        String fileNameWithoutExtension = filename.substring(filename.lastIndexOf('/')==-1?0: filename.lastIndexOf('/')+1);
+        String fileNameWithoutExtension = filename.substring(filename.lastIndexOf('/') == -1 ? 0 : filename.lastIndexOf('/') + 1);
         fileNameWithoutExtension = fileNameWithoutExtension.replaceAll(".md$", "");
         Path fullPath = markdownRoot.resolve(filename);
         String title = fileNameWithoutExtension;

@@ -1,5 +1,7 @@
 package uk.anbu.devnotes.util;
 
+import java.util.ArrayList;
+
 public class FileUtil {
     public static String getFileExtension(String filename) {
         int dotIndex = filename.lastIndexOf('.');
@@ -8,4 +10,33 @@ public class FileUtil {
         }
         return "";
     }
+
+    public static String cleanDirectoryName(String parentDirectoryName) {
+        var split = parentDirectoryName.split("/");
+        var reversedSplit = new ArrayList<String>();
+        for (int i = split.length - 1; i >= 0; i--) {
+            reversedSplit.add(split[i]);
+        }
+        var doubleDotsRemoved = new ArrayList<String>();
+        for (int i = 0; i < reversedSplit.size(); i++) {
+            var entry = reversedSplit.get(i);
+            if (entry.equals("..")) {
+                i++;
+            } else if (entry.equals(".")) {
+                // do nothing
+            } else {
+                doubleDotsRemoved.add(entry);
+            }
+        }
+        var cleanedDirectoryName = new StringBuilder();
+        for(var i = doubleDotsRemoved.size() - 1; i >= 0; i--) {
+            cleanedDirectoryName.append(doubleDotsRemoved.get(i));
+            if (i != 0) {
+                cleanedDirectoryName.append("/");
+            }
+        }
+        parentDirectoryName = cleanedDirectoryName.toString();
+        return parentDirectoryName;
+    }
+
 }

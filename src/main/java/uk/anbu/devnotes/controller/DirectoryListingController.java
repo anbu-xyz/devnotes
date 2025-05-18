@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.util.FileUtil;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -103,6 +104,8 @@ public class DirectoryListingController {
             // prevent directory traversal to root directory
             directoryName = directoryName.replaceAll("^/+", "");
         }
+        directoryName = directoryName.replaceAll("\\\\", "/");
+        directoryName = FileUtil.cleanDirectoryName(directoryName);
         Path markdownRoot = Paths.get(configService.getDocsDirectory());
         Path filePath = markdownRoot.resolve(directoryName);
         String parentDirectoryName = filePath.getParent().toString();
@@ -110,6 +113,8 @@ public class DirectoryListingController {
         parentDirectoryName= parentDirectoryName
                 .replaceFirst(markdownRoot.toString().replaceAll("\\\\", "\\\\\\\\"), "")
                 .replaceAll("\\\\", "/");
+
+        parentDirectoryName = FileUtil.cleanDirectoryName(parentDirectoryName);
 
         // if the directory doesn't exist or is not a directory, return a 404 error
         if (!Files.exists(filePath) || !Files.isDirectory(filePath)) {
