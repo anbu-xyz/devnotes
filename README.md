@@ -141,7 +141,7 @@ groovy:csv-table-with-header(cacheEnabled:false)
 To embed executable sql code in a markdown file, use the following syntax:
 
 ````
-```sql(datasource:datasource1)
+```sql(datasource:datasource1, max_rows:100)
 SELECT * FROM users
 ```
 ````
@@ -149,6 +149,11 @@ SELECT * FROM users
 That gets rendered as: 
 
 ![](/docs/sql-result.png)
+
+Following parameters can be specified in the code block header:
+
+* datasource: Name of the SQL data source to use.
+* max_rows: Maximum number of rows to return.
 
 #### Database Connection Details
 
@@ -166,20 +171,6 @@ datasource2:
   username: "user2"
   password: "pass2"
   driverClassName: "org.postgresql.Driver"
-```
-
-### Building and Running
-
-To build the project, run the following command:
-
-```
-mvn clean package
-```
-
-To run the project, run the following command:
-
-```
-java -Ddevnotes.docsDirectory=/path/to/docs -jar target/devnotes-0.0.1-SNAPSHOT.jar prod
 ```
 
 ### Constructing dynamic URLs
@@ -203,7 +194,7 @@ source.addEventListener('input', inputHandler);
 </script>
 ```
 
-## PlantUML
+### PlantUML
 PlantUML diagrams can be rendered using calling the URL `/plantuml?filename=diagram.puml`.
 
 Embedding plantuml diagrams in markdown files is supported using the following syntax:
@@ -233,18 +224,19 @@ Javascript script tags can be embedded in markdown files using the following syn
 If the filename starts with dot (e.g. `./script.js`) the file will be searched in the 
 same directory as the markdown file.
 
-### SQL support
+## Building and Running
 
-SQL code blocks can be embedded in markdown files using the following syntax:
+To build the project, run the following command:
 
-```sql(datasource:datasource1, max_rows:100)
-SELECT * FROM users
+```
+mvn clean package
 ```
 
-Following parameters can be specified in the code block header:
+To run the project, run the following command:
 
-* datasource: Name of the SQL data source to use.
-* max_rows: Maximum number of rows to return.
+```
+java -Ddevnotes.docsDirectory=/path/to/docs -jar target/devnotes-0.0.1-SNAPSHOT.jar prod
+```
 
 ## License
 This project is licensed under MIT license.
