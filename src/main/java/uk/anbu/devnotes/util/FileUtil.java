@@ -12,19 +12,28 @@ public class FileUtil {
     }
 
     public static String cleanDirectoryName(String parentDirectoryName) {
+        // remove leading slashes
+        parentDirectoryName = parentDirectoryName.replaceAll("^/+", "");
+        // remove trailing slashes
+        parentDirectoryName = parentDirectoryName.replaceAll("/+$", "");
+
         var split = parentDirectoryName.split("/");
         var reversedSplit = new ArrayList<String>();
         for (int i = split.length - 1; i >= 0; i--) {
             reversedSplit.add(split[i]);
         }
         var doubleDotsRemoved = new ArrayList<String>();
+        int skipCount = 0;
         for (int i = 0; i < reversedSplit.size(); i++) {
             var entry = reversedSplit.get(i);
             if (entry.equals("..")) {
-                i++;
+                skipCount++;
             } else if (entry.equals(".")) {
                 // do nothing
-            } else {
+            } else if (skipCount > 0) {
+                skipCount--;
+            }
+            else {
                 doubleDotsRemoved.add(entry);
             }
         }
