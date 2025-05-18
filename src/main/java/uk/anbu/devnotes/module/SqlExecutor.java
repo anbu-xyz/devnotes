@@ -83,7 +83,7 @@ public class SqlExecutor {
         final Integer[] rowCount = {0};
         final Integer[] columnCount = {0};
         final List<String> columnNames = new ArrayList<>();
-        final Boolean[] hasReachedMaxRows = {false};
+        final Boolean[] dbHasMoreRowsThanMaxConfig = {false};
         try (FileWriter writer = new FileWriter(outputPath.toFile())) {
             JsonGenerator jsonGenerator = objectMapper.getFactory().createGenerator(writer);
             startOutermostObject(jsonGenerator);
@@ -107,7 +107,7 @@ public class SqlExecutor {
                 try {
                     if (rowCount[0] + 1 > configService.getSqlMaxRows()) {
                         log.info("Reached max rows, stopping SQL query");
-                        hasReachedMaxRows[0] = true;
+                        dbHasMoreRowsThanMaxConfig[0] = true;
                         return;
                     }
                     rowCount[0]++;
@@ -126,7 +126,7 @@ public class SqlExecutor {
             if (rowCount[0] > 0) {
                 jsonGenerator.writeEndArray();
             }
-            jsonGenerator.writeBooleanField("hasReachedMaxRows", hasReachedMaxRows[0]);
+            jsonGenerator.writeBooleanField("dbHasMoreRowsThanMaxConfig", dbHasMoreRowsThanMaxConfig[0]);
             endOutermostObject(jsonGenerator);
             jsonGenerator.close();
         } catch (Exception e) {
@@ -432,7 +432,7 @@ public class SqlExecutor {
             }
         }
 
-        boolean hasReachedMaxRows = rootNode.has("hasReachedMaxRows") && rootNode.get("hasReachedMaxRows").asBoolean();
+        boolean dbHasMoreRowsThanMaxConfig = rootNode.has("dbHasMoreRowsThanMaxConfig") && rootNode.get("dbHasMoreRowsThanMaxConfig").asBoolean();
 
         var executionTime = Optional.ofNullable(rootNode.get("executionTime"))
                 .map(JsonNode::toString)
@@ -448,7 +448,7 @@ public class SqlExecutor {
                     .sql(new SqlResult.Sql(sql, parameterValues))
                     .datasourceName(rootNode.get("datasourceName").asText())
                     .executionTime(executionTime)
-                    .hasReachedMaxRows(hasReachedMaxRows)
+                    .dbHasMoreRowsThanMaxConfig(dbHasMoreRowsThanMaxConfig)
                     .data(new SqlResult.Data(metadata, data))
                     .isError(false)
                     .build();

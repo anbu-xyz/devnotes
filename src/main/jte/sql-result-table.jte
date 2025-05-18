@@ -88,8 +88,10 @@
                                 <span>
                                     @if(sqlResult.getRowCount() > 0)
                                         ${sqlResult.getRowCount()} rows
-                                        @if (sqlResult.hasReachedMaxRows())
+                                        @if (sqlResult.dbHasMoreRowsThanMaxConfig())
                                             (truncated)
+                                        @else
+                                            (no moe data)
                                         @endif
                                     @endif
                                 </span>

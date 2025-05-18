@@ -96,7 +96,7 @@ public class SqlExecutorResultReadWriteTest {
         assertNotNull(result);
         assertEquals(sql, result.getSql().sqlText());
         assertEquals(dataSourceConfig.name(), result.getDatasourceName());
-        assertFalse(result.hasReachedMaxRows());
+        assertFalse(result.dbHasMoreRowsThanMaxConfig());
 
         // Verify metadata
         assertNotNull(result.getData().metadata());

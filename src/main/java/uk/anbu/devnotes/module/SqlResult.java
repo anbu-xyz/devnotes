@@ -13,7 +13,7 @@ public class SqlResult {
     private Sql sql;
     private LocalDateTime executionTime;
     private String datasourceName;
-    private boolean hasReachedMaxRows;
+    private boolean dbHasMoreRowsThanMaxConfig;
     private Data data;
     private boolean isError;
 
@@ -25,8 +25,8 @@ public class SqlResult {
         return data.rowData().size();
     }
 
-    public boolean hasReachedMaxRows() {
-        return hasReachedMaxRows;
+    public boolean dbHasMoreRowsThanMaxConfig() {
+        return dbHasMoreRowsThanMaxConfig;
     }
 
 }
