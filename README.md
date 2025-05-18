@@ -226,13 +226,12 @@ Bob ->> Alice : $warning("warning")
 Javascript script tags can be embedded in markdown files using the following syntax:
 
 ```html
-<script src="//js?filename=script.js">
+<script src="/javascript?filename=script.js">
 </script>
 ```
 
-Note the doulbe slash before the filename.
-
-if the filename starts with dot (e.g. `./script.js`) the file will be searched in the same directory as the markdown file.
+If the filename starts with dot (e.g. `./script.js`) the file will be searched in the 
+same directory as the markdown file.
 
 ### SQL support
 

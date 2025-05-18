@@ -6,6 +6,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Component;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.util.FileUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,7 +24,7 @@ public class JsFileFetcher {
         Path markdownRoot = Paths.get(configService.getDocsDirectory());
 
         File jsFile = markdownRoot.resolve(path == null ? "" : path)
-                .resolve(filename)
+                .resolve(FileUtil.cleanDirectoryName(filename))
                 .toFile();
         log.info("Javascript file {}", jsFile);
         if (!jsFile.exists() || !jsFile.isFile()) {
