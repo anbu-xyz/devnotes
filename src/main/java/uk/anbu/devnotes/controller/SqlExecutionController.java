@@ -65,7 +65,8 @@ public class SqlExecutionController {
             }
 
             var jsonGenerationRequest = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, request.getSql(),
-                    request.getParameterValues(), request.getMarkdownFileName(), request.isForceExecute());
+                    request.getParameterValues(), request.getMarkdownFileName(), request.getMaxRows() == null? 0: request.getMaxRows(),
+                    request.isForceExecute());
             var outputPath = sqlExecutor.renderResultAsJsonFile(jsonGenerationRequest);
 
             var htmlGenerationRequest = new SqlExecutor.HtmlTableRequest(request.getSql(), outputPath,
@@ -85,7 +86,7 @@ public class SqlExecutionController {
     public ResponseEntity<Resource> downloadExcel(@RequestParam String outputFileName, @RequestParam String markdownFileName) {
         File outputFile;
         try {
-            outputFile = sqlExecutor.getResourceResponseEntity(outputFileName, markdownFileName);
+            outputFile = sqlExecutor.createExcelFile(outputFileName, markdownFileName);
             FileSystemResource resource = new FileSystemResource(outputFile);
 
             return ResponseEntity.ok()
@@ -240,6 +241,7 @@ public class SqlExecutionController {
         private String markdownFileName;
         private Integer codeBlockCounter;
         private Map<String, String> parameterValues;
+        private Integer maxRows;
         private boolean forceExecute;
     }
 

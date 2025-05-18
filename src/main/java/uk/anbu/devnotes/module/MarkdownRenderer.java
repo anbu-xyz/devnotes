@@ -168,6 +168,8 @@ public class MarkdownRenderer {
                 configMap.put("datasource", configKeyValue);
                 continue;
             }
+            // strip leading and trailing whitespace
+            configKeyValue = configKeyValue.trim();
             String[] keyValue = configKeyValue.split(":");
             configMap.put(keyValue[0], keyValue[1]);
         }
@@ -178,18 +180,32 @@ public class MarkdownRenderer {
 
         String sql = codeBlock.getLiteral();
         Node node;
+        var maxRows = readMaxRows(configMap);
         var dataSourceConfig = dataSourceConfigResolver.apply(configMap.get("datasource"));
         if (dataSourceConfig == null) {
             node = new Text("Error: DataSource '" + configMap.get("datasource") + "' not defined in config.");
         } else {
-            node = processSqlCodeBlock(sql, dataSourceConfig, fileNameWithRelativePath, codeBlockCounter);
+            node = processSqlCodeBlock(sql, dataSourceConfig, fileNameWithRelativePath, maxRows, codeBlockCounter);
         }
         codeBlock.insertAfter(node);
         codeBlock.setInfo("hidden-sql");
     }
 
+    private static int readMaxRows(Map<String, String> configMap) {
+        if (configMap.get("max_rows") == null) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(configMap.get("max_rows"));
+        } catch (NumberFormatException e) {
+            log.warn("Invalid max_rows value in config, using default value");
+            return 0;
+        }
+    }
+
     private Node processSqlCodeBlock(String sql, ConfigService.DataSourceConfig dataSourceConfig,
-                                     String fileNameWithRelativePath, Integer codeBlockCounter) {
+                                     String fileNameWithRelativePath, int maxRows,
+                                     Integer codeBlockCounter) {
 
         List<String> parameterNames = extractParameterNames(sql);
         Map<String, String> parameterValues = new LinkedHashMap<>();
@@ -203,7 +219,7 @@ public class MarkdownRenderer {
         }
 
         var request = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, sql, parameterValues,
-                fileNameWithRelativePath, false);
+                fileNameWithRelativePath, maxRows, false);
         var outputPath = sqlToJsonFileResolver.apply(request);
 
         return renderSqlResultTable(sql, outputPath, parameterValues, dataSourceConfig.name(),

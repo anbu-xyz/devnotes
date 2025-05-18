@@ -237,9 +237,14 @@ same directory as the markdown file.
 
 SQL code blocks can be embedded in markdown files using the following syntax:
 
-```sql(datasource:datasource1)
+```sql(datasource:datasource1, max_rows:100)
 SELECT * FROM users
 ```
+
+Following parameters can be specified in the code block header:
+
+* datasource: Name of the SQL data source to use.
+* max_rows: Maximum number of rows to return.
 
 ## License
 This project is licensed under MIT license.

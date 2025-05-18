@@ -61,14 +61,15 @@ public class SqlExecutor {
     private final ConfigService configService;
 
     public Path renderResultAsJsonFile(JsonGenerationRequest request) {
-        var jdbcTemplate = getNamedParameterJdbcTemplate(request.dataSourceConfig());
+        int maxRows = request.maxRowsConfig() > 0 ? request.maxRowsConfig() : configService.getSqlMaxRows();
+        var jdbcTemplate = namedParameterJdbcTemplate(request.dataSourceConfig(), maxRows);
 
         var parametersAsString = request.parameterValues() != null ?
                 request.parameterValues().entrySet().stream()
                         .map(entry -> entry.getKey() + "=" + entry.getValue())
                         .collect(Collectors.joining("&")) : "";
         String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
-                request.markdownFilePath(), request.sql() + ";" + parametersAsString);
+                request.markdownFilePath(), request.sql() + ";" + parametersAsString + ";" + maxRows);
         Path outputPath = Paths.get(outputFileName);
 
         if (outputPath.toFile().exists() && !request.forceExecute()) {
@@ -84,6 +85,7 @@ public class SqlExecutor {
         final Integer[] columnCount = {0};
         final List<String> columnNames = new ArrayList<>();
         final Boolean[] dbHasMoreRowsThanMaxConfig = {false};
+
         try (FileWriter writer = new FileWriter(outputPath.toFile())) {
             JsonGenerator jsonGenerator = objectMapper.getFactory().createGenerator(writer);
             startOutermostObject(jsonGenerator);
@@ -102,10 +104,11 @@ public class SqlExecutor {
 
             jsonGenerator.writeStringField("datasourceName", request.dataSourceConfig().name());
             jsonGenerator.writeStringField("executionTime", LocalDateTime.now().toString());
+            jsonGenerator.writeNumberField("maxRowConfig", maxRows);
 
             jdbcTemplate.query(request.sql(), parameterSource, (rs) -> {
                 try {
-                    if (rowCount[0] + 1 > configService.getSqlMaxRows()) {
+                    if (rowCount[0] + 1 > maxRows) {
                         log.info("Reached max rows, stopping SQL query");
                         dbHasMoreRowsThanMaxConfig[0] = true;
                         return;
@@ -159,8 +162,17 @@ public class SqlExecutor {
         }
     }
 
-    private NamedParameterJdbcTemplate getNamedParameterJdbcTemplate(ConfigService.DataSourceConfig dataSourceConfig) {
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplateFullResult(ConfigService.DataSourceConfig dataSourceConfig) {
+        return namedParameterJdbcTemplate(dataSourceConfig, Integer.MAX_VALUE);
+    }
 
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate(ConfigService.DataSourceConfig dataSourceConfig,
+                                                                  int maxRowsConfig) {
+
+        // assert that maxRowsConfig is positive
+        if (maxRowsConfig <= 0) {
+            throw new IllegalArgumentException("maxRowsConfig must be positive");
+        }
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(dataSourceConfig.driverClassName());
         dataSource.setUrl(dataSourceConfig.url());
@@ -169,12 +181,14 @@ public class SqlExecutor {
 
         var jdbcTemplate = new JdbcTemplate(dataSource);
         jdbcTemplate.setFetchSize(500);
-        jdbcTemplate.setMaxRows(configService.getSqlMaxRows() + 1);
+        if (maxRowsConfig != Integer.MAX_VALUE) {
+            jdbcTemplate.setMaxRows(maxRowsConfig + 1);
+        }
 
         return new NamedParameterJdbcTemplate(jdbcTemplate);
     }
 
-    public File getResourceResponseEntity(String fileName, String markdownFileName) throws IOException {
+    public File createExcelFile(String fileName, String markdownFileName) throws IOException {
         Path markdownFileDirectory = Paths.get(configService.getDocsDirectory()).resolve(markdownFileName).getParent();
         Path outputPath = Paths.get(markdownFileDirectory.toString(), fileName);
         JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
@@ -188,7 +202,7 @@ public class SqlExecutor {
         String dataSourceName = rootNode.get("datasourceName").asText();
         ConfigService.DataSourceConfig dataSourceConfig = configService.getDataSourceConfig(dataSourceName);
 
-        NamedParameterJdbcTemplate jdbcTemplate = getNamedParameterJdbcTemplate(dataSourceConfig);
+        NamedParameterJdbcTemplate jdbcTemplate = namedParameterJdbcTemplateFullResult(dataSourceConfig);
 
         return createWorkbook(jdbcTemplate, sql, parameterValues);
     }
@@ -301,6 +315,7 @@ public class SqlExecutor {
             params.put("datasourceName", request.dataSourceName());
             params.put("markdownFileName", request.markdownFileName());
             params.put("sqlResult", sqlResult);
+            params.put("maxRowConfig", sqlResult.getMaxRowConfig());
             params.put("codeBlockCounter", request.codeBlockCounter());
 
             StringOutput output = new StringOutput();
@@ -337,6 +352,7 @@ public class SqlExecutor {
         params.put("sortColumn", sortColumn);
         params.put("sortDirection", sortDirection);
         params.put("sqlResult", sqlResult);
+        params.put("maxRowConfig", sqlResult.getMaxRowConfig());
         params.put("codeBlockCounter", codeBlockCounter);
 
         StringOutput output = new StringOutput();
@@ -451,6 +467,7 @@ public class SqlExecutor {
                     .dbHasMoreRowsThanMaxConfig(dbHasMoreRowsThanMaxConfig)
                     .data(new SqlResult.Data(metadata, data))
                     .isError(false)
+                    .maxRowConfig(rootNode.get("maxRowConfig").asInt())
                     .build();
         }
     }
@@ -497,7 +514,7 @@ public class SqlExecutor {
 
     public record JsonGenerationRequest(ConfigService.DataSourceConfig dataSourceConfig, String sql,
                                         Map<String, String> parameterValues, String markdownFilePath,
-                                        boolean forceExecute) {}
+                                        int maxRowsConfig, boolean forceExecute) {}
 
     public record HtmlTableRequest(String sqlText, Path outputPath, Map<String, String> parameterValues,
                                    String dataSourceName, String markdownFileName, Integer codeBlockCounter) {}

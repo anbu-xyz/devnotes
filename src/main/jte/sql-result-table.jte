@@ -8,6 +8,7 @@
 @param String sortDirection
 @param SqlResult sqlResult
 @param Integer codeBlockCounter
+@param Integer maxRowConfig
 
 @if(!sqlResult.isError())
     <div class='sql-result' x-data="{ showSql: false, changedSql: `${sqlResult.getSql().sqlText()}`, originalSql: `${sqlResult.getSql().sqlText()}` }">
@@ -47,6 +48,7 @@
                                           "datasourceName": "${datasourceName}",
                                           "markdownFileName": "${markdownFileName}",
                                           "codeBlockCounter": ${codeBlockCounter},
+                                          "maxRowConfig": ${maxRowConfig},
                                           "sortDirection": "${columnMetadata.name().equals(sortColumn) ? (sortDirection.equals("asc") ? "desc" : "asc") : "asc"}"
                                          }'
                                 >
@@ -128,6 +130,7 @@
                                                        "datasourceName": "${sqlResult.getDatasourceName()}",
                                                        "outputFileName": "${outputFileName}",
                                                        "markdownFileName": "${markdownFileName}",
+                                                       "maxRows": ${maxRowConfig},
                                                        "parameterValues":  {},
                                                        "codeBlockCounter": ${codeBlockCounter},
                                                        "forceExecute": true

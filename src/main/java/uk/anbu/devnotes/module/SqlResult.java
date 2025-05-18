@@ -14,6 +14,7 @@ public class SqlResult {
     private LocalDateTime executionTime;
     private String datasourceName;
     private boolean dbHasMoreRowsThanMaxConfig;
+    private int maxRowConfig;
     private Data data;
     private boolean isError;
 
