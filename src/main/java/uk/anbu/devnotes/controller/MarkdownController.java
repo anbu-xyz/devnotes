@@ -41,8 +41,8 @@ public class MarkdownController {
 
     private final ConfigService configService;
 
-    @GetMapping("/fetchRawMarkdown")
-    public ResponseEntity<String> fetchRawMarkdown(@RequestParam String filename) {
+    @GetMapping("/markdownEditor")
+    public ResponseEntity<String> markdownEditor(@RequestParam String filename) {
         try {
             Path markdownRoot = Paths.get(configService.getDocsDirectory());
             Path filePath = markdownRoot.resolve(filename);
@@ -51,9 +51,9 @@ public class MarkdownController {
 
             TemplateOutput output = new StringOutput();
             var params = new HashMap<String, Object>();
-            params.put("filename", filename);
             params.put("originalMarkdown", escapeHtml(fileContent));
-            templateEngine.render("raw-markdown.jte", params, output);
+            params.put("title", constructMarkdownTitle(filename, markdownRoot));
+            templateEngine.render("markdown-editor.jte", params, output);
 
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)

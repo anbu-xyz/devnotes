@@ -26,7 +26,7 @@
 <div id="editContent" x-show="editMode">
 </div>
 <button id="editButton" @click="editMode = true" class="btn-blue-glow" x-show="!editMode"
-        hx-get="/fetchRawMarkdown?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}"
+        hx-get="/markdownEditor?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}"
         hx-target="#editContent"
         hx-trigger="click"
         hx-select="textarea"
