@@ -3,6 +3,7 @@ package uk.anbu.devnotes.module;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.Extension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
+import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
 import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Image;
@@ -49,7 +50,7 @@ public class MarkdownRenderer {
 
     public String convertMarkdown(String markdown, String fileNameWithRelativePath) {
         Integer codeBlockCounter = 0;
-        List<Extension> extensions = List.of(TablesExtension.create());
+        List<Extension> extensions = List.of(TablesExtension.create(), StrikethroughExtension.create());
         Parser parser = Parser.builder()
                 .extensions(extensions)
                 .build();

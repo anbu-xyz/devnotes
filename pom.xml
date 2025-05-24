@@ -49,6 +49,11 @@
             <version>0.22.0</version>
         </dependency>
         <dependency>
+            <groupId>org.commonmark</groupId>
+            <artifactId>commonmark-ext-gfm-strikethrough</artifactId>
+            <version>0.22.0</version>
+        </dependency>
+        <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
             <version>2.16.1</version>
