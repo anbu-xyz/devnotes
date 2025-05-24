@@ -5,20 +5,21 @@ body {
     font-family: sans-serif;
     line-height: 1.5;
     min-height: 100vh;
-    background: #f3f3f3;
+    background: #1a1a1a;
     flex-direction: column;
     margin: 0;
 }
 
 .main {
-    background-color: #fff;
+    background-color: #2d2d2d;
     border-radius: 15px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
     padding: 10px 20px;
     transition: transform 0.2s;
     width: 500px;
     height: 400px;
     text-align: center;
+    color: #ffffff;
 }
 
 .timer-circle {
@@ -30,8 +31,8 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 25px;
-    color: crimson;
-    border: 8px solid #3498db;
+    color: #ff6b6b;
+    border: 8px solid #2980b9;
 }
 
 .control-buttons {
@@ -41,8 +42,8 @@ body {
 }
 
 .control-buttons button {
-    background-color: #3498db;
-    color: #fff;
+    background-color: #2980b9;
+    color: #ffffff;
     border: none;
     padding: 10px 20px;
     border-radius: 5px;
@@ -50,6 +51,6 @@ body {
 }
 
 .control-buttons button:hover {
-    background-color: #266094;
+    background-color: #1c5981;
     transition: background-color 0.3s;
 }
