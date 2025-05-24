@@ -12,7 +12,7 @@
 
 <body>
 <div class="main">
-    <div class="timer-circle" id="timer">${minutesLeft}</div>
+    <div class="timer-circle" id="timer">${minutesLeft}:00</div>
     <div class="control-buttons">
         <button onclick="togglePauseResume()">
             Pause
