@@ -9,10 +9,22 @@ function startTimer() {
 }
 
 function updateTimer() {
-    const timerElement =
-        document.getElementById('timer');
-    timerElement.textContent =
-        formatTime(minutes, seconds);
+    const timerElement = document.getElementById('timer');
+    const displayTime= formatTime(minutes, seconds);
+    document.title = "Pomodoro " + displayTime;
+    timerElement.textContent = displayTime;
+    // post to endpoint /pomodoro to update minutesLeft
+    let formData = new FormData();
+    formData.append('minutesLeft', minutes);
+
+    if (seconds === 0) {
+        fetch('/pomodoro', {
+            method: 'POST',
+            body: formData
+        }).then(r =>
+            r.text().then(data => console.log(data))
+        )
+    }
 
     if (minutes === 0 && seconds === 0) {
         clearInterval(timer);
@@ -50,10 +62,11 @@ function restartTimer() {
     minutes = enteredTime || 15;
     seconds = 0;
     isPaused = false;
-    const timerElement =
-        document.getElementById('timer');
-    timerElement.textContent =
-        formatTime(minutes, seconds);
+    const timerElement = document.getElementById('timer');
+    const displayTime= formatTime(minutes, seconds);
+    document.title = "Pomodoro " + displayTime;
+    timerElement.textContent = displayTime;
+
     const pauseResumeButton =
         document.querySelector('.control-buttons button');
     pauseResumeButton.textContent = 'Pause';
