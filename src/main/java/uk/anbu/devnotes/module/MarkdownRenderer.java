@@ -6,6 +6,7 @@ import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
 import org.commonmark.ext.image.attributes.ImageAttributesExtension;
 import org.commonmark.ext.ins.InsExtension;
+import org.commonmark.ext.task.list.items.TaskListItemsExtension;
 import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Image;
@@ -55,6 +56,7 @@ public class MarkdownRenderer {
         List<Extension> extensions = List.of(TablesExtension.create(),
                 StrikethroughExtension.create(),
                 ImageAttributesExtension.create(),
+                TaskListItemsExtension.create(),
                 InsExtension.create());
         Parser parser = Parser.builder()
                 .extensions(extensions)
