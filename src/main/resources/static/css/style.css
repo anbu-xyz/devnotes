@@ -119,6 +119,10 @@ th, td {
     padding: 0 0.2em 0 0.2em;
 }
 
+td td, th td, td th, th th {
+    font-size: 1em;
+}
+
 th {
     background-color: #333;
 }
