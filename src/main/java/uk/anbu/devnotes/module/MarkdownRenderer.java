@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.commonmark.Extension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
+import org.commonmark.ext.image.attributes.ImageAttributesExtension;
 import org.commonmark.ext.ins.InsExtension;
 import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.HtmlBlock;
@@ -53,6 +54,7 @@ public class MarkdownRenderer {
         Integer codeBlockCounter = 0;
         List<Extension> extensions = List.of(TablesExtension.create(),
                 StrikethroughExtension.create(),
+                ImageAttributesExtension.create(),
                 InsExtension.create());
         Parser parser = Parser.builder()
                 .extensions(extensions)
