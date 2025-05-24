@@ -176,12 +176,12 @@ public class DirectoryListingController {
 
         long hours = duration.toHours();
         if (hours > 0) {
-            return Optional.of(hours + (hours == 1 ? " hour" : " hours"));
+            return Optional.of(hours + " hrs");
         }
 
         long minutes = duration.toMinutes();
         if (minutes > 0) {
-            return Optional.of(minutes + (minutes == 1 ? " minute" : " minutes"));
+            return Optional.of(minutes + (minutes == 1 ? " min" : " mins"));
         } else {
             return Optional.of("now");
         }

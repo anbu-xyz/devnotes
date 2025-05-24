@@ -52,7 +52,7 @@
                     ${entry.filename()}
                 </a>
                 <span class="entry-timestamp text-gray-500 text-sm">
-                    ${entry.lastModified().map(lastModified -> lastModified.toString()).orElse("")}
+                    ${entry.lastModified().map(lastModified -> lastModified.toString()) .orElse("")}
                 </span>
                 <div class="entry-actions" id="actions-${entry.filename()}">
                     @if(entry.fileType().equals("puml"))
