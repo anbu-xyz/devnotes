@@ -4,6 +4,7 @@ import gg.jte.TemplateEngine;
 import gg.jte.TemplateOutput;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.http.HttpHeaders;
@@ -22,8 +23,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -124,7 +128,8 @@ public class DirectoryListingController {
             var entries = filesList
                     .map(path -> new FileEntry(path.getFileName().toString(),
                             fileExtension(path.getFileName().toString()),
-                            Files.isDirectory(path)))
+                            Files.isDirectory(path),
+                            lastModifiedSince(path)))
                     .sorted(Comparator.<FileEntry>comparingInt(e -> e.isDirectory() ? 0 : 1)
                             .thenComparing(f -> f.filename))
                     .filter(e -> !e.filename.endsWith(".output"))
@@ -151,6 +156,37 @@ public class DirectoryListingController {
         }
     }
 
+    @SneakyThrows
+    private static Optional<String> lastModifiedSince(Path path) {
+        var modifiedTime = Files.getLastModifiedTime(path).toInstant();
+        var now = Instant.now();
+        var duration = Duration.between(modifiedTime, now);
+        if (duration.compareTo(Duration.ofDays(30)) < 0) {
+            return toHumanReadable(duration);
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public static Optional<String> toHumanReadable(Duration duration) {
+        long days = duration.toDays();
+        if (days > 0) {
+            return Optional.of(days + (days == 1 ? " day" : " days"));
+        }
+
+        long hours = duration.toHours();
+        if (hours > 0) {
+            return Optional.of(hours + (hours == 1 ? " hour" : " hours"));
+        }
+
+        long minutes = duration.toMinutes();
+        if (minutes > 0) {
+            return Optional.of(minutes + (minutes == 1 ? " minute" : " minutes"));
+        } else {
+            return Optional.of("now");
+        }
+    }
+
     private String fileExtension(String filename) {
         int lastDotIndex = filename.lastIndexOf('.');
         if (lastDotIndex == -1) {
@@ -159,7 +195,7 @@ public class DirectoryListingController {
         return filename.substring(lastDotIndex + 1);
     }
 
-    public record FileEntry(String filename, String fileType, boolean isDirectory) {
+    public record FileEntry(String filename, String fileType, boolean isDirectory, Optional<String> lastModified) {
     }
 
     @PostMapping("/uploadFile")

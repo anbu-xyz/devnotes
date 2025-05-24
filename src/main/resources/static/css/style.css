@@ -222,6 +222,7 @@ img {
 
 .directory-list li {
     margin-bottom: 0.1rem;
+    padding: 0;
 }
 
 .entry-container {

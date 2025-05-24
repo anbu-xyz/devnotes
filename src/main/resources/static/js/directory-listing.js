@@ -171,6 +171,11 @@ function uploadFile(file) {
     });
 }
 
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    return date.toLocaleString();
+}
+
 document.addEventListener('paste', function(event) {
     const items = (event.clipboardData || event.originalEvent.clipboardData).items;
     for (let index in items) {
