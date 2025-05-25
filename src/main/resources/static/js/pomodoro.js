@@ -15,8 +15,14 @@ function initializeTimer(config) {
     startedAtUtc = config.startedAtUtc;
     overallDuration = config.overallDuration;
 
-    if (state === 'RUNNING') {
+    const pauseResumeButton = document.querySelector('#pauseResumeButton');
+    if (state === 'NOT_STARTED') {
+        pauseResumeButton.textContent = 'Start';
+    } else if (state === 'RUNNING') {
+        pauseResumeButton.textContent = 'Pause';
         startTimer();
+    } else if (state === 'PAUSED') {
+        pauseResumeButton.textContent = 'Resume';
     }
 }
 
@@ -33,7 +39,11 @@ function updateTimer() {
     if (minutes === 0 && seconds === 0) {
         clearInterval(timer);
         alert('Time is up! Take a break.');
-        updateServerState('STOPPED');
+        state = 'NOT_STARTED';
+        minutes = 25;
+        const pauseResumeButton = document.querySelector('#pauseResumeButton');
+        pauseResumeButton.textContent = 'Start';
+        updateServerState('NOT_STARTED');
     } else if (!isPaused) {
         if (seconds > 0) {
             seconds--;
@@ -68,36 +78,42 @@ function formatTime(minutes, seconds) {
 
 function togglePauseResume() {
     const pauseResumeButton = document.querySelector('#pauseResumeButton');
-    isPaused = !isPaused;
 
-    if (isPaused) {
+    if (state === 'NOT_STARTED') {
+        // Call server's start endpoint first
+        fetch(`/pomodoro/start?timeLeftInSeconds=${minutes * 60}`, {
+            method: 'POST'
+        })
+            .then(response => response.json())
+            .then(data => {
+                startedAtUtc = data.startedAtUtc; // Get start time from server
+                // Start the timer
+                startTimer();
+                isPaused = false;
+                state = 'RUNNING';
+                pauseResumeButton.textContent = 'Pause';
+                updateServerState('RUNNING');
+            })
+            .catch(error => {
+                console.error('Error starting timer:', error);
+                alert('Failed to start timer');
+            });
+    } else if (state === 'RUNNING') {
+        // Pausing a running timer
         clearInterval(timer);
+        isPaused = true;
+        state = 'PAUSED';
         pauseResumeButton.textContent = 'Resume';
         updateServerState('PAUSED');
-    } else {
+    } else if (state === 'PAUSED') {
+        // Resuming a paused timer
         startTimer();
+        isPaused = false;
+        state = 'RUNNING';
         pauseResumeButton.textContent = 'Pause';
+        startedAtUtc = new Date().toISOString();
         updateServerState('RUNNING');
     }
-}
-
-function restartTimer() {
-    clearInterval(timer);
-    minutes = enteredTime || Math.floor(overallDuration / 60);
-    seconds = 0;
-    isPaused = false;
-
-    const timerElement = document.getElementById('timer');
-    const displayTime = formatTime(minutes, seconds);
-    document.title = "Pomodoro " + displayTime;
-    timerElement.textContent = displayTime;
-
-    const pauseResumeButton = document.querySelector('#pauseResumeButton');
-    pauseResumeButton.textContent = 'Pause';
-
-    startedAtUtc = new Date().toISOString();
-    updateServerState('RUNNING');
-    startTimer();
 }
 
 function chooseTime() {
@@ -106,7 +122,8 @@ function chooseTime() {
         enteredTime = parseInt(newTime);
         minutes = enteredTime;
         seconds = 0;
-        isPaused = false;
+        isPaused = true;
+        state = 'NOT_STARTED';
         overallDuration = minutes * 60;
 
         const timerElement = document.getElementById('timer');
@@ -114,11 +131,9 @@ function chooseTime() {
 
         clearInterval(timer);
         const pauseResumeButton = document.querySelector('#pauseResumeButton');
-        pauseResumeButton.textContent = 'Pause';
+        pauseResumeButton.textContent = 'Start';
 
-        startedAtUtc = new Date().toISOString();
-        updateServerState('RUNNING');
-        startTimer();
+        updateServerState('NOT_STARTED');
     } else {
         alert('Invalid input. Please enter a valid number greater than 0.');
     }

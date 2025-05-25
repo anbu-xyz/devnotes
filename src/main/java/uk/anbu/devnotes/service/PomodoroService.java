@@ -16,6 +16,8 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.time.ZoneOffset.UTC;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -43,12 +45,12 @@ public class PomodoroService {
 
         if (!Files.exists(pomodoroPath)) {
             config.put("overallDuration", Duration.ofMinutes(DEFAULT_MINUTES));
-            config.put("startedAtUtc", LocalDateTime.now());
+            config.put("startedAtUtc", LocalDateTime.now(UTC));
             config.put("timeLeft", Duration.ofMinutes(DEFAULT_MINUTES));
             config.put("state", PomodoroState.NOT_STARTED);
             mapper.writeValue(pomodoroPath.toFile(), config);
             return new PomodoroConfig(
-                    LocalDateTime.now(),
+                    LocalDateTime.now(UTC),
                     DEFAULT_MINUTES * 60,
                     DEFAULT_MINUTES * 60,
                     PomodoroState.NOT_STARTED
@@ -61,6 +63,19 @@ public class PomodoroService {
                     Long.parseLong(config.get("overallDurationInSeconds").toString()),
                     PomodoroState.valueOf(config.get("state").toString())
             );
+            if (pomodoroConfig.state() == PomodoroState.RUNNING) {
+                var timeLeft = pomodoroConfig.overallDurationInSeconds()
+                        - Duration.between(pomodoroConfig.startedAtUtc(), LocalDateTime.now(UTC)).getSeconds();
+                if (timeLeft < 0) {
+                    timeLeft = 0;
+                }
+                pomodoroConfig = new PomodoroConfig(
+                        pomodoroConfig.startedAtUtc(),
+                        timeLeft,
+                        pomodoroConfig.overallDurationInSeconds(),
+                        pomodoroConfig.state()
+                );
+            }
             return pomodoroConfig;
         }
     }
@@ -98,6 +113,17 @@ public class PomodoroService {
         configMap.put("overallDurationInSeconds", config.overallDurationInSeconds());
         configMap.put("state", config.state());
         mapper.writeValue(configPath.toFile(), configMap);
+    }
+
+    public PomodoroConfig startPomodoro(long timeLeftInSeconds) throws IOException {
+        PomodoroConfig config = new PomodoroConfig(
+                LocalDateTime.now(UTC),
+                timeLeftInSeconds,
+                DEFAULT_MINUTES * 60,
+                PomodoroState.RUNNING
+        );
+        savePomodoroConfig(config);
+        return config;
     }
 
     public record PomodoroConfig(LocalDateTime startedAtUtc,

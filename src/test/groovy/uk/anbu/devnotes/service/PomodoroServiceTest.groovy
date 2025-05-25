@@ -7,6 +7,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDateTime
 
+import static java.time.ZoneOffset.UTC;
+
 class PomodoroServiceTest extends Specification {
 
     @TempDir
@@ -94,31 +96,54 @@ class PomodoroServiceTest extends Specification {
         Files.readString(gitFile).contains("pomodoro.yaml")
     }
 
-    def "should correctly read back saved pomodoro config"() {
-        given:
-        configService.getDocsDirectory() >> tempDir.toString()
-        def startTime = LocalDateTime.parse("2023-01-01T10:00:00")
-        def originalConfig = new PomodoroService.PomodoroConfig(
-                startTime,
-                900,
-                1500,
-                PomodoroService.PomodoroState.RUNNING
-        )
+    def "should calculate correct time left when loading a running timer"() {
+        given: "a config file with a running timer"
+        def docsDir = tempDir.toString()
+        def configDir = Files.createDirectories(tempDir.resolve("config"))
+        def configFile = configDir.resolve("pomodoro.yaml")
+        def startTime = LocalDateTime.now(UTC).minusMinutes(2) // started 2 minutes ago
+        def originalDuration = 5 * 60 // 5 minutes total duration
 
-        when: "saving the config"
-        pomodoroService.savePomodoroConfig(originalConfig)
+        Files.writeString(configFile, """
+        startedAtUtc: "${startTime}"
+        timeLeftInSeconds: ${originalDuration}
+        overallDurationInSeconds: ${originalDuration}
+        state: "RUNNING"
+    """)
 
-        and: "reading it back"
-        def readConfig = pomodoroService.loadPomodoroConfigFrom(tempDir.toString())
+        when: "loading the config"
+        def result = pomodoroService.loadPomodoroConfigFrom(docsDir)
 
-        then: "all values should match the original"
-        readConfig.startedAtUtc() == originalConfig.startedAtUtc()
-        readConfig.timeLeftInSeconds() == originalConfig.timeLeftInSeconds()
-        readConfig.overallDurationInSeconds() == originalConfig.overallDurationInSeconds()
-        readConfig.state() == originalConfig.state()
+        then: "time left should be approximately 3 minutes"
+        result.state() == PomodoroService.PomodoroState.RUNNING
+        result.overallDurationInSeconds() == originalDuration
+        result.startedAtUtc() == startTime
+        result.timeLeftInSeconds() <= (3 * 60) // should have ~3 minutes left
+        result.timeLeftInSeconds() > (2 * 60) // but more than 2 minutes
+    }
 
-        and: "the config file should exist"
-        def configFile = tempDir.resolve("config/pomodoro.yaml")
-        Files.exists(configFile)
+    def "should set time left to zero when loading an expired running timer"() {
+        given: "a config file with an expired running timer"
+        def docsDir = tempDir.toString()
+        def configDir = Files.createDirectories(tempDir.resolve("config"))
+        def configFile = configDir.resolve("pomodoro.yaml")
+        def startTime = LocalDateTime.now(UTC).minusMinutes(10) // started 10 minutes ago
+        def originalDuration = 5 * 60 // 5 minutes total duration
+
+        Files.writeString(configFile, """
+        startedAtUtc: "${startTime}"
+        timeLeftInSeconds: ${originalDuration}
+        overallDurationInSeconds: ${originalDuration}
+        state: "RUNNING"
+    """)
+
+        when: "loading the config"
+        def result = pomodoroService.loadPomodoroConfigFrom(docsDir)
+
+        then: "time left should be zero"
+        result.state() == PomodoroService.PomodoroState.RUNNING
+        result.overallDurationInSeconds() == originalDuration
+        result.startedAtUtc() == startTime
+        result.timeLeftInSeconds() == 0
     }
 }

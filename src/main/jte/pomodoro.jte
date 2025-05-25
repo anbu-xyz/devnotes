@@ -19,9 +19,6 @@
         <button onclick="togglePauseResume()" id="pauseResumeButton">
             ${pomodoroConfig.state() == PomodoroState.RUNNING ? "Pause" : "Resume"}
         </button>
-        <button onclick="restartTimer()">
-            Restart
-        </button>
         <button onclick="chooseTime()">
             Choose Time
         </button>

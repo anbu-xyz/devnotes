@@ -16,6 +16,7 @@ import uk.anbu.devnotes.service.PomodoroService;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -52,6 +53,20 @@ public class PomodoroController {
             log.error("Failed to update timer", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to update timer: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/pomodoro/start")
+    public ResponseEntity<Map<String, String>> startPomodoro(@RequestParam("timeLeftInSeconds") long timeLeftInSeconds) {
+        try {
+            PomodoroService.PomodoroConfig config = pomodoroService.startPomodoro(timeLeftInSeconds);
+            Map<String, String> response = new HashMap<>();
+            response.put("startedAtUtc", config.startedAtUtc().toString());
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            log.error("Failed to start timer", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to start timer: " + e.getMessage()));
         }
     }
 }
