@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.service.PomodoroService;
@@ -36,22 +37,19 @@ public class PomodoroController {
         }
 
         var model = new HashMap<String, Object>();
-        model.put("minutesLeft", pomodoroConfig.minutesLeft());
+        model.put("pomodoroConfig", pomodoroConfig);
         TemplateOutput output = new StringOutput();
         templateEngine.render("pomodoro.jte", model, output);
         return ResponseEntity.ok(output.toString());
     }
 
     @PostMapping("/pomodoro")
-    public ResponseEntity<String> pomodoro(@RequestParam("minutesLeft") Integer minutesLeft) {
-        if (minutesLeft == null || minutesLeft < 0) {
-            return ResponseEntity.badRequest().body("Invalid minutes value");
-        }
-
+    public ResponseEntity<String> pomodoro(@RequestBody PomodoroService.PomodoroConfig pomodoroConfig) {
         try {
-            pomodoroService.savePomodoroConfig(new PomodoroService.PomodoroConfig(minutesLeft));
+            pomodoroService.savePomodoroConfig(pomodoroConfig);
             return ResponseEntity.ok("Timer updated successfully");
         } catch (IOException e) {
+            log.error("Failed to update timer", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to update timer: " + e.getMessage());
         }

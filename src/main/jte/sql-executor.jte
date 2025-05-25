@@ -41,7 +41,6 @@
     <div class="form-group">
         <label>Parameter Values:</label>
         <div id="parameterValues">
-            <!-- Initial parameter input field -->
             <div class="parameter-input">
             </div>
         </div>
