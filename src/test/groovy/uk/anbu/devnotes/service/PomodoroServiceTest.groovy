@@ -76,8 +76,8 @@ class PomodoroServiceTest extends Specification {
         def configFile = tempDir.resolve("config/pomodoro.yaml")
         def content = Files.readString(configFile)
         content.contains("startedAtUtc: \"2023-01-01T10:00\"")
-        content.contains("timeLeft: 900")
-        content.contains("overallDuration: 1500")
+        content.contains("timeLeftInSeconds: 900")
+        content.contains("overallDurationInSeconds: 1500")
         content.contains("state: \"RUNNING\"")
     }
 

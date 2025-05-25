@@ -168,6 +168,13 @@
             <groupId>net.sourceforge.plantuml</groupId>
             <artifactId>plantuml</artifactId>
             <version>1.2025.2</version>
+            <exclusions>
+                <!-- transitive dependency sometimes pulls redhat build of guava -->
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- testing -->
