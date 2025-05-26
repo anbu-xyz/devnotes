@@ -8,7 +8,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pomodoro ${pomodoroConfig.timeLeftInSeconds() / 60}</title>
+    <title>Pomodoro ${pomodoroConfig.timeLeftInSeconds() / 60}: ${pomodoroConfig.timeLeftInSeconds() % 60}</title>
     <link rel="stylesheet" href="css/pomodoro.css">
 </head>
 
@@ -16,17 +16,17 @@
 <div class="main">
     <div class="timer-circle" id="timer">${String.format("%02d:%02d", pomodoroConfig.timeLeftInSeconds() / 60, pomodoroConfig.timeLeftInSeconds() % 60)}</div>
     <div class="control-buttons">
-        <button onclick="togglePauseResume()" id="pauseResumeButton">
+        <button onclick="pomodoro.toggleTimer()" id="pauseResumeButton">
             ${pomodoroConfig.state() == PomodoroState.RUNNING ? "Pause" : "Resume"}
         </button>
-        <button onclick="chooseTime()">
+        <button onclick="pomodoro.chooseTime()" id="chooseTimeButton">
             Choose Time
         </button>
     </div>
 </div>
 <script src="js/pomodoro.js"></script>
 <script>
-    initializeTimer({
+    pomodoro.init({
         minutes: ${pomodoroConfig.timeLeftInSeconds() / 60},
         seconds: ${pomodoroConfig.timeLeftInSeconds() % 60},
         state: "${pomodoroConfig.state()}",
