@@ -4,10 +4,13 @@ function saveContent(redirect= true) {
         return;
     }
     const content = easyMDE.value();
-    const filename = window.location.search.split('filename=')[1].split('&')[0];
+    const filename = document.getElementById('md-file-path').textContent;
+    const lastModifiedTime = document.getElementById('md-last-modified-time').textContent;
 
     // console.log("Saving content to " + filename);
-    fetch('/saveMarkdown?filename=' + encodeURIComponent(filename), {
+    const uri = '/saveMarkdown?filename=' + encodeURIComponent(filename) +
+         '&lastModifiedTime=' + encodeURIComponent(lastModifiedTime);
+    fetch(uri, {
         method: 'POST',
         headers: {
             'Content-Type': 'text/plain',

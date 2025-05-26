@@ -2,6 +2,7 @@
 @param String markdownFile
 @param String title
 @param boolean editMode
+@param String lastModifiedTime
 
 <!DOCTYPE html>
 <html>
@@ -104,7 +105,7 @@
 
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
-            e.preventDefault(); // Prevent the browser's save dialog
+            e.preventDefault(); // Prevent the browser default action
 
             const element = document.querySelector('#viewContent > h1 > a:nth-child(2) > i');
             if (element) {
@@ -123,5 +124,8 @@
     })();
 </script>
 </div>
+<hr>
+<p><em>Last modified: <span id="md-last-modified-time">${lastModifiedTime}</span></em></p>
+<p hidden id="md-file-path">${markdownFile}</p>
 </body>
 </html>

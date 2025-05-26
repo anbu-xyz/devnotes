@@ -25,6 +25,8 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,6 +64,14 @@ public class MarkdownController {
             log.error("Error fetching raw markdown", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching raw markdown: " + e.getMessage());
         }
+    }
+
+    private static String lastModifiedTime(Path filePath) throws IOException {
+        var lastModifiedTime = Files.getLastModifiedTime(filePath);
+        return lastModifiedTime.toInstant()
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime()
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
     @GetMapping("/markdown")
@@ -195,6 +205,7 @@ public class MarkdownController {
         params.put("markdownFile", filename);
         params.put("editMode", editMode);
         params.put("title", title);
+        params.put("lastModifiedTime", lastModifiedTime(markdownFile));
         templateEngine.render("markdown.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");
