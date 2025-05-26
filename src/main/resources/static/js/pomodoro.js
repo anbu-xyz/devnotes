@@ -5,6 +5,7 @@ const pomodoro = {
     state: 'NOT_STARTED',
     startedAtUtc: null,
     overallDuration: 0,
+    notificationPermission: false,
 
     init(config) {
         Object.assign(this, config);
@@ -12,6 +13,33 @@ const pomodoro = {
         if (this.state === 'RUNNING') {
             this.startTimer();
         }
+        this.requestNotificationPermission();
+    },
+
+    requestNotificationPermission() {
+        if ("Notification" in window) {
+            Notification.requestPermission().then(permission => {
+                this.notificationPermission = permission === "granted";
+            });
+        }
+    },
+
+    showNotification() {
+        if (this.notificationPermission) {
+            new Notification("Pomodoro Timer", {
+                body: "Time's up! Your pomodoro session is complete.",
+                icon: "/favicon.ico" // Add your favicon path here
+            });
+        }
+    },
+
+    showModal() {
+        document.getElementById('timerCompleteModal').style.display = 'block';
+    },
+
+    closeModal() {
+        document.getElementById('timerCompleteModal').style.display = 'none';
+        this.reset();
     },
 
     startTimer() {
@@ -49,7 +77,8 @@ const pomodoro = {
 
     timerComplete() {
         clearInterval(this.timer);
-        alert('Time is up! Take a break.');
+        this.showModal();
+        this.showNotification();
         this.reset();
     },
 

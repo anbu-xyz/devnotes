@@ -8,7 +8,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pomodoro ${pomodoroConfig.timeLeftInSeconds() / 60}: ${pomodoroConfig.timeLeftInSeconds() % 60}</title>
+    <title>Pomodoro ${pomodoroConfig.timeLeftInSeconds() / 60}:${pomodoroConfig.timeLeftInSeconds() % 60}</title>
     <link rel="stylesheet" href="css/pomodoro.css">
 </head>
 
@@ -34,6 +34,14 @@
         startedAtUtc: "${String.valueOf(pomodoroConfig.startedAtUtc())}"
     });
 </script>
+<div id="timerCompleteModal" class="modal">
+    <div class="modal-content">
+        <h2>Time's Up!</h2>
+        <p>Your pomodoro session is complete.</p>
+        <button onclick="pomodoro.closeModal()" class="btn-blue-glow">Start New Session</button>
+    </div>
+</div>
+
 </body>
 
 </html>
