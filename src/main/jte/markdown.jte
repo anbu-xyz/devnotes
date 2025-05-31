@@ -19,18 +19,23 @@
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
         <title>${title}</title>
     </head>
-    <body class="p-8">
-        <div x-cloak x-data="{ editMode: ${editMode} }">
-            <div id="markdownViewer" x-cloak x-show="!editMode"></div>
-            <div id="markdownEditor" x-cloak x-show="editMode"></div>
-            <div style="display: none"
-                 hx-trigger="load"
-                 hx-target="#markdownViewer"
-                 hx-select="div#markdownViewer"
-                 hx-swap="outerHTML"
-                 hx-get="/markdownViewer?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}">
-            </div>
-        </div>
+    <body class="p-8" x-data="{ editMode: ${editMode} }">
+        <div id="markdownViewer" x-cloak x-show="!editMode"></div>
+        <div id="markdownEditor" x-cloak x-show="editMode"></div>
+        <button id="hiddenViewButton" style="display: none"
+                hx-trigger="click"
+                hx-target="#markdownViewer"
+                hx-swap="outerHTML"
+                hx-select="div#markdownViewer"
+                hx-get="/markdownViewer?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}">
+        </button>
+        <button id="hiddenEditButton" style="display:none"
+                hx-trigger="click"
+                hx-target="#markdownEditor"
+                hx-swap="outerHTML"
+                hx-select="#markdownEditor"
+                hx-get="/markdownEditor?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}">
+        </button>
         <!-- JavaScript -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>

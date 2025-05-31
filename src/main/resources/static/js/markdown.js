@@ -122,6 +122,10 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
         console.debug("Markdown editor content loaded");
     }
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    htmx.trigger('#hiddenViewButton', 'click');
+});
 // -----------------------------------------------------------------------------
 // Autosave
 // -----------------------------------------------------------------------------

@@ -13,12 +13,7 @@
     for the rest of the code -->
     <div id="markdownViewer" x-cloak x-show="!editMode">
         $unsafe{htmlContent}
-        <button id="editButton" @click="editMode = true" class="btn-blue-glow"
-                hx-get="/markdownEditor?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}"
-                hx-target="#markdownEditor"
-                hx-trigger="click"
-                hx-swap="outerHTML"
-                hx-select="#markdownEditor">
+        <button id="editButton" @click="editMode = true; htmx.trigger('#hiddenEditButton', 'click')" class="btn-blue-glow">
             <i class="fas fa-edit"></i>Edit
         </button>
         <hr>
