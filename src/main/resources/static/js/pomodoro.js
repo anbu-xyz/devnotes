@@ -149,7 +149,11 @@ const pomodoro = {
                 timeLeftInSeconds: this.minutes * 60 + this.seconds,
                 state: newState
             })
-        }).then(r => r.text().then(data => console.log(data)));
+        }).then(r =>
+            r.text().then(data => {
+                console.debug(`pomodoro update response: ${data}`);
+            })
+        );
     },
 
     chooseTime() {

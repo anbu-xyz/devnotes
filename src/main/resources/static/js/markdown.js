@@ -1,4 +1,6 @@
-function saveContent(redirect= true) {
+var easyMDE;
+
+function saveContent() {
     if (!easyMDE) {
         console.error('easyMDE is not defined');
         return;
@@ -7,7 +9,7 @@ function saveContent(redirect= true) {
     const filename = document.getElementById('md-file-path').textContent;
     const lastModifiedTime = document.getElementById('md-last-modified-time').textContent;
 
-    // console.log("Saving content to " + filename);
+    console.debug(`calling save endpoint for file ${filename}`);
     const uri = '/saveMarkdown?filename=' + encodeURIComponent(filename) +
          '&lastModifiedTime=' + encodeURIComponent(lastModifiedTime);
     fetch(uri, {
@@ -16,85 +18,118 @@ function saveContent(redirect= true) {
             'Content-Type': 'text/plain',
         },
         body: content
-    })
-        .then(response => response.text())
-        .then(result => {
-            if(redirect) {
-                location.href = '/markdown?filename=' + filename + '&edit=false';
-            }
-        })
-        .catch(error => console.error('Error:', error));
+    }).then(response =>
+        console.debug(`save endpoint response: ${response.status} ${response.statusText}`)
+    ).catch(error => console.error('Error:', error));
 }
 
-var easyMDE;
 function downloadExcel(outputFileName, markdownFileName) {
     window.location.href = '/downloadExcel?outputFileName=' + outputFileName + '&markdownFileName=' + markdownFileName;
 }
 
-function h1IsAbsent() {
-    return document.getElementById('viewContent').querySelector('h1') == null;
+function createHomeLink(elementId) {
+    const viewContent = document.getElementById(elementId);
+    const h1 = viewContent.querySelector('h1');
+    const editButtonSelector = "#editButton";
+    const editButton = viewContent.querySelector(editButtonSelector);
+
+    if (!h1) {
+        console.info('Markdown file does not have a title. Skipping button creation at the top of the page.');
+        return;
+    }
+    if (!editButton) {
+        console.error(`Edit button not found: ${editButtonSelector}`);
+        return;
+    }
+
+    // Create home link
+    const folderLink = document.createElement('a');
+    folderLink.href = 'renderDirectoryContents?directoryName=' +
+        encodeURIComponent('${markdownFile}'.split('/').slice(0, -1).join('/'));
+
+    folderLink.classList.add('text-blue-500', 'hover:text-blue-700', 'mr-2');
+    folderLink.innerHTML = '<i class="fas fa-folder-open" style="padding-right: 0.2em"></i>';
+
+    // Create edit link
+    const editLink = document.createElement('a');
+    editLink.href = '#';
+    editLink.classList.add('text-blue-500', 'hover:text-blue-700');
+    editLink.innerHTML = '<i class="fas fa-edit" style="padding-left: 0.2em"></i>';
+    editLink.onclick = function(e) {
+        e.preventDefault();
+        editButton.click();
+    };
+
+    h1.insertBefore(folderLink, h1.firstChild);
+    h1.appendChild(editLink);
+
+    // hide the edit button
+    editButton.style.display = 'none';
 }
 
-document.addEventListener('htmx:afterRequest', function(evt) {
-    easyMDE = new EasyMDE({ element: document.querySelector("#editor") });
-})
-
-document.addEventListener('DOMContentLoaded', function() {
-    const viewContent = document.getElementById('viewContent');
-    const h1 = viewContent.querySelector('h1');
-
-    if (h1) {
-        // Create home link
-        const folderLink = document.createElement('a');
-        folderLink.href = 'renderDirectoryContents?directoryName=' +
-            encodeURIComponent('${markdownFile}'.split('/').slice(0, -1).join('/'));
-
-        folderLink.classList.add('text-blue-500', 'hover:text-blue-700', 'mr-2');
-        folderLink.innerHTML = '<i class="fas fa-folder-open" style="padding-right: 0.2em"></i>';
-
-        // Create edit link
-        const editLink = document.createElement('a');
-        editLink.href = '#';
-        editLink.classList.add('text-blue-500', 'hover:text-blue-700');
-        editLink.innerHTML = '<i class="fas fa-edit" style="padding-left: 0.2em"></i>';
-        editLink.onclick = function(e) {
-            e.preventDefault();
-            document.getElementById('editButton').click();
-        };
-
-        h1.insertBefore(folderLink, h1.firstChild);
-        h1.appendChild(editLink);
-
-        // hide the edit button
-        document.getElementById('editButton').style.display = 'none';
+function attachEasyMdeOn(elementId) {
+    const originalTextArea = document.getElementById(elementId);
+    console.debug(`enableEasyMDE creating editor on element ${elementId}`);
+    if (!originalTextArea) {
+        console.error(`Editor element not found: ${elementId}`);
+        return;
     }
-});
+    easyMDE = new EasyMDE({ element: originalTextArea});
+}
 
+// -----------------------------------------------------------------------------
+// Event listeners
+// -----------------------------------------------------------------------------
 document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        console.debug("Ctrl+S pressed");
         e.preventDefault(); // Prevent the browser's save dialog
 
-        if (document.querySelector('#saveButton').style.display !== 'none') {
-            document.getElementById('saveButton').click();
+        const saveButtonSelector = '#saveButton';
+        const saveButton = document.querySelector(saveButtonSelector);
+        if (saveButton) {
+            if (saveButton.style.display !== 'none') {
+                saveButton.click();
+            }
+        } else {
+            console.error(`Save button not found: ${saveButtonSelector}`);
         }
     }
 });
 
 document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
+        console.debug("Ctrl+E pressed");
         e.preventDefault(); // Prevent the browser default action
 
-        const element = document.querySelector('#viewContent > h1 > a:nth-child(2) > i');
-        if (element) {
-            element.click();
+        const editButtonSelector = '#markdownViewer > h1 > a:nth-child(2) > i';
+        const editButton = document.querySelector(editButtonSelector);
+        if (editButton) {
+            editButton.click();
+        } else {
+            console.error(`Edit button not found: ${editButtonSelector}`);
         }
     }
 });
 
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.target.id === "markdownViewer") {
+        createHomeLink("markdownViewer");
+        console.debug("Markdown viewer content loaded");
+    }
+    if (evt.target.id === "markdownEditor") {
+        attachEasyMdeOn('easyMdeEditor');
+        console.debug("Markdown editor content loaded");
+    }
+});
+// -----------------------------------------------------------------------------
+// Autosave
+// -----------------------------------------------------------------------------
 (function() {
     setInterval(function() {
-        if (document.getElementById('autoSaveCheckbox').checked) {
-            saveContent(false);
+        const autoSaveCheckbox = document.getElementById('autoSaveCheckbox');
+        if (autoSaveCheckbox && autoSaveCheckbox.checked) {
+            saveContent();
         }
     }, 60000);
 })();

@@ -43,6 +43,32 @@ public class MarkdownController {
 
     private final ConfigService configService;
 
+    @GetMapping("/markdownViewer")
+    public ResponseEntity<String> markdownViewer(@RequestParam String filename) {
+        try {
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
+            Path filePath = markdownRoot.resolve(filename);
+            Assert.isTrue(filePath.toFile().exists(), "File does not exist " + filename);
+            String markdownContent = new String(Files.readAllBytes(filePath));
+            String htmlContent = markdownRenderer.convertMarkdown(markdownContent, filename);
+
+            TemplateOutput output = new StringOutput();
+            var params = new HashMap<String, Object>();
+            params.put("htmlContent", htmlContent);
+            params.put("title", constructMarkdownTitle(filename, markdownRoot));
+            params.put("markdownFile", filename);
+            params.put("lastModifiedTime", lastModifiedTime(filePath));
+            templateEngine.render("markdown-viewer.jte", params, output);
+
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                    .body(output.toString());
+        } catch (Exception e) {
+            log.error("Error fetching raw markdown", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error fetching raw markdown: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/markdownEditor")
     public ResponseEntity<String> markdownEditor(@RequestParam String filename) {
         try {
@@ -54,6 +80,7 @@ public class MarkdownController {
             TemplateOutput output = new StringOutput();
             var params = new HashMap<String, Object>();
             params.put("originalMarkdown", escapeHtml(fileContent));
+            params.put("markdownFile", filename);
             params.put("title", constructMarkdownTitle(filename, markdownRoot));
             templateEngine.render("markdown-editor.jte", params, output);
 
@@ -193,19 +220,13 @@ public class MarkdownController {
         var markdownFile = markdownRoot.resolve(filename);
         Assert.isTrue(markdownFile.toFile().exists(), "File does not exist " + filename);
 
-        log.info("Rendering markdown: {}", markdownFile);
-        String markdownContent = new String(Files.readAllBytes(markdownFile));
-        String htmlContent = markdownRenderer.convertMarkdown(markdownContent, filename);
-
         String title = constructMarkdownTitle(filename, markdownRoot);
 
         TemplateOutput output = new StringOutput();
         var params = new HashMap<String, Object>();
-        params.put("htmlContent", htmlContent);
         params.put("markdownFile", filename);
         params.put("editMode", editMode);
         params.put("title", title);
-        params.put("lastModifiedTime", lastModifiedTime(markdownFile));
         templateEngine.render("markdown.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");

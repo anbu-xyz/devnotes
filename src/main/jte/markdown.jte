@@ -1,8 +1,6 @@
-@param String htmlContent
 @param String markdownFile
 @param String title
 @param boolean editMode
-@param String lastModifiedTime
 
 <!DOCTYPE html>
 <html lang="en">
@@ -23,27 +21,16 @@
     </head>
     <body class="p-8">
         <div x-cloak x-data="{ editMode: ${editMode} }">
-            <div id="viewContent" x-cloak x-show="!editMode">$unsafe{htmlContent}</div>
-            <div id="editContent" x-cloak x-show="editMode"></div>
-            <button id="editButton" @click="editMode = true" class="btn-blue-glow" x-cloak x-show="!editMode"
-                    hx-get="/markdownEditor?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}"
-                    hx-target="#editContent"
-                    hx-trigger="click"
-                    hx-select="textarea"
-                    hx-swap="innerHTML">
-                <i class="fas fa-edit"></i>Edit
-            </button>
-            <button id="saveButton" @click="editMode = false; saveContent()" class="btn-blue-glow" x-cloak x-show="editMode">
-                <i class="fas fa-save"></i>Save
-            </button>
-            <label class="checkbox-label" x-cloak x-show="editMode">
-                <input type="checkbox" id="autoSaveCheckbox" checked>
-                <span class="checkbox-label-text">Auto Save</span>
-            </label>
+            <div id="markdownViewer" x-cloak x-show="!editMode"></div>
+            <div id="markdownEditor" x-cloak x-show="editMode"></div>
+            <div style="display: none"
+                 hx-trigger="load"
+                 hx-target="#markdownViewer"
+                 hx-select="div#markdownViewer"
+                 hx-swap="outerHTML"
+                 hx-get="/markdownViewer?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}">
+            </div>
         </div>
-        <hr>
-        <p><em>Last modified: <span id="md-last-modified-time">${lastModifiedTime}</span></em></p>
-        <p hidden id="md-file-path">${markdownFile}</p>
         <!-- JavaScript -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
