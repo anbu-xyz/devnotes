@@ -27,7 +27,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.Map;
-import java.util.Optional;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -216,7 +215,7 @@ public class DirectoryListingController {
         }
 
         if (minutes > 30) {
-            return "about half an hour ago";
+            return "about 30 mins ago";
         }
 
         if (minutes > 0) {

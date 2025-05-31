@@ -1,6 +1,6 @@
 var easyMDE;
 
-function saveContent() {
+async function saveContent() {
     if (!easyMDE) {
         console.error('easyMDE is not defined');
         return;
@@ -12,15 +12,15 @@ function saveContent() {
     console.debug(`calling save endpoint for file ${filename}`);
     const uri = '/saveMarkdown?filename=' + encodeURIComponent(filename) +
          '&lastModifiedTime=' + encodeURIComponent(lastModifiedTime);
-    fetch(uri, {
+    var result = await fetch(uri, {
         method: 'POST',
         headers: {
             'Content-Type': 'text/plain',
         },
         body: content
-    }).then(response =>
-        console.debug(`save endpoint response: ${response.status} ${response.statusText}`)
-    ).catch(error => console.error('Error:', error));
+    });
+
+    console.debug(`result of save call: ${result.statusText} ${result.status}`);
 }
 
 function downloadExcel(outputFileName, markdownFileName) {
@@ -126,10 +126,10 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
 // Autosave
 // -----------------------------------------------------------------------------
 (function() {
-    setInterval(function() {
+    setInterval(async function () {
         const autoSaveCheckbox = document.getElementById('autoSaveCheckbox');
         if (autoSaveCheckbox && autoSaveCheckbox.checked) {
-            saveContent();
+            await saveContent();
         }
     }, 60000);
 })();
