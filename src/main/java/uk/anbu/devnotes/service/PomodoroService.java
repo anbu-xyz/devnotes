@@ -26,7 +26,7 @@ public class PomodoroService {
 
     public static final int DEFAULT_MINUTES = 25;
     private static final String POMODORO_FILENAME = "pomodoro.yaml";
-    private static final String GIT_FILENAME = ".git";
+    private static final String GIT_IGNORE_FILENAME = ".gitignore";
     private final ConfigService configService;
 
     public String getDocsDirectory() {
@@ -81,21 +81,21 @@ public class PomodoroService {
         Path docsDirectoryPath = Path.of(docsDirectory);
         Path configDirectory = docsDirectoryPath.resolve("config");
         Path pomodoroPath = configDirectory.resolve(POMODORO_FILENAME);
-        Path dotGitPath = configDirectory.resolve(GIT_FILENAME);
+        Path dotGitPath = configDirectory.resolve(GIT_IGNORE_FILENAME);
 
         Files.createDirectories(configDirectory);
-        createGitFile(dotGitPath);
+        createGitIgnoreFile(dotGitPath);
         return pomodoroPath;
     }
 
-    private static void createGitFile(Path dotGitPath) throws IOException {
+    private static void createGitIgnoreFile(Path dotGitPath) throws IOException {
         if (Files.exists(dotGitPath)) {
             String content = Files.readString(dotGitPath, StandardCharsets.UTF_8);
             if (!content.contains(POMODORO_FILENAME)) {
                 Files.writeString(dotGitPath, content + "\n" + POMODORO_FILENAME, StandardCharsets.UTF_8);
             }
         } else {
-            Files.writeString(dotGitPath, POMODORO_FILENAME, StandardCharsets.UTF_8);
+            Files.writeString(dotGitPath, POMODORO_FILENAME + "\n", StandardCharsets.UTF_8);
         }
     }
 
