@@ -85,12 +85,12 @@ class MarkdownControllerSpec extends Specification {
         Files.write(tempFile, "# Test".getBytes())
 
         when:
-        def response = controller.markdown(tempFile.fileName.toString(), false)
+        def response = controller.markdownViewer(tempFile.fileName.toString())
 
         then:
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
-        doc.select("#viewContent > h1").text() == "Test"
+        doc.select("#markdownViewer > h1").text() == "Test"
 
         cleanup:
         Files.deleteIfExists(tempFile)
@@ -106,13 +106,13 @@ class MarkdownControllerSpec extends Specification {
         configService.getDocsDirectory() >> tempDirectory.absolutePath
 
         when:
-        def response = controller.markdown("nested1/nested2/new-file.md", false)
+        def response = controller.markdownViewer("nested1/nested2/new-file.md")
 
         then:
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
-        doc.select("#viewContent > h1").text() == "Test"
-        doc.select("#viewContent > h1 + p > img").get(0).attr("src").endsWith("filename=nested1/nested2/image.png")
+        doc.select("#markdownViewer > h1").text() == "Test"
+        doc.select("#markdownViewer > h1 + p > img").get(0).attr("src").endsWith("filename=nested1/nested2/image.png")
 
         cleanup:
         tempDirectory.deleteDir()
@@ -162,14 +162,14 @@ class MarkdownControllerSpec extends Specification {
         Files.write(tempFile, "# Test\n```sql(missing-database)\nselect * from user\n```".getBytes())
 
         when:
-        def response = controller.markdown(tempFile.fileName.toString(), false)
+        def response = controller.markdownViewer(tempFile.fileName.toString())
 
         then:
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
-        doc.select("#viewContent > h1").text() == "Test"
-        doc.select("#viewContent > h1 + pre > code").text() == "select * from user"
-        doc.select("#viewContent > h1 + pre > code").get(0).attr("class") == "language-hidden-sql"
+        doc.select("#markdownViewer > h1").text() == "Test"
+        doc.select("#markdownViewer > h1 + pre > code").text() == "select * from user"
+        doc.select("#markdownViewer > h1 + pre > code").get(0).attr("class") == "language-hidden-sql"
         // TODO: check for error message
 
         cleanup:

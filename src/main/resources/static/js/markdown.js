@@ -123,9 +123,6 @@ document.body.addEventListener('htmx:afterSwap', function(evt) {
     }
 });
 
-document.addEventListener('DOMContentLoaded', function() {
-    htmx.trigger('#hiddenViewButton', 'click');
-});
 // -----------------------------------------------------------------------------
 // Autosave
 // -----------------------------------------------------------------------------

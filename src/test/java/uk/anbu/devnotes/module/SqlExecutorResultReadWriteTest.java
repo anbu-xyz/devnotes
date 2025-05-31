@@ -12,6 +12,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import uk.anbu.devnotes.module.sql.SqlOutput;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.io.StringReader;
 import java.nio.file.Path;
@@ -83,10 +84,11 @@ public class SqlExecutorResultReadWriteTest {
         Map<String, String> parameterValues = new HashMap<>();
         parameterValues.put("minValue", "15.0");
         String markdownFilePath = "test.md";
+        var markdownFile = new MarkdownFile(Path.of(configService.getDocsDirectory()), markdownFilePath);
 
         // Write JSON file
         SqlExecutor.JsonGenerationRequest request = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, sql,
-                parameterValues, markdownFilePath,  Integer.MAX_VALUE, false);
+                parameterValues, markdownFile,  Integer.MAX_VALUE, false);
         Path jsonFilePath = sqlExecutor.renderResultAsJsonFile(request);
 
         SqlOutput output = SqlOutput.fromJson(jsonFilePath.toString());

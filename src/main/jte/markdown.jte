@@ -23,7 +23,9 @@
         <div id="markdownViewer" x-cloak x-show="!editMode">
             Loading...
         </div>
-        <div id="markdownEditor" x-cloak x-show="editMode"></div>
+        <div id="markdownEditor" x-cloak x-show="editMode">
+            Loading...
+        </div>
         <button id="hiddenViewButton" style="display: none"
                 hx-trigger="click"
                 hx-target="#markdownViewer"
@@ -45,5 +47,16 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-java.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
         <script src="/js/markdown.js"></script>
+        <script>
+            if (${editMode}) {
+                document.addEventListener('DOMContentLoaded', function() {
+                    htmx.trigger('#hiddenEditButton', 'click');
+                });
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    htmx.trigger('#hiddenViewButton', 'click');
+                });
+            }
+        </script>
     </body>
 </html>
