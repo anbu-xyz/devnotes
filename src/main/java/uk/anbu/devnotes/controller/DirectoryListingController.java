@@ -157,34 +157,76 @@ public class DirectoryListingController {
     }
 
     @SneakyThrows
-    private static Optional<String> lastModifiedSince(Path path) {
+    private static String lastModifiedSince(Path path) {
         var modifiedTime = Files.getLastModifiedTime(path).toInstant();
         var now = Instant.now();
         var duration = Duration.between(modifiedTime, now);
-        if (duration.compareTo(Duration.ofDays(30)) < 0) {
-            return toHumanReadable(duration);
-        } else {
-            return Optional.empty();
-        }
+        return toHumanReadable(duration);
     }
 
-    public static Optional<String> toHumanReadable(Duration duration) {
+    public static String toHumanReadable(Duration duration) {
         long days = duration.toDays();
+        long hours = duration.toHours() % 24;
+        long minutes = duration.toMinutes() % 60;
+
+        if (days >= 365 * 2) {
+            long years = days / 365;
+            return years + " years ago";
+        }
+
+        if (days > 365) {
+            long months = days / 30;
+            return months + " months ago";
+        }
+
+        if (days >= 28 && days < 60) {
+            return "a month ago";
+        }
+
+        if (days >= 60) {
+            long months = days / 30;
+            return months + " months ago";
+        }
+
+        if (days >= 14) {
+            long weeks = days / 7;
+            return weeks + " weeks ago";
+        }
+
+        if (days >= 7) {
+            return "a week ago";
+        }
+
         if (days > 0) {
-            return Optional.of(days + (days == 1 ? " day" : " days"));
+            if (days == 1) {
+                return "yesterday";
+            }
+            return days + " days ago";
         }
 
-        long hours = duration.toHours();
         if (hours > 0) {
-            return Optional.of(hours + " hrs");
+            if (hours == 1) {
+                return "an hour ago";
+            }
+            return hours + " hours ago";
         }
 
-        long minutes = duration.toMinutes();
-        if (minutes > 0) {
-            return Optional.of(minutes + (minutes == 1 ? " min" : " mins"));
-        } else {
-            return Optional.of("now");
+        if (minutes > 45) {
+            return "about an hour ago";
         }
+
+        if (minutes > 30) {
+            return "about half an hour ago";
+        }
+
+        if (minutes > 0) {
+            if (minutes == 1) {
+                return "1 minute ago";
+            }
+            return minutes + " minutes ago";
+        }
+
+        return "just now";
     }
 
     private String fileExtension(String filename) {
@@ -195,7 +237,7 @@ public class DirectoryListingController {
         return filename.substring(lastDotIndex + 1);
     }
 
-    public record FileEntry(String filename, String fileType, boolean isDirectory, Optional<String> lastModified) {
+    public record FileEntry(String filename, String fileType, boolean isDirectory, String lastModified) {
     }
 
     @PostMapping("/uploadFile")

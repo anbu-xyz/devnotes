@@ -36,7 +36,7 @@
             margin-left: 0.5rem;
         }
         .fas.fa-folder {
-            margin-right: 0.5rem;
+            margin-right: 0.2rem;
         }
     </style>
 </head>
@@ -53,14 +53,14 @@
     @for(var entry : entries)
         <li class="entry-container">
             <div class="entry-main">
-                @if(entry.isDirectory())
-                    <i class="fas fa-folder mr-2 text-yellow-500"></i>
-                @endif
                 <a href="/markdown?filename=${directoryName}/${entry.filename()}" class="text-blue-500 hover:text-blue-700 entry-link" data-entry="${entry.filename()}">
+                    @if(entry.isDirectory())
+                        <i class="fas fa-folder mr-2 text-yellow-500"></i>
+                    @endif
                     ${entry.filename()}
                 </a>
                 <span class="entry-timestamp text-gray-500 text-sm">
-                    ${entry.lastModified().map(lastModified -> " (" + lastModified + ")").orElse("")}
+                    ${entry.lastModified()}
                 </span>
             </div>
             <div class="entry-actions" id="actions-${entry.filename()}">
