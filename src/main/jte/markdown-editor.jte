@@ -1,5 +1,6 @@
 @param String originalMarkdown
 @param String title
+@param String lastModifiedTime
 
 <!DOCTYPE html>
 <html>
@@ -20,6 +21,7 @@
             <input type="checkbox" id="autoSaveCheckbox" checked>
             <span class="checkbox-label-text">Auto Save</span>
         </label>
+        <span hidden id="md-last-modified-time">${lastModifiedTime}</span>
     </div>
 </body>
 </html>

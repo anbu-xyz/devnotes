@@ -26,14 +26,15 @@
         <div id="markdownEditor" x-cloak x-show="editMode">
             Loading...
         </div>
-        <button id="hiddenViewButton" style="display: none"
+        <p hidden id="md-file-path">${markdownFile}</p>
+        <button hidden id="hiddenViewButton"
                 hx-trigger="click"
                 hx-target="#markdownViewer"
                 hx-swap="outerHTML"
                 hx-select="div#markdownViewer"
                 hx-get="/markdownViewer?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}">
         </button>
-        <button id="hiddenEditButton" style="display:none"
+        <button hidden id="hiddenEditButton"
                 hx-trigger="click"
                 hx-target="#markdownEditor"
                 hx-swap="outerHTML"

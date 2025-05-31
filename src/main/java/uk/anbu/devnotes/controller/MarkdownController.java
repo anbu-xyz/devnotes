@@ -58,7 +58,6 @@ public class MarkdownController {
             var params = new HashMap<String, Object>();
             params.put("htmlContent", htmlContent);
             params.put("title", constructMarkdownTitle(filename, markdownRoot));
-            params.put("markdownFile", filename);
             params.put("lastModifiedTime", lastModifiedTime(markdownFile.fullPath()));
             templateEngine.render("markdown-viewer.jte", params, output);
 
@@ -82,7 +81,7 @@ public class MarkdownController {
             TemplateOutput output = new StringOutput();
             var params = new HashMap<String, Object>();
             params.put("originalMarkdown", escapeHtml(fileContent));
-            params.put("markdownFile", filename);
+            params.put("lastModifiedTime", lastModifiedTime(filePath));
             params.put("title", constructMarkdownTitle(filename, markdownRoot));
             templateEngine.render("markdown-editor.jte", params, output);
 

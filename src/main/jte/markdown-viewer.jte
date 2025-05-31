@@ -1,6 +1,5 @@
 @param String title
 @param String htmlContent
-@param String markdownFile
 @param String lastModifiedTime
 
 <!DOCTYPE html>
@@ -18,7 +17,6 @@
         </button>
         <hr>
         <p><em>Last modified: <span id="md-last-modified-time">${lastModifiedTime}</span></em></p>
-        <p hidden id="md-file-path">${markdownFile}</p>
     </div>
 </body>
 </html>

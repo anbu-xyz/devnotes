@@ -42,7 +42,7 @@ function createHomeLink(elementId) {
         return;
     }
 
-    // Create home link
+    // Create folder link
     const folderLink = document.createElement('a');
     folderLink.href = 'renderDirectoryContents?directoryName=' +
         encodeURIComponent('${markdownFile}'.split('/').slice(0, -1).join('/'));
