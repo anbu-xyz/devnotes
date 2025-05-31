@@ -13,6 +13,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,35 +45,31 @@ public class PomodoroService {
         Map<String, Object> config = new HashMap<>();
 
         if (!Files.exists(pomodoroPath)) {
-            config.put("overallDuration", Duration.ofMinutes(DEFAULT_MINUTES));
-            config.put("startedAtUtc", LocalDateTime.now(UTC));
+            config.put("updateTimestamp", LocalDateTime.now(UTC).toString());
             config.put("timeLeft", Duration.ofMinutes(DEFAULT_MINUTES));
             config.put("state", PomodoroState.NOT_STARTED);
             mapper.writeValue(pomodoroPath.toFile(), config);
             return new PomodoroConfig(
                     LocalDateTime.now(UTC),
                     DEFAULT_MINUTES * 60,
-                    DEFAULT_MINUTES * 60,
                     PomodoroState.NOT_STARTED
             );
         } else {
             config = mapper.readValue(pomodoroPath.toFile(), Map.class);
             PomodoroConfig pomodoroConfig = new PomodoroConfig(
-                    LocalDateTime.parse(config.get("startedAtUtc").toString()),
+                    LocalDateTime.parse(config.get("updateTimestamp").toString()),
                     Long.parseLong(config.get("timeLeftInSeconds").toString()),
-                    Long.parseLong(config.get("overallDurationInSeconds").toString()),
                     PomodoroState.valueOf(config.get("state").toString())
             );
             if (pomodoroConfig.state() == PomodoroState.RUNNING) {
-                var timeLeft = pomodoroConfig.overallDurationInSeconds()
-                        - Duration.between(pomodoroConfig.startedAtUtc(), LocalDateTime.now(UTC)).getSeconds();
+                var timeLeft = pomodoroConfig.timeLeftInSeconds()
+                        - Duration.between(pomodoroConfig.updateTimestamp(), LocalDateTime.now(UTC)).getSeconds();
                 if (timeLeft < 0) {
                     timeLeft = 0;
                 }
                 pomodoroConfig = new PomodoroConfig(
-                        pomodoroConfig.startedAtUtc(),
+                        pomodoroConfig.updateTimestamp(),
                         timeLeft,
-                        pomodoroConfig.overallDurationInSeconds(),
                         pomodoroConfig.state()
                 );
             }
@@ -108,9 +105,8 @@ public class PomodoroService {
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         mapper.registerModule(new JavaTimeModule());
         Map<String, Object> configMap = new HashMap<>();
-        configMap.put("startedAtUtc", config.startedAtUtc().toString());
+        configMap.put("updateTimestamp", config.updateTimestamp.truncatedTo(ChronoUnit.SECONDS).toString());
         configMap.put("timeLeftInSeconds", config.timeLeftInSeconds());
-        configMap.put("overallDurationInSeconds", config.overallDurationInSeconds());
         configMap.put("state", config.state());
         mapper.writeValue(configPath.toFile(), configMap);
     }
@@ -119,23 +115,20 @@ public class PomodoroService {
         PomodoroConfig config = new PomodoroConfig(
                 LocalDateTime.now(UTC),
                 timeLeftInSeconds,
-                DEFAULT_MINUTES * 60,
                 PomodoroState.RUNNING
         );
         savePomodoroConfig(config);
         return config;
     }
 
-    public record PomodoroConfig(LocalDateTime startedAtUtc,
+    public record PomodoroConfig(LocalDateTime updateTimestamp,
                                  long timeLeftInSeconds,
-                                 long overallDurationInSeconds,
                                  PomodoroState state) {
     }
 
     public enum PomodoroState {
         NOT_STARTED,
         RUNNING,
-        PAUSED,
-        STOPPED
+        PAUSED
     }
 }

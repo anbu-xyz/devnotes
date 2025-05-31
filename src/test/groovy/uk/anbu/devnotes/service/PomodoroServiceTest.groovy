@@ -25,6 +25,7 @@ class PomodoroServiceTest extends Specification {
     def "loadPomodoroConfigFrom should create new config file when it doesn't exist"() {
         given:
         def docsDir = tempDir.toString()
+        def startTime = LocalDateTime.now(UTC)
 
         when:
         def result = pomodoroService.loadPomodoroConfigFrom(docsDir)
@@ -34,8 +35,8 @@ class PomodoroServiceTest extends Specification {
         Files.exists(configFile)
         result.state() == PomodoroService.PomodoroState.NOT_STARTED
         result.timeLeftInSeconds() == PomodoroService.DEFAULT_MINUTES * 60
-        result.overallDurationInSeconds() == PomodoroService.DEFAULT_MINUTES * 60
-        result.startedAtUtc() != null
+        result.updateTimestamp() >= startTime
+        result.updateTimestamp() <= LocalDateTime.now(UTC)
     }
 
     def "loadPomodoroConfigFrom should read existing config file"() {
@@ -44,9 +45,8 @@ class PomodoroServiceTest extends Specification {
         def configDir = Files.createDirectories(tempDir.resolve("config"))
         def configFile = configDir.resolve("pomodoro.yaml")
         Files.writeString(configFile, """
-            startedAtUtc: "2023-01-01T10:00"
+            updateTimestamp: "2023-01-01T10:00"
             timeLeftInSeconds: 900
-            overallDurationInSeconds: 1500
             state: "PAUSED"
         """)
 
@@ -56,17 +56,15 @@ class PomodoroServiceTest extends Specification {
         then:
         result.state() == PomodoroService.PomodoroState.PAUSED
         result.timeLeftInSeconds() == 900
-        result.overallDurationInSeconds() == 1500
-        result.startedAtUtc() == LocalDateTime.parse("2023-01-01T10:00")
+        result.updateTimestamp() == LocalDateTime.parse("2023-01-01T10:00")
     }
 
     def "savePomodoroConfig should write config to file"() {
         given:
-        def startTime = LocalDateTime.parse("2023-01-01T10:00")
+        def updatedTimestamp = LocalDateTime.parse("2023-01-01T10:00")
         def config = new PomodoroService.PomodoroConfig(
-                startTime,
+                updatedTimestamp,
                 900,
-                1500,
                 PomodoroService.PomodoroState.RUNNING
         )
         configService.getDocsDirectory() >> tempDir.toString()
@@ -77,9 +75,8 @@ class PomodoroServiceTest extends Specification {
         then:
         def configFile = tempDir.resolve("config/pomodoro.yaml")
         def content = Files.readString(configFile)
-        content.contains("startedAtUtc: \"2023-01-01T10:00\"")
+        content.contains("updateTimestamp: \"2023-01-01T10:00\"")
         content.contains("timeLeftInSeconds: 900")
-        content.contains("overallDurationInSeconds: 1500")
         content.contains("state: \"RUNNING\"")
     }
 
@@ -105,9 +102,8 @@ class PomodoroServiceTest extends Specification {
         def originalDuration = 5 * 60 // 5 minutes total duration
 
         Files.writeString(configFile, """
-        startedAtUtc: "${startTime}"
+        updateTimestamp: "${startTime}"
         timeLeftInSeconds: ${originalDuration}
-        overallDurationInSeconds: ${originalDuration}
         state: "RUNNING"
     """)
 
@@ -116,8 +112,7 @@ class PomodoroServiceTest extends Specification {
 
         then: "time left should be approximately 3 minutes"
         result.state() == PomodoroService.PomodoroState.RUNNING
-        result.overallDurationInSeconds() == originalDuration
-        result.startedAtUtc() == startTime
+        result.updateTimestamp() == startTime
         result.timeLeftInSeconds() <= (3 * 60) // should have ~3 minutes left
         result.timeLeftInSeconds() > (2 * 60) // but more than 2 minutes
     }
@@ -131,9 +126,8 @@ class PomodoroServiceTest extends Specification {
         def originalDuration = 5 * 60 // 5 minutes total duration
 
         Files.writeString(configFile, """
-        startedAtUtc: "${startTime}"
+        updateTimestamp: "${startTime}"
         timeLeftInSeconds: ${originalDuration}
-        overallDurationInSeconds: ${originalDuration}
         state: "RUNNING"
     """)
 
@@ -142,8 +136,7 @@ class PomodoroServiceTest extends Specification {
 
         then: "time left should be zero"
         result.state() == PomodoroService.PomodoroState.RUNNING
-        result.overallDurationInSeconds() == originalDuration
-        result.startedAtUtc() == startTime
+        result.updateTimestamp() == startTime
         result.timeLeftInSeconds() == 0
     }
 }

@@ -30,8 +30,8 @@
         minutes: ${pomodoroConfig.timeLeftInSeconds() / 60},
         seconds: ${pomodoroConfig.timeLeftInSeconds() % 60},
         state: "${pomodoroConfig.state()}",
-        overallDuration: ${pomodoroConfig.overallDurationInSeconds()},
-        startedAtUtc: "${String.valueOf(pomodoroConfig.startedAtUtc())}"
+        timeLeftInSeconds: ${pomodoroConfig.timeLeftInSeconds()},
+        updateTimestamp: "${String.valueOf(pomodoroConfig.updateTimestamp())}"
     });
 </script>
 <div id="timerCompleteModal" class="modal">

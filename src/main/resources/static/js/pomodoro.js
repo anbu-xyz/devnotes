@@ -3,8 +3,7 @@ const pomodoro = {
     minutes: 25,
     seconds: 0,
     state: 'NOT_STARTED',
-    startedAtUtc: null,
-    overallDuration: 0,
+    updateTimestamp: null,
     notificationPermission: false,
 
     init(config) {
@@ -106,7 +105,7 @@ const pomodoro = {
                 method: 'POST'
             });
             const data = await response.json();
-            this.startedAtUtc = data.startedAtUtc;
+            this.updateTimestamp = data.updateTimestamp;
             this.state = 'RUNNING';
             this.startTimer();
             this.updateButtonText();
@@ -125,7 +124,7 @@ const pomodoro = {
     },
 
     resumeTimer() {
-        this.startedAtUtc = new Date().toISOString();
+        this.updateTimestamp = new Date().toISOString().split('.')[0];
         this.state = 'RUNNING';
         this.startTimer();
         this.updateButtonText();
@@ -146,9 +145,8 @@ const pomodoro = {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                startedAtUtc: this.startedAtUtc,
+                UpdateTimestamp: new Date().toISOString().split('.')[0],
                 timeLeftInSeconds: this.minutes * 60 + this.seconds,
-                overallDurationInSeconds: this.overallDuration,
                 state: newState
             })
         }).then(r => r.text().then(data => console.log(data)));
@@ -160,7 +158,6 @@ const pomodoro = {
             this.minutes = parseInt(newTime);
             this.seconds = 0;
             this.state = 'NOT_STARTED';
-            this.overallDuration = this.minutes * 60;
             clearInterval(this.timer);
             this.updateDisplay();
             this.updateButtonText();
