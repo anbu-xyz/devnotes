@@ -448,7 +448,8 @@ public class SqlExecutor {
             }
         }
 
-        boolean dbHasMoreRowsThanMaxConfig = rootNode.has("dbHasMoreRowsThanMaxConfig") && rootNode.get("dbHasMoreRowsThanMaxConfig").asBoolean();
+        boolean dbHasMoreRowsThanMaxConfig = rootNode.has("dbHasMoreRowsThanMaxConfig")
+                && rootNode.get("dbHasMoreRowsThanMaxConfig").asBoolean();
 
         var executionTime = Optional.ofNullable(rootNode.get("executionTime"))
                 .map(JsonNode::toString)

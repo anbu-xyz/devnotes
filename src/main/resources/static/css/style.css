@@ -67,15 +67,15 @@ pre[class*="language-"] {
     text-indent: 0; /* To remove the indentation of the first line of code in CodeMirror (markdown editor) */
 }
 
-pre .language-hidden-sql {
+pre:has(> code.language-hidden-sql) {
     display: none;
 }
 
-pre .language-hidden-groovy {
+pre:has(> code.language-hidden-groovy) {
     display: none;
 }
 
-pre .language-hidden-plantuml {
+pre:has(> code.language-hidden-groovy){
     display: none;
 }
 

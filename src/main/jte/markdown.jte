@@ -20,7 +20,9 @@
         <title>${title}</title>
     </head>
     <body class="p-8" x-data="{ editMode: ${editMode} }">
-        <div id="markdownViewer" x-cloak x-show="!editMode"></div>
+        <div id="markdownViewer" x-cloak x-show="!editMode">
+            Loading...
+        </div>
         <div id="markdownEditor" x-cloak x-show="editMode"></div>
         <button id="hiddenViewButton" style="display: none"
                 hx-trigger="click"

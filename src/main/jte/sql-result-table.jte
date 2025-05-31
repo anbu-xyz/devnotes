@@ -93,7 +93,7 @@
                                         @if (sqlResult.dbHasMoreRowsThanMaxConfig())
                                             (truncated)
                                         @else
-                                            (no moe data)
+                                            (no more data)
                                         @endif
                                     @endif
                                 </span>
