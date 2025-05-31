@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -64,13 +65,14 @@ public class SqlExecutionController {
                 return ResponseEntity.badRequest().body("Invalid datasource name:" + dataSourceName);
             }
 
+            var markdownFile = new MarkdownFile(Path.of(configService.getDocsDirectory()), request.getMarkdownFileName());
             var jsonGenerationRequest = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, request.getSql(),
-                    request.getParameterValues(), request.getMarkdownFileName(), request.getMaxRows() == null? 0: request.getMaxRows(),
+                    request.getParameterValues(), markdownFile, request.getMaxRows() == null? 0: request.getMaxRows(),
                     request.isForceExecute());
             var outputPath = sqlExecutor.renderResultAsJsonFile(jsonGenerationRequest);
 
             var htmlGenerationRequest = new SqlExecutor.HtmlTableRequest(request.getSql(), outputPath,
-                    request.getParameterValues(), request.getDatasourceName(), request.getMarkdownFileName(),
+                    request.getParameterValues(), request.getDatasourceName(), markdownFile,
                     request.getCodeBlockCounter());
             String htmlTable = sqlExecutor.convertToHtmlTable(htmlGenerationRequest);
 
@@ -134,8 +136,9 @@ public class SqlExecutionController {
             // Write the sorted data back to the file
             objectMapper.writeValue(outputPath.toFile(), rootNode);
 
+            MarkdownFile markdownFile = new MarkdownFile(Path.of(configService.getDocsDirectory()), request.getMarkdownFileName());
             String htmlTable = sqlExecutor.convertToHtmlTable(rootNode, request.getDatasourceName(),
-                    request.getMarkdownFileName(), request.getOutputFileName(), request.getColumnName(),
+                    markdownFile, request.getOutputFileName(), request.getColumnName(),
                     request.getSortDirection(), request.getCodeBlockCounter());
 
             return ResponseEntity.ok(htmlTable);

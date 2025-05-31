@@ -8,7 +8,7 @@ import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Node;
 import org.commonmark.node.Text;
 import org.springframework.stereotype.Component;
-import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,11 +23,9 @@ import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 @RequiredArgsConstructor
 @Component
 public class GroovyExecutor {
-    private final ConfigService configService;
 
     public Node processGroovyCodeBlock(GroovyCodeBlockRequest request) {
-        String docsDirectory = configService.getDocsDirectory();
-        String outputFileName = generateOutputFileName(docsDirectory, request.fileNameWithRelativePath, request.groovyScript);
+        String outputFileName = generateOutputFileName(request.markdownFile(), request.groovyScript);
         Path outputPath = Paths.get(outputFileName);
 
         String output;
@@ -136,6 +134,6 @@ public class GroovyExecutor {
         }
     }
 
-    public record GroovyCodeBlockRequest(String groovyScript, String targetType, String fileNameWithRelativePath,
+    public record GroovyCodeBlockRequest(String groovyScript, String targetType, MarkdownFile markdownFile,
                                          GroovyCodeBlockConfig config) {}
 }

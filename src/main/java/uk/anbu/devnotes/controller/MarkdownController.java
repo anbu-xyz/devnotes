@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.MarkdownRenderer;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.types.Markdown;
+import uk.anbu.devnotes.types.MarkdownFile;
 import uk.anbu.devnotes.util.FileUtil;
 
 import java.io.IOException;
@@ -47,17 +49,17 @@ public class MarkdownController {
     public ResponseEntity<String> markdownViewer(@RequestParam String filename) {
         try {
             Path markdownRoot = Paths.get(configService.getDocsDirectory());
-            Path filePath = markdownRoot.resolve(filename);
-            Assert.isTrue(filePath.toFile().exists(), "File does not exist " + filename);
-            String markdownContent = new String(Files.readAllBytes(filePath));
-            String htmlContent = markdownRenderer.convertMarkdown(markdownContent, filename);
+            var markdownFile = new MarkdownFile(markdownRoot, filename);
+            Assert.isTrue(markdownFile.exists(), "File does not exist " + filename);
+            var markdown = new Markdown(Files.readAllBytes(markdownFile.fullPath()));
+            String htmlContent = markdownRenderer.convertMarkdown(markdown, markdownFile);
 
             TemplateOutput output = new StringOutput();
             var params = new HashMap<String, Object>();
             params.put("htmlContent", htmlContent);
             params.put("title", constructMarkdownTitle(filename, markdownRoot));
             params.put("markdownFile", filename);
-            params.put("lastModifiedTime", lastModifiedTime(filePath));
+            params.put("lastModifiedTime", lastModifiedTime(markdownFile.fullPath()));
             templateEngine.render("markdown-viewer.jte", params, output);
 
             return ResponseEntity.ok()

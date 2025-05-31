@@ -58,13 +58,13 @@ pre, code {
     text-indent: -.4em; /* To indent the first line of code and make it alight with the rest of the code */
 }
 
+.CodeMirror-wrap pre {
+    text-indent: 0; /* To remove the indentation of the first line of code in CodeMirror (markdown editor) */
+}
+
 pre[class*="language-"] {
     padding: 0.25em 0;
     overflow-x: hidden;
-}
-
-.CodeMirror-wrap pre {
-    text-indent: 0; /* To remove the indentation of the first line of code in CodeMirror (markdown editor) */
 }
 
 pre:has(> code.language-hidden-sql) {
@@ -75,7 +75,7 @@ pre:has(> code.language-hidden-groovy) {
     display: none;
 }
 
-pre:has(> code.language-hidden-groovy){
+pre:has(> code.language-hidden-plantuml){
     display: none;
 }
 

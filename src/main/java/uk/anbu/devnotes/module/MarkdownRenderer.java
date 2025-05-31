@@ -17,6 +17,8 @@ import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.HtmlRenderer;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.types.Markdown;
+import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -51,7 +53,7 @@ public class MarkdownRenderer {
         this.dataSourceConfigResolver = dataSourceConfigResolver;
     }
 
-    public String convertMarkdown(String markdown, String fileNameWithRelativePath) {
+    public String convertMarkdown(Markdown markdown, MarkdownFile markdownFile) {
         Integer codeBlockCounter = 0;
         List<Extension> extensions = List.of(TablesExtension.create(),
                 StrikethroughExtension.create(),
@@ -61,8 +63,8 @@ public class MarkdownRenderer {
         Parser parser = Parser.builder()
                 .extensions(extensions)
                 .build();
-        Node document = parser.parse(markdown);
-        processDocument(document, fileNameWithRelativePath, codeBlockCounter);
+        Node document = parser.parse(markdown.text());
+        processDocument(document, markdownFile, codeBlockCounter);
         HtmlRenderer renderer = HtmlRenderer.builder()
                 .extensions(extensions)
                 .attributeProviderFactory(context -> new ImageAttributeProvider())
@@ -70,7 +72,7 @@ public class MarkdownRenderer {
         return renderer.render(document);
     }
 
-    private void processDocument(Node node, String fileNameWithRelativePath, Integer codeBlockCounter) {
+    private void processDocument(Node node, MarkdownFile markdownFile, Integer codeBlockCounter) {
         // Traverse the node tree
         log.trace("Rendering type: {}", node);
         if (node instanceof Link link) {
@@ -81,12 +83,12 @@ public class MarkdownRenderer {
                 link.setDestination("?filename=" + URLEncoder.encode(link.getDestination(), StandardCharsets.UTF_8));
             }
         } else if (node instanceof Image image) {
-            String fileLocation = fileNameWithRelativePath
+            String fileLocation = markdownFile.fileName()
                     .replaceAll("\\\\", "/") // Windows
                     .replaceFirst("/[^/]+$", ""); // Remove filename
             if (((Image) node).getDestination().startsWith("/plantumlContent?")) {
                 // do nothing - this is to allow the plantuml renderer to render the image
-            } else if (fileLocation.isEmpty() || fileLocation.equals(fileNameWithRelativePath)) { // If the file is in the root directory
+            } else if (fileLocation.isEmpty() || fileLocation.equals(markdownFile.fileName())) { // If the file is in the root directory
                 image.setDestination("/image?filename=" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
             } else if (image.getDestination().startsWith("/")) {
                 image.setDestination("/image?filename=" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
@@ -96,26 +98,26 @@ public class MarkdownRenderer {
 
         } else if (node instanceof FencedCodeBlock) {
             codeBlockCounter++;
-            processFencedCodeBlock((FencedCodeBlock) node, fileNameWithRelativePath, codeBlockCounter);
+            processFencedCodeBlock((FencedCodeBlock) node, markdownFile, codeBlockCounter);
         }
 
         // Process siblings
         if (node.getNext() != null) {
-            processDocument(node.getNext(), fileNameWithRelativePath, codeBlockCounter);
+            processDocument(node.getNext(), markdownFile, codeBlockCounter);
         }
         // Process children
         if (node.getFirstChild() != null) {
-            processDocument(node.getFirstChild(), fileNameWithRelativePath, codeBlockCounter);
+            processDocument(node.getFirstChild(), markdownFile, codeBlockCounter);
         }
     }
 
-    private void processFencedCodeBlock(FencedCodeBlock codeBlock, String fileNameWithRelativePath, Integer codeBlockCounter) {
+    private void processFencedCodeBlock(FencedCodeBlock codeBlock, MarkdownFile markdownFile, Integer codeBlockCounter) {
         String codeType = codeBlock.getInfo();
         // match codeType of format "groovy:targetType(config1:value1,config2:value2) or "groovy:targetType"
         if (codeType.matches("^groovy:([^(]+)\\(.*\\)$") || codeType.matches("^groovy:([^(]+)$")) {
-            renderGroovyResult(codeBlock, fileNameWithRelativePath, codeType);
+            renderGroovyResult(codeBlock, markdownFile, codeType);
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
-            renderSqlResult(codeBlock, fileNameWithRelativePath, codeType, codeBlockCounter);
+            renderSqlResult(codeBlock, markdownFile, codeType, codeBlockCounter);
         } else if (codeType.matches("^plantuml\\(([^)]*)\\)$") || codeType.matches("^plantuml$")) {
             renderPlantUmlResult(codeBlock);
         } else {
@@ -133,7 +135,7 @@ public class MarkdownRenderer {
         codeBlock.setInfo("hidden-plantuml");
     }
 
-    private void renderGroovyResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, String codeType) {
+    private void renderGroovyResult(FencedCodeBlock codeBlock, MarkdownFile markdownFile, String codeType) {
         // Assuming codeType string is of format "groovy:targetType(config1:value1,config2:value2)"
         // find location of first opening parenthesis
         int openParenIndex = codeType.indexOf('(');
@@ -159,13 +161,13 @@ public class MarkdownRenderer {
 
         String targetType = codeType.substring("groovy:".length(), openParenIndex);
         var groovyCodeBlockRequest = new GroovyExecutor.GroovyCodeBlockRequest(groovyScript, targetType,
-                fileNameWithRelativePath, GroovyExecutor.GroovyCodeBlockConfig.fromMap(configMap));
+                markdownFile, GroovyExecutor.GroovyCodeBlockConfig.fromMap(configMap));
         var node = groovyCodeBlockResolver.apply(groovyCodeBlockRequest);
         codeBlock.insertAfter(node);
         codeBlock.setInfo("hidden-groovy");
     }
 
-    private void renderSqlResult(FencedCodeBlock codeBlock, String fileNameWithRelativePath, String codeType,
+    private void renderSqlResult(FencedCodeBlock codeBlock, MarkdownFile markdownFile, String codeType,
                                  Integer codeBlockCounter) {
         String configString = codeType.substring(4, codeType.length() - 1);
         String[] configParts = configString.split(",");
@@ -193,7 +195,7 @@ public class MarkdownRenderer {
         if (dataSourceConfig == null) {
             node = new Text("Error: DataSource '" + configMap.get("datasource") + "' not defined in config.");
         } else {
-            node = processSqlCodeBlock(sql, dataSourceConfig, fileNameWithRelativePath, maxRows, codeBlockCounter);
+            node = processSqlCodeBlock(sql, dataSourceConfig, markdownFile, maxRows, codeBlockCounter);
         }
         codeBlock.insertAfter(node);
         codeBlock.setInfo("hidden-sql");
@@ -212,7 +214,7 @@ public class MarkdownRenderer {
     }
 
     private Node processSqlCodeBlock(String sql, ConfigService.DataSourceConfig dataSourceConfig,
-                                     String fileNameWithRelativePath, int maxRows,
+                                     MarkdownFile markdownFile, int maxRows,
                                      Integer codeBlockCounter) {
 
         List<String> parameterNames = extractParameterNames(sql);
@@ -227,11 +229,11 @@ public class MarkdownRenderer {
         }
 
         var request = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, sql, parameterValues,
-                fileNameWithRelativePath, maxRows, false);
+                markdownFile, maxRows, false);
         var outputPath = sqlToJsonFileResolver.apply(request);
 
         return renderSqlResultTable(sql, outputPath, parameterValues, dataSourceConfig.name(),
-                fileNameWithRelativePath, codeBlockCounter);
+                markdownFile, codeBlockCounter);
     }
 
     private List<String> extractParameterNames(String sql) {
@@ -245,20 +247,20 @@ public class MarkdownRenderer {
     }
 
     private Node renderSqlResultTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
-                                      String dataSourceName, String markdownFileName, Integer codeBlockCounter) {
+                                      String dataSourceName, MarkdownFile markdownFile, Integer codeBlockCounter) {
         var request = new SqlExecutor.HtmlTableRequest(sqlText, outputPath, parameterValues, dataSourceName,
-                markdownFileName, codeBlockCounter);
+                markdownFile, codeBlockCounter);
         String tableString = sqlToHtmlTableResolver.apply(request);
         HtmlBlock htmlBlock = new HtmlBlock();
         htmlBlock.setLiteral(tableString);
         return htmlBlock;
     }
 
-    public static String generateOutputFileName(String docsDirectory, String markdownFileName, String scriptText) {
+    public static String generateOutputFileName(MarkdownFile markdownFile, String scriptText) {
         String hash = generateHash(scriptText);
-        return Paths.get(docsDirectory, markdownFileName).getParent().resolve(
-                Paths.get(markdownFileName).getFileName().toString().replaceFirst("[.][^.]+$", "") + "." + hash + ".output"
-        ).toString();
+        var fileName = Paths.get(markdownFile.fileName()).getFileName().toString();
+        var generatedFileName = fileName.replaceFirst("[.][^.]+$", "") + "." + hash + ".output";
+        return markdownFile.fullPath().getParent().resolve(generatedFileName).toString();
     }
 
     private static String generateHash(String input) {

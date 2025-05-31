@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import org.springframework.stereotype.Component;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -68,8 +69,8 @@ public class SqlExecutor {
                 request.parameterValues().entrySet().stream()
                         .map(entry -> entry.getKey() + "=" + entry.getValue())
                         .collect(Collectors.joining("&")) : "";
-        String outputFileName = generateOutputFileName(configService.getDocsDirectory(),
-                request.markdownFilePath(), request.sql() + ";" + parametersAsString + ";" + maxRows);
+        String outputFileName = generateOutputFileName(request.markdownFile(),
+                request.sql() + ";" + parametersAsString + ";" + maxRows);
         Path outputPath = Paths.get(outputFileName);
 
         if (outputPath.toFile().exists() && !request.forceExecute()) {
@@ -313,7 +314,7 @@ public class SqlExecutor {
             Map<String, Object> params = new HashMap<>();
             params.put("outputFileName", request.outputPath().getFileName().toString());
             params.put("datasourceName", request.dataSourceName());
-            params.put("markdownFileName", request.markdownFileName());
+            params.put("markdownFileName", request.markdownFile().fileName());
             params.put("sqlResult", sqlResult);
             params.put("maxRowConfig", sqlResult.getMaxRowConfig());
             params.put("codeBlockCounter", request.codeBlockCounter());
@@ -328,7 +329,7 @@ public class SqlExecutor {
         }
     }
 
-    public String convertToHtmlTable(JsonNode rootNode, String dataSourceName, String markdownFileName,
+    public String convertToHtmlTable(JsonNode rootNode, String dataSourceName, MarkdownFile markdownFile,
                                      String outputFileName, String sortColumn, String sortDirection,
                                      Integer codeBlockCounter) throws IOException {
         JsonNode sqlNode = rootNode.get("sql");
@@ -338,16 +339,15 @@ public class SqlExecutor {
                 new TypeReference<>() {
                 });
 
-        var outputPath = Path.of(configService.getDocsDirectory()).resolve(markdownFileName).getParent()
-                .resolve(outputFileName);
+        var outputPath = markdownFile.fullPath().getParent().resolve(outputFileName);
         HtmlTableRequest request = new HtmlTableRequest(previousSqlText, outputPath, previousParameterValues,
-                dataSourceName, markdownFileName, codeBlockCounter);
+                dataSourceName, markdownFile, codeBlockCounter);
         var sqlResult = getResult(request);
 
         Map<String, Object> params = new HashMap<>();
         params.put("outputFileName", outputFileName);
         params.put("datasourceName", dataSourceName);
-        params.put("markdownFileName", markdownFileName);
+        params.put("markdownFileName", markdownFile.fileName());
         params.put("parameterValues", previousParameterValues);
         params.put("sortColumn", sortColumn);
         params.put("sortDirection", sortDirection);
@@ -514,9 +514,9 @@ public class SqlExecutor {
     }
 
     public record JsonGenerationRequest(ConfigService.DataSourceConfig dataSourceConfig, String sql,
-                                        Map<String, String> parameterValues, String markdownFilePath,
+                                        Map<String, String> parameterValues, MarkdownFile markdownFile,
                                         int maxRowsConfig, boolean forceExecute) {}
 
     public record HtmlTableRequest(String sqlText, Path outputPath, Map<String, String> parameterValues,
-                                   String dataSourceName, String markdownFileName, Integer codeBlockCounter) {}
+                                   String dataSourceName, MarkdownFile markdownFile, Integer codeBlockCounter) {}
 }
