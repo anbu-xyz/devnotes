@@ -171,11 +171,6 @@ function uploadFile(file) {
     });
 }
 
-function formatTimestamp(timestamp) {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-}
-
 document.addEventListener('paste', function(event) {
     const items = (event.clipboardData || event.originalEvent.clipboardData).items;
     for (let index in items) {
@@ -211,3 +206,33 @@ pasteArea.addEventListener('drop', function(event) {
         uploadFile(files[0]);
     }
 });
+
+function setEntryMainWidth() {
+    // Get all link elements
+    const entryElements = document.querySelectorAll('.entry-main');
+    let maxWidth = 0;
+
+    // Find the maximum width
+    entryElements.forEach(link => {
+        // Temporarily reset any existing width constraint to get true width
+        const originalWidth = link.style.width;
+        link.style.width = 'auto';
+
+        // Get the full width including overflow
+        const width = link.scrollWidth;
+        maxWidth = Math.max(maxWidth, width);
+
+        // Restore original width
+        link.style.width = originalWidth;
+    });
+
+    // Add some padding to the max width
+    maxWidth += 30; // adjust padding as needed
+
+    // Set the width for all entry-main divs
+    document.querySelectorAll('.entry-main').forEach(div => {
+        div.style.width = `${maxWidth}px`;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', setEntryMainWidth);

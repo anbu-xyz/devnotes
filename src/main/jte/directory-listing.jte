@@ -22,13 +22,21 @@
         .entry-main {
             display: flex;
             align-items: center;
-            gap: 1rem;
-            flex-grow: 1;
+            min-width: 0;
+        }
+        .entry-main a {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
         }
         .entry-timestamp {
-            margin-left: auto;
-            margin-right: 1rem;
             white-space: nowrap;
+            color: #666;
+            margin-left: 0.5rem;
+        }
+        .fas.fa-folder {
+            margin-right: 0.5rem;
         }
     </style>
 </head>
@@ -45,29 +53,29 @@
     @for(var entry : entries)
         <li class="entry-container">
             <div class="entry-main">
+                @if(entry.isDirectory())
+                    <i class="fas fa-folder mr-2 text-yellow-500"></i>
+                @endif
                 <a href="/markdown?filename=${directoryName}/${entry.filename()}" class="text-blue-500 hover:text-blue-700 entry-link" data-entry="${entry.filename()}">
-                    @if(entry.isDirectory())
-                        <i class="fas fa-folder mr-2 text-yellow-500"></i>
-                    @endif
                     ${entry.filename()}
                 </a>
                 <span class="entry-timestamp text-gray-500 text-sm">
-                    ${entry.lastModified().map(lastModified -> lastModified.toString()) .orElse("")}
+                    ${entry.lastModified().map(lastModified -> " (" + lastModified + ")").orElse("")}
                 </span>
-                <div class="entry-actions" id="actions-${entry.filename()}">
-                    @if(entry.fileType().equals("puml"))
-                        <button onclick="renderPlantUml('${entry.filename()}')">
-                            <i class="fas fa-draw-polygon"></i>Render
-                        </button>
-                        <hr>
-                    @endif
-                    <button onclick="renameEntry('${entry.filename()}')">
-                        <i class="fas fa-edit"></i>Rename
+            </div>
+            <div class="entry-actions" id="actions-${entry.filename()}">
+                @if(entry.fileType().equals("puml"))
+                    <button onclick="renderPlantUml('${entry.filename()}')">
+                        <i class="fas fa-draw-polygon"></i>Render
                     </button>
-                    <button onclick="deleteEntry('${entry.filename()}')">
-                        <i class="fas fa-trash-alt"></i>Delete
-                    </button>
-                </div>
+                    <hr>
+                @endif
+                <button onclick="renameEntry('${entry.filename()}')">
+                    <i class="fas fa-edit"></i>Rename
+                </button>
+                <button onclick="deleteEntry('${entry.filename()}')">
+                    <i class="fas fa-trash-alt"></i>Delete
+                </button>
             </div>
         </li>
     @endfor
