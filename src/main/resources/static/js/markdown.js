@@ -1,135 +1,116 @@
-var easyMDE;
+let easyMDE;
 
+// Core functions
 async function saveContent() {
     if (!easyMDE) {
         console.error('easyMDE is not defined');
         return;
     }
-    const content = easyMDE.value();
-    const filename = document.getElementById('md-file-path').textContent;
-    const lastModifiedTime = document.getElementById('md-last-modified-time').textContent;
 
-    console.debug(`calling save endpoint for file ${filename}`);
-    const uri = '/saveMarkdown?filename=' + encodeURIComponent(filename) +
-         '&lastModifiedTime=' + encodeURIComponent(lastModifiedTime);
-    var result = await fetch(uri, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'text/plain',
-        },
-        body: content
+    const elements = {
+        filePath: document.getElementById('md-file-path'),
+        lastModifiedTime: document.getElementById('md-last-modified-time')
+    };
+
+    if (!elements.filePath || !elements.lastModifiedTime) {
+        console.error('Required elements not found');
+        return;
+    }
+
+    const uri = '/saveMarkdown?' + new URLSearchParams({
+        filename: elements.filePath.textContent,
+        lastModifiedTime: elements.lastModifiedTime.textContent
     });
 
-    console.debug(`result of save call: ${result.statusText} ${result.status}`);
+    const result = await fetch(uri, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: easyMDE.value()
+    });
+
+    console.debug(`Save result: ${result.statusText} ${result.status}`);
 }
 
 function downloadExcel(outputFileName, markdownFileName) {
-    window.location.href = '/downloadExcel?outputFileName=' + outputFileName + '&markdownFileName=' + markdownFileName;
+    window.location.href = '/downloadExcel?' + new URLSearchParams({
+        outputFileName,
+        markdownFileName
+    });
 }
 
 function createHomeLink(elementId) {
     const viewContent = document.getElementById(elementId);
-    const h1 = viewContent.querySelector('h1');
-    const editButtonSelector = "#editButton";
-    const editButton = viewContent.querySelector(editButtonSelector);
+    const h1 = viewContent?.querySelector('h1');
+    const editButton = viewContent?.querySelector("#editButton");
 
-    if (!h1) {
-        console.info('Markdown file does not have a title. Skipping button creation at the top of the page.');
-        return;
-    }
-    if (!editButton) {
-        console.error(`Edit button not found: ${editButtonSelector}`);
+    if (!h1 || !editButton) {
+        console.error('Required elements not found for home link creation');
         return;
     }
 
-    // Create folder link
-    const folderLink = document.createElement('a');
-    folderLink.href = 'renderDirectoryContents?directoryName=' +
-        encodeURIComponent('${markdownFile}'.split('/').slice(0, -1).join('/'));
-
-    folderLink.classList.add('text-blue-500', 'hover:text-blue-700', 'mr-2');
-    folderLink.innerHTML = '<i class="fas fa-folder-open" style="padding-right: 0.2em"></i>';
-
-    // Create edit link
-    const editLink = document.createElement('a');
-    editLink.href = '#';
-    editLink.classList.add('text-blue-500', 'hover:text-blue-700');
-    editLink.innerHTML = '<i class="fas fa-edit" style="padding-left: 0.2em"></i>';
-    editLink.onclick = function(e) {
-        e.preventDefault();
-        editButton.click();
+    const folderPath = '${markdownFile}'.split('/').slice(0, -1).join('/');
+    const elements = {
+        folder: createLinkElement('folder-open', `renderDirectoryContents?directoryName=${encodeURIComponent(folderPath)}`),
+        edit: createLinkElement('edit', '#', () => editButton.click())
     };
 
-    h1.insertBefore(folderLink, h1.firstChild);
-    h1.appendChild(editLink);
-
-    // hide the edit button
+    h1.insertBefore(elements.folder, h1.firstChild);
+    h1.appendChild(elements.edit);
     editButton.style.display = 'none';
 }
 
+function createLinkElement(iconName, href, onClick) {
+    const link = document.createElement('a');
+    link.href = href;
+    link.classList.add('text-blue-500', 'hover:text-blue-700', 'mr-2');
+    link.innerHTML = `<i class="fas fa-${iconName}" style="padding-${iconName === 'edit' ? 'left' : 'right'}: 0.2em"></i>`;
+    if (onClick) link.onclick = e => { e.preventDefault(); onClick(); };
+    return link;
+}
+
 function attachEasyMdeOn(elementId) {
-    const originalTextArea = document.getElementById(elementId);
-    console.debug(`enableEasyMDE creating editor on element ${elementId}`);
-    if (!originalTextArea) {
+    const element = document.getElementById(elementId);
+    if (!element) {
         console.error(`Editor element not found: ${elementId}`);
         return;
     }
-    easyMDE = new EasyMDE({ element: originalTextArea});
+    easyMDE = new EasyMDE({ element });
 }
 
-// -----------------------------------------------------------------------------
-// Event listeners
-// -----------------------------------------------------------------------------
-document.addEventListener('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        console.debug("Ctrl+S pressed");
-        e.preventDefault(); // Prevent the browser's save dialog
+//-----------------------------------------------------------------------------
+// Event handlers
+//-----------------------------------------------------------------------------
+const keyboardShortcuts = {
+    's': () => document.querySelector('#saveButton')?.click(),
+    'e': () => document.querySelector('#markdownViewer > h1 > a:nth-child(2) > i')?.click()
+};
 
-        const saveButtonSelector = '#saveButton';
-        const saveButton = document.querySelector(saveButtonSelector);
-        if (saveButton) {
-            if (saveButton.style.display !== 'none') {
-                saveButton.click();
-            }
-        } else {
-            console.error(`Save button not found: ${saveButtonSelector}`);
-        }
+document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && keyboardShortcuts[e.key]) {
+        e.preventDefault();
+        keyboardShortcuts[e.key]();
     }
 });
 
-document.addEventListener('keydown', function(e) {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'e') {
-        console.debug("Ctrl+E pressed");
-        e.preventDefault(); // Prevent the browser default action
+document.body.addEventListener('htmx:afterSwap', evt => {
+    const actions = {
+        markdownViewer: () => createHomeLink("markdownViewer"),
+        markdownEditor: () => attachEasyMdeOn('easyMdeEditor')
+    };
 
-        const editButtonSelector = '#markdownViewer > h1 > a:nth-child(2) > i';
-        const editButton = document.querySelector(editButtonSelector);
-        if (editButton) {
-            editButton.click();
-        } else {
-            console.error(`Edit button not found: ${editButtonSelector}`);
-        }
+    if (actions[evt.target.id]) {
+        actions[evt.target.id]();
+        console.debug(`${evt.target.id} content loaded`);
     }
 });
 
-document.body.addEventListener('htmx:afterSwap', function(evt) {
-    if (evt.target.id === "markdownViewer") {
-        createHomeLink("markdownViewer");
-        console.debug("Markdown viewer content loaded");
-    }
-    if (evt.target.id === "markdownEditor") {
-        attachEasyMdeOn('easyMdeEditor');
-        console.debug("Markdown editor content loaded");
-    }
-});
-
-// -----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 // Autosave
-// -----------------------------------------------------------------------------
+//-----------------------------------------------------------------------------
 (function() {
-    setInterval(async function () {
+    setInterval(async () => {
         const autoSaveCheckbox = document.getElementById('autoSaveCheckbox');
-        if (autoSaveCheckbox && autoSaveCheckbox.checked) {
+        if (autoSaveCheckbox?.checked) {
             await saveContent();
         }
     }, 60000);
