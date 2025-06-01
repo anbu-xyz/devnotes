@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.util.DateTimeUtil;
 import uk.anbu.devnotes.util.FileUtil;
 
 import java.io.IOException;
@@ -160,72 +161,7 @@ public class DirectoryListingController {
         var modifiedTime = Files.getLastModifiedTime(path).toInstant();
         var now = Instant.now();
         var duration = Duration.between(modifiedTime, now);
-        return toHumanReadable(duration);
-    }
-
-    public static String toHumanReadable(Duration duration) {
-        long days = duration.toDays();
-        long hours = duration.toHours() % 24;
-        long minutes = duration.toMinutes() % 60;
-
-        if (days >= 365 * 2) {
-            long years = days / 365;
-            return years + " years ago";
-        }
-
-        if (days > 365) {
-            long months = days / 30;
-            return months + " months ago";
-        }
-
-        if (days >= 28 && days < 60) {
-            return "a month ago";
-        }
-
-        if (days >= 60) {
-            long months = days / 30;
-            return months + " months ago";
-        }
-
-        if (days >= 14) {
-            long weeks = days / 7;
-            return weeks + " weeks ago";
-        }
-
-        if (days >= 7) {
-            return "a week ago";
-        }
-
-        if (days > 0) {
-            if (days == 1) {
-                return "yesterday";
-            }
-            return days + " days ago";
-        }
-
-        if (hours > 0) {
-            if (hours == 1) {
-                return "an hour ago";
-            }
-            return hours + " hours ago";
-        }
-
-        if (minutes > 45) {
-            return "about an hour ago";
-        }
-
-        if (minutes > 30) {
-            return "about 30 mins ago";
-        }
-
-        if (minutes > 0) {
-            if (minutes == 1) {
-                return "1 minute ago";
-            }
-            return minutes + " minutes ago";
-        }
-
-        return "just now";
+        return DateTimeUtil.toHumanReadable(duration);
     }
 
     private String fileExtension(String filename) {
