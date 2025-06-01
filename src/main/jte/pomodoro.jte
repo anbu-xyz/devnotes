@@ -38,7 +38,8 @@
     <div class="modal-content">
         <h2>Time's Up!</h2>
         <p>Your pomodoro session is complete.</p>
-        <button onclick="pomodoro.closeModal()" class="btn-blue-glow">Start New Session</button>
+        <button onclick="pomodoro.addFive()" class="btn-blue-glow">Add five minutes</button>
+        <button onclick="pomodoro.closeModal()" class="btn-blue-glow">Close</button>
     </div>
 </div>
 

@@ -25,10 +25,17 @@ const pomodoro = {
 
     showNotification() {
         if (this.notificationPermission) {
-            new Notification("Pomodoro Timer", {
+            const notification = new Notification("Pomodoro Timer", {
                 body: "Time's up! Your pomodoro session is complete.",
-                icon: "/favicon.ico" // Add your favicon path here
+                icon: "/favicon.ico"
             });
+
+            notification.onclick = function (event) {
+                event.preventDefault(); // Prevent default behavior - focusing the notification
+
+                console.debug('Pomodoro timer notification clicked. Bringing tab to front.');
+                window.focus(); // Bring tab to front
+            };
         }
     },
 
@@ -38,7 +45,13 @@ const pomodoro = {
 
     closeModal() {
         document.getElementById('timerCompleteModal').style.display = 'none';
-        this.reset();
+        this.reset(25);
+    },
+
+    addFive() {
+        document.getElementById('timerCompleteModal').style.display = 'none';
+        this.reset(5);
+        this.toggleTimer();
     },
 
     startTimer() {
@@ -78,11 +91,10 @@ const pomodoro = {
         clearInterval(this.timer);
         this.showModal();
         this.showNotification();
-        this.reset();
     },
 
-    reset() {
-        this.minutes = 25;
+    reset(minutes) {
+        this.minutes = minutes;
         this.seconds = 0;
         this.state = 'NOT_STARTED';
         this.updateButtonText();
@@ -166,6 +178,7 @@ const pomodoro = {
             this.updateDisplay();
             this.updateButtonText();
             this.updateServerState('NOT_STARTED');
+            this.toggleTimer();
         } else {
             alert('Invalid input. Please enter a valid number greater than 0.');
         }
