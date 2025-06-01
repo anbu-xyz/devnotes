@@ -16,7 +16,11 @@
     <title>${title}</title>
 </head>
 <body class="p-8">
-<h1>Directory: ${directoryName} <i class="fas fa-copy" onclick="writeToClipboard('${fileSystemPath}')"></i></h1><br>
+@if(directoryName.isEmpty())
+    <h1><i class="fas fa-home" onclick="writeToClipboard('${fileSystemPath}')"></i></h1>
+@else
+    <h1>${directoryName}/ <i class="fas fa-copy" onclick="writeToClipboard('${fileSystemPath}')"></i></h1>
+@endif
 <ul class="directory-list">
     @if(directoryName.length() > 1)
         <li>
@@ -72,20 +76,8 @@
 <div id="paste-area">
     Paste image here
 </div>
-<div>
-    @if(directoryName.equals("."))
-        <a href="/database" class="btn-blue-glow">
-            <i class="fas fa-database"></i>Database Metadata
-        </a>
-        <a href="/config" class="btn-blue-glow">
-            <i class="fas fa-cog"></i>Config Editor
-        </a>
-    @endif
-</div>
+<div hidden id="dl-current-directory-name">${directoryName}</div>
 
-<script>
-    var currentDirectoryName = "${directoryName}";
-</script>
 <script src="/js/directory-listing.js"></script>
 </body>
 </html>

@@ -14,15 +14,17 @@
 <h1>Tools</h1>
 
 Pomodoro Timer
-<a href="/pomodoro">/pomodoro</a>
-<br>
+<a href="/pomodoro">/pomodoro</a><br>
 
 Base64 Encoder
-<a href="/base64">/base64</a>
-<br>
+<a href="/base64">/base64</a><br>
 
 Database Metadata Fetcher
 <a href="/database">/database</a>
+<br>
+
+Config editor
+<a href="/config">/config</a>
 <br>
 
 </body>
