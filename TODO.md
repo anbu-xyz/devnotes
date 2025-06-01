@@ -8,6 +8,3 @@
 * Add a way to run parameterized queries
 * Autodetect a file being edited in another tab and stop new edits
 * Render JSON results as custom HTML
-* Auto save markdown files when editing
-* Have a way to list history of changes for a markdown
-* allow restoring a markdown file from history

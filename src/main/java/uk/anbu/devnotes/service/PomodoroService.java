@@ -45,12 +45,12 @@ public class PomodoroService {
         Map<String, Object> config = new HashMap<>();
 
         if (!Files.exists(pomodoroPath)) {
-            config.put("updateTimestamp", LocalDateTime.now(UTC).toString());
-            config.put("timeLeft", Duration.ofMinutes(DEFAULT_MINUTES));
+            config.put("updateTimestamp", LocalDateTime.now(UTC).truncatedTo(ChronoUnit.SECONDS).toString());
+            config.put("timeLeftInSeconds", DEFAULT_MINUTES * 60);
             config.put("state", PomodoroState.NOT_STARTED);
             mapper.writeValue(pomodoroPath.toFile(), config);
             return new PomodoroConfig(
-                    LocalDateTime.now(UTC),
+                    LocalDateTime.now(UTC).truncatedTo(ChronoUnit.SECONDS),
                     DEFAULT_MINUTES * 60,
                     PomodoroState.NOT_STARTED
             );

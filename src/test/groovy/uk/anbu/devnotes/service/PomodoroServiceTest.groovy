@@ -6,6 +6,7 @@ import spock.lang.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 import static java.time.ZoneOffset.UTC;
 
@@ -25,7 +26,7 @@ class PomodoroServiceTest extends Specification {
     def "loadPomodoroConfigFrom should create new config file when it doesn't exist"() {
         given:
         def docsDir = tempDir.toString()
-        def startTime = LocalDateTime.now(UTC)
+        def startTime = LocalDateTime.now(UTC).truncatedTo(ChronoUnit.SECONDS)
 
         when:
         def result = pomodoroService.loadPomodoroConfigFrom(docsDir)
@@ -88,9 +89,9 @@ class PomodoroServiceTest extends Specification {
         pomodoroService.loadPomodoroConfigFrom(docsDir)
 
         then:
-        def gitFile = tempDir.resolve("config/.git")
-        Files.exists(gitFile)
-        Files.readString(gitFile).contains("pomodoro.yaml")
+        def gitIgnoreFile = tempDir.resolve("config/.gitignore")
+        Files.exists(gitIgnoreFile)
+        Files.readString(gitIgnoreFile).contains("pomodoro.yaml")
     }
 
     def "should calculate correct time left when loading a running timer"() {
@@ -138,5 +139,80 @@ class PomodoroServiceTest extends Specification {
         result.state() == PomodoroService.PomodoroState.RUNNING
         result.updateTimestamp() == startTime
         result.timeLeftInSeconds() == 0
+    }
+
+    def "loadPomodoroConfigFrom should append to existing gitignore file"() {
+        given:
+        def docsDir = tempDir.toString()
+        def configDir = Files.createDirectories(tempDir.resolve("config"))
+        def gitIgnoreFile = configDir.resolve(".gitignore")
+        Files.writeString(gitIgnoreFile, "existing-entry.txt\n")
+
+        when:
+        pomodoroService.loadPomodoroConfigFrom(docsDir)
+
+        then:
+        def content = Files.readString(gitIgnoreFile)
+        content.contains("existing-entry.txt")
+        content.contains("pomodoro.yaml")
+        content.trim().split("\n").length == 3
+    }
+
+    def "loadPomodoroConfigFrom should not duplicate pomodoro entry in gitignore"() {
+        given:
+        def docsDir = tempDir.toString()
+        def configDir = Files.createDirectories(tempDir.resolve("config"))
+        def gitIgnoreFile = configDir.resolve(".gitignore")
+        Files.writeString(gitIgnoreFile, "pomodoro.yaml\n")
+
+        when:
+        pomodoroService.loadPomodoroConfigFrom(docsDir)
+        def result = pomodoroService.loadPomodoroConfigFrom(docsDir) // Call twice
+
+        then:
+        def content = Files.readString(gitIgnoreFile)
+        content.count("pomodoro.yaml") == 1
+    }
+
+    def "loadPomodoroConfigFrom should not modify time for paused timer"() {
+        given:
+        def docsDir = tempDir.toString()
+        def configDir = Files.createDirectories(tempDir.resolve("config"))
+        def configFile = configDir.resolve("pomodoro.yaml")
+        def startTime = LocalDateTime.now(UTC).minusMinutes(10)
+        def timeLeft = 300 // 5 minutes
+
+        Files.writeString(configFile, """
+        updateTimestamp: "${startTime}"
+        timeLeftInSeconds: ${timeLeft}
+        state: "PAUSED"
+    """)
+
+        when:
+        def result = pomodoroService.loadPomodoroConfigFrom(docsDir)
+
+        then:
+        result.state() == PomodoroService.PomodoroState.PAUSED
+        result.updateTimestamp() == startTime
+        result.timeLeftInSeconds() == timeLeft
+    }
+
+    def "loadPomodoroConfigFrom should handle invalid config gracefully"() {
+        given:
+        def docsDir = tempDir.toString()
+        def configDir = Files.createDirectories(tempDir.resolve("config"))
+        def configFile = configDir.resolve("pomodoro.yaml")
+        Files.writeString(configFile, "invalid: yaml: content")
+
+        when:
+        def thrown = null
+        try {
+            pomodoroService.loadPomodoroConfigFrom(docsDir)
+        } catch (Exception e) {
+            thrown = e
+        }
+
+        then:
+        thrown instanceof IOException
     }
 }
