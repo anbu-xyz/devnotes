@@ -11,34 +11,9 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
+    <link rel="stylesheet" type="text/css" href="/css/directory-listing.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <title>${title}</title>
-    <style>
-        .entry-container {
-            display: flex;
-            align-items: center;
-            padding: 0.5rem 0;
-        }
-        .entry-main {
-            display: flex;
-            align-items: center;
-            min-width: 0;
-        }
-        .entry-main a {
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            flex: 1;
-        }
-        .entry-timestamp {
-            white-space: nowrap;
-            color: #666;
-            margin-left: 0.5rem;
-        }
-        .fas.fa-folder {
-            margin-right: 0.2rem;
-        }
-    </style>
 </head>
 <body class="p-8">
 <h1>Directory: ${directoryName} <i class="fas fa-copy" onclick="writeToClipboard('${fileSystemPath}')"></i></h1><br>
