@@ -1,13 +1,11 @@
 package uk.anbu.devnotes.module;
 
 import groovy.lang.GroovyShell;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Node;
 import org.commonmark.node.Text;
-import org.springframework.stereotype.Component;
 import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.io.IOException;
@@ -20,8 +18,6 @@ import java.util.Map;
 import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 
 @Slf4j
-@RequiredArgsConstructor
-@Component
 public class GroovyExecutor {
 
     public Node processGroovyCodeBlock(GroovyCodeBlockRequest request) {

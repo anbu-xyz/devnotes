@@ -11,8 +11,8 @@ import uk.anbu.devnotes.service.ConfigService;
 public class DevnotesContext {
     @Bean
     MarkdownRenderer markdownRenderer(ConfigService configService,
-                                      SqlExecutor sqlExecutor,
-                                      GroovyExecutor groovyExecutor) {
+                                      SqlExecutor sqlExecutor) {
+        GroovyExecutor groovyExecutor = new GroovyExecutor();
         return new MarkdownRenderer(
                 sqlExecutor::renderResultAsJsonFile,
                 sqlExecutor::convertToHtmlTable,

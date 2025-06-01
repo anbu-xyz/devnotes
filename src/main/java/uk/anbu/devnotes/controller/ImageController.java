@@ -9,19 +9,23 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.ImageRenderer;
+import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.types.ImageFile;
 import uk.anbu.devnotes.util.FileUtil;
 
 @Slf4j
 @RequiredArgsConstructor
 @RestController
 public class ImageController {
-    private final ImageRenderer imageRenderer;
+    private final ImageRenderer imageRenderer = new ImageRenderer();
+    private final ConfigService configService;
 
     @GetMapping("/image")
     public ResponseEntity<Resource> image(@RequestParam(name = "path", required = false) String path,
                                           @RequestParam(name = "filename") String filename) {
         try {
-            var resource = imageRenderer.image(path, filename);
+            var imageFile = new ImageFile(path, filename, configService.getDocsDirectory());
+            var resource = imageRenderer.image(imageFile);
 
             if (resource.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
