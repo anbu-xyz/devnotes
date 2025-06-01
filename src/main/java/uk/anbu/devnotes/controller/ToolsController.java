@@ -22,7 +22,7 @@ public class ToolsController {
     public ResponseEntity<String> pomodoroPage() {
         var model = new HashMap<String, Object>();
         TemplateOutput output = new StringOutput();
-        templateEngine.render("tools.jte", model, output);
+        templateEngine.render("tools/tools.jte", model, output);
         return ResponseEntity.ok(output.toString());
     }
 

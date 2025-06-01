@@ -77,6 +77,10 @@ function attachEasyMdeOn(elementId) {
     easyMDE = new EasyMDE({ element });
 }
 
+function invokePrismHighlighting() {
+    Prism.highlightAll();
+}
+
 //-----------------------------------------------------------------------------
 // Event handlers
 //-----------------------------------------------------------------------------
@@ -94,8 +98,13 @@ document.addEventListener('keydown', e => {
 
 document.body.addEventListener('htmx:afterSwap', evt => {
     const actions = {
-        markdownViewer: () => createHomeLink("markdownViewer"),
-        markdownEditor: () => attachEasyMdeOn('easyMdeEditor')
+        markdownViewer: () => {
+            createHomeLink("markdownViewer")
+            invokePrismHighlighting()
+        },
+        markdownEditor: () => {
+            attachEasyMdeOn('easyMdeEditor')
+        }
     };
 
     if (actions[evt.target.id]) {

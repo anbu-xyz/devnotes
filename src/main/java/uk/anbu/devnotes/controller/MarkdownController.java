@@ -60,7 +60,7 @@ public class MarkdownController {
             params.put("htmlContent", htmlContent);
             params.put("title", constructMarkdownTitle(filename, markdownRoot));
             params.put("lastModifiedTime", lastModifiedTime(markdownFile.fullPath()));
-            templateEngine.render("markdown-viewer.jte", params, output);
+            templateEngine.render("render/markdown-viewer.jte", params, output);
 
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)
@@ -84,7 +84,7 @@ public class MarkdownController {
             params.put("originalMarkdown", escapeHtml(fileContent));
             params.put("lastModifiedTime", lastModifiedTime(filePath));
             params.put("title", constructMarkdownTitle(filename, markdownRoot));
-            templateEngine.render("markdown-editor.jte", params, output);
+            templateEngine.render("render/markdown-editor.jte", params, output);
 
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)
@@ -189,7 +189,7 @@ public class MarkdownController {
         var params = new HashMap<String, Object>();
         params.put("plantumlFile", filename);
         params.put("title", filename);
-        templateEngine.render("plantuml.jte", params, output);
+        templateEngine.render("render/plantuml.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");
     }
@@ -205,7 +205,7 @@ public class MarkdownController {
         var params = new HashMap<String, Object>();
         params.put("javascriptContent", fileContent);
         params.put("title", filename);
-        templateEngine.render("javascript.jte", params, output);
+        templateEngine.render("render/javascript.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");
     }
@@ -249,7 +249,7 @@ public class MarkdownController {
         params.put("markdownFile", filename);
         params.put("editMode", editMode);
         params.put("title", title);
-        templateEngine.render("markdown.jte", params, output);
+        templateEngine.render("render/markdown.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");
     }

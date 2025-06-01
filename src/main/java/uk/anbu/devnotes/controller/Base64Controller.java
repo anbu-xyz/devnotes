@@ -28,7 +28,7 @@ public class Base64Controller {
     public ResponseEntity<String> base64() {
         var model = new HashMap<String, Object>();
         TemplateOutput output = new StringOutput();
-        templateEngine.render("base64.jte", model, output);
+        templateEngine.render("tools/base64.jte", model, output);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(output.toString());
     }

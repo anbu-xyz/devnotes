@@ -43,7 +43,7 @@ public class PomodoroController {
         var model = new HashMap<String, Object>();
         model.put("pomodoroConfig", pomodoroConfig);
         TemplateOutput output = new StringOutput();
-        templateEngine.render("pomodoro.jte", model, output);
+        templateEngine.render("tools/pomodoro.jte", model, output);
         return ResponseEntity.ok(output.toString());
     }
 

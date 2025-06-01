@@ -28,7 +28,7 @@ public class ConfigController {
         model.put("dataSources", configService.getDataSources());
         model.put("sqlMaxRows", configService.getSqlMaxRows());
         TemplateOutput output = new StringOutput();
-        templateEngine.render("config.jte", model, output);
+        templateEngine.render("tools/config.jte", model, output);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(output.toString());
     }

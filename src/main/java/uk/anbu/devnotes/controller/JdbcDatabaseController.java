@@ -31,7 +31,7 @@ public class JdbcDatabaseController {
                 "dataSources", configService.getDataSources().keySet()
         );
         TemplateOutput output = new StringOutput();
-        templateEngine.render("database.jte", model, output);
+        templateEngine.render("tools/database.jte", model, output);
         return ResponseEntity.ok(output.toString());
     }
 
