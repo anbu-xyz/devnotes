@@ -4,6 +4,7 @@ import gg.jte.TemplateEngine;
 import gg.jte.TemplateOutput;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -168,6 +169,11 @@ public class MarkdownController {
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)
                     .body(content.content());
+        } else if (isPlantuml(fileExtension)) {
+            var content = fetchPlantumlContent(filename);
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                    .body(content.content());
         } else {
             // For other text files, set content type to plain text
             String content = Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8);
@@ -175,6 +181,21 @@ public class MarkdownController {
                     .contentType(org.springframework.http.MediaType.TEXT_PLAIN)
                     .body(content);
         }
+    }
+
+    @SneakyThrows
+    private ContentWithType fetchPlantumlContent(String filename) {
+        TemplateOutput output = new StringOutput();
+        var params = new HashMap<String, Object>();
+        params.put("plantumlFile", filename);
+        params.put("title", filename);
+        templateEngine.render("plantuml.jte", params, output);
+
+        return new ContentWithType(output.toString(), "text/html");
+    }
+
+    private boolean isPlantuml(String fileExtension) {
+        return "puml".equals(fileExtension);
     }
 
     private ContentWithType fetchJavascriptContent(String filename, Path markdownRoot) throws IOException {
