@@ -1,4 +1,4 @@
-@param String javascriptContent
+@param String groovyCodeContent
 @param String title
 
 <!DOCTYPE html>
@@ -8,13 +8,13 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css">
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-groovy.min.js"></script>
 
     <title>${title}</title>
 </head>
 <body class="p-8">
 <h1>${title}</h1>
-<pre><code class="language-javascript">$unsafe{javascriptContent}</code></pre>
+<pre><code class="language-groovy">$unsafe{groovyCodeContent}</code></pre>
 
 <script>Prism.highlightAll();</script>
 

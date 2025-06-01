@@ -164,6 +164,11 @@ public class MarkdownController {
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/image?filename=" + filename)
                     .build();
+        } else if (isGroovy(fileExtension)) {
+            var content = fetchGroovyContent(filename, markdownRoot);
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                    .body(content.content());
         } else if (isJavascript(fileExtension)) {
             var content = fetchJavascriptContent(filename, markdownRoot);
             return ResponseEntity.ok()
@@ -181,6 +186,10 @@ public class MarkdownController {
                     .contentType(org.springframework.http.MediaType.TEXT_PLAIN)
                     .body(content);
         }
+    }
+
+    private boolean isGroovy(String fileExtension) {
+        return "groovy".equals(fileExtension);
     }
 
     @SneakyThrows
@@ -206,6 +215,18 @@ public class MarkdownController {
         params.put("javascriptContent", fileContent);
         params.put("title", filename);
         templateEngine.render("render/javascript.jte", params, output);
+
+        return new ContentWithType(output.toString(), "text/html");
+    }
+
+    private ContentWithType fetchGroovyContent(String filename, Path markdownRoot) throws IOException {
+        String fileContent = new String(Files.readAllBytes(markdownRoot.resolve(filename)));
+
+        TemplateOutput output = new StringOutput();
+        var params = new HashMap<String, Object>();
+        params.put("groovyCodeContent", fileContent);
+        params.put("title", filename);
+        templateEngine.render("render/groovy.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");
     }
