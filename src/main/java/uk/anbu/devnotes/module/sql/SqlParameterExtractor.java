@@ -1,4 +1,4 @@
-package uk.anbu.devnotes.module;
+package uk.anbu.devnotes.module.sql;
 
 import net.sf.jsqlparser.expression.JdbcNamedParameter;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;

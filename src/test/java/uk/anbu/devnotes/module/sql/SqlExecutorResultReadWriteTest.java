@@ -1,4 +1,4 @@
-package uk.anbu.devnotes.module;
+package uk.anbu.devnotes.module.sql;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gg.jte.ContentType;
@@ -10,7 +10,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-import uk.anbu.devnotes.module.sql.SqlOutput;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.types.MarkdownFile;
 

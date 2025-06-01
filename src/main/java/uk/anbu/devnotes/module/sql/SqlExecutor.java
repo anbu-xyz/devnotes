@@ -1,4 +1,4 @@
-package uk.anbu.devnotes.module;
+package uk.anbu.devnotes.module.sql;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -367,7 +367,7 @@ public class SqlExecutor {
         }
     }
 
-    static HumanReadableNumber humanReadableNumber(Number value) {
+    public static HumanReadableNumber humanReadableNumber(Number value) {
         if (value == null) {
             return new HumanReadableNumber("(null)");
         }

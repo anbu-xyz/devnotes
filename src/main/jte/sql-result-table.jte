@@ -1,5 +1,5 @@
 @import java.util.Map
-@import uk.anbu.devnotes.module.SqlResult
+@import uk.anbu.devnotes.module.sql.SqlResult
 
 @param String outputFileName
 @param String datasourceName

@@ -1,4 +1,4 @@
-package uk.anbu.devnotes.module;
+package uk.anbu.devnotes.module.sql;
 
 import lombok.Builder;
 import lombok.Data;

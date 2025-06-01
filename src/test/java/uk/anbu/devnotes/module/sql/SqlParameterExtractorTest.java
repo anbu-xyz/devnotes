@@ -1,11 +1,11 @@
-package uk.anbu.devnotes.module;
+package uk.anbu.devnotes.module.sql;
 
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.Set;
 
-import static uk.anbu.devnotes.module.SqlParameterExtractor.extractPlaceholders;
+import static uk.anbu.devnotes.module.sql.SqlParameterExtractor.extractPlaceholders;
 
 public class SqlParameterExtractorTest {
 
