@@ -28,6 +28,14 @@ async function saveContent() {
         body: easyMDE.value()
     });
 
+    // if result was CONFLICT, don't save the file
+    if (result.status === 409) {
+        console.log('File was not saved, as it was modified after lastSaveTime');
+        const resultBody = await result.text();
+        console.log(resultBody);
+        return;
+    }
+
     console.debug(`Save result: ${result.statusText} ${result.status}`);
 }
 
@@ -119,7 +127,8 @@ document.body.addEventListener('htmx:afterSwap', evt => {
 (function() {
     setInterval(async () => {
         const autoSaveCheckbox = document.getElementById('autoSaveCheckbox');
-        if (autoSaveCheckbox?.checked) {
+        const markdownEditor = document.getElementById('markdownEditor');
+        if (autoSaveCheckbox?.checked && markdownEditor) {
             await saveContent();
         }
     }, 60000);

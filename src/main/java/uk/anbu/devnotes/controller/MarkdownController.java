@@ -28,6 +28,8 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
@@ -299,10 +301,22 @@ public class MarkdownController {
     @PostMapping("/saveMarkdown")
     public ResponseEntity<String> saveMarkdown(@RequestParam(name = "filename", required = false) String filename,
                                                @RequestParam(name = "edit", required = false, defaultValue = "false") boolean editMode,
+                                               @RequestParam(name = "lastModifiedTime", required = true) String lastModifiedTime,
                                                @RequestBody String content) {
         try {
             var decodedFilename = URLDecoder.decode(filename, StandardCharsets.UTF_8);
             Path filePath = Paths.get(configService.getDocsDirectory(), decodedFilename);
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+            LocalDateTime dateTime = LocalDateTime.parse(lastModifiedTime, formatter);
+
+            long instant = Files.getLastModifiedTime(filePath).toInstant().getEpochSecond();
+            LocalDateTime fileDateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(instant), ZoneId.systemDefault());
+            if (fileDateTime.isAfter(dateTime)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body("File was modified after lastSaveTime. Request timestamp: " + lastModifiedTime +
+                                " file modified at "+ fileDateTime);
+            }
             Files.write(filePath, content.getBytes());
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/markdown?filename=" + decodedFilename + "&edit=false")
