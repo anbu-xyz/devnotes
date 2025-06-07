@@ -48,7 +48,6 @@
                                           "datasourceName": "${datasourceName}",
                                           "markdownFileName": "${markdownFileName}",
                                           "codeBlockCounter": ${codeBlockCounter},
-                                          "maxRowConfig": ${maxRowConfig},
                                           "sortDirection": "${columnMetadata.name().equals(sortColumn) ? (sortDirection.equals("asc") ? "desc" : "asc") : "asc"}"
                                          }'
                                 >
@@ -69,6 +68,8 @@
                                        || columnMetadata.javaClass().equals("java.lang.Double")
                                        || columnMetadata.javaClass().equals("java.math.BigDecimal"))
                                         <td style="text-align: right">${row.get(columnMetadata.name()).toString()}</td>
+                                    @elseif(columnMetadata.javaClass().equals("java.time.OffsetDateTime"))
+                                        <td style="text-align: right">${(row.get(columnMetadata.name())).toString()}</td>
                                     @else
                                         <td>${row.get(columnMetadata.name()).toString()}</td>
                                     @endif
@@ -112,6 +113,7 @@
                                                     oldSql: originalSql,
                                                     newSql: changedSql,
                                                     parameterValues: {},
+                                                    maxRows: ${maxRowConfig},
                                                     forceExecute: true
                                               })"
                                         hx-target="closest div.sql-result"

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
 import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
@@ -41,14 +42,11 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.time.ZoneOffset;
+import java.util.*;
+import java.util.stream.*;
 
 import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 
@@ -286,6 +284,9 @@ public class SqlExecutor {
                 jsonGenerator.writeObjectField(columnNames.get(i - 1), "<blob>");
             } else if (rs.getObject(i) instanceof Clob) {
                 jsonGenerator.writeObjectField(columnNames.get(i - 1), "<clob>");
+            } else if (rs.getObject(i) instanceof java.time.OffsetDateTime) {
+                var utc = ((java.time.OffsetDateTime)rs.getObject(i)).withOffsetSameInstant(ZoneOffset.UTC);
+                jsonGenerator.writeObjectField(columnNames.get(i - 1), utc);
             } else {
                 jsonGenerator.writeObjectField(columnNames.get(i - 1), rs.getObject(i));
             }
@@ -439,6 +440,12 @@ public class SqlExecutor {
                         value = switch (colMeta.javaClass()) {
                             case "java.lang.Integer", "java.lang.Long", "java.lang.Double", "java.math.BigDecimal" ->
                                     humanReadableNumber(new BigDecimal(valueNode.asText()));
+                            case "java.sql.Timestamp"->
+                                    new java.sql.Timestamp(valueNode.longValue()).toString();
+                            case "java.time.OffsetDateTime" ->
+                                    new java.sql.Timestamp(valueNode.longValue() * 1000).toString();
+                            case "java.sql.Date" ->
+                                    new java.sql.Date(valueNode.longValue()).toLocalDate().toString();
                             default -> valueNode.asText();
                         };
                     }
@@ -505,6 +512,7 @@ public class SqlExecutor {
                 var decimalB = new BigDecimal(b.toString());
                 return decimalA.compareTo(decimalB);
             case "java.sql.Timestamp":
+            case "java.time.OffsetDateTime":
                 var timestampA = Timestamp.valueOf(a.toString());
                 var timestampB = Timestamp.valueOf(b.toString());
                 return timestampA.compareTo(timestampB);

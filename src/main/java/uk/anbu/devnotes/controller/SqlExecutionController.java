@@ -1,9 +1,11 @@
 package uk.anbu.devnotes.controller;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import gg.jte.TemplateEngine;
 import gg.jte.TemplateOutput;
 import gg.jte.output.StringOutput;
@@ -171,6 +173,7 @@ public class SqlExecutionController {
             sqlExecutionRequest.setCodeBlockCounter(request.codeBlockCounter);
             sqlExecutionRequest.setParameterValues(request.parameterValues);
             sqlExecutionRequest.setForceExecute(request.forceExecute);
+            sqlExecutionRequest.setMaxRows(request.maxRows);
             sqlExecutionRequest.setSql(request.newSql);
             return reExecuteSql(sqlExecutionRequest);
         } catch (Exception e) {
@@ -228,10 +231,17 @@ public class SqlExecutionController {
 
     @lombok.Data
     private static class SqlChangeRequest {
+        @JsonProperty(required = true)
         public String datasourceName;
+        @JsonProperty(required = true)
         private String markdownFileName;
+        @JsonProperty(required = true)
         private String oldSql;
+        @JsonProperty(required = true)
         private String newSql;
+        @JsonProperty(required = true)
+        private Integer maxRows;
+        @JsonProperty(required = true)
         private Integer codeBlockCounter;
         public Map<String, String> parameterValues;
         public boolean forceExecute;
@@ -239,23 +249,38 @@ public class SqlExecutionController {
 
     @lombok.Data
     public static class SqlExecutionRequest {
+        @JsonProperty(required = true)
         private String datasourceName;
+        @JsonProperty(required = true)
         private String sql;
+        @JsonProperty(required = true)
         private String markdownFileName;
+        @JsonProperty(required = true)
         private Integer codeBlockCounter;
+        @JsonProperty(required = true)
+        private String outputFileName;
+        @JsonProperty(required = true)
         private Map<String, String> parameterValues;
+        @JsonProperty(required = true)
         private Integer maxRows;
         private boolean forceExecute;
     }
 
     @lombok.Data
     public static class TableSortRequest {
-        private String columnName;
-        private String columnType;
-        private String outputFileName;
+        @JsonProperty(required = true)
         private String datasourceName;
+        @JsonProperty(required = true)
+        private String columnName;
+        @JsonProperty(required = true)
+        private String columnType;
+        @JsonProperty(required = true)
+        private String outputFileName;
+        @JsonProperty(required = true)
         private String markdownFileName;
+        @JsonProperty(required = true)
         private String sortDirection;
+        @JsonProperty(required = true)
         private Integer codeBlockCounter;
     }
 }
