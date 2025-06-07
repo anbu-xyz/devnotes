@@ -21,7 +21,7 @@
             <input type="checkbox" id="autoSaveCheckbox" checked>
             <span class="checkbox-label-text">Auto Save</span>
         </label>
-        <span hidden id="md-last-modified-time">${lastModifiedTime}</span>
+        <span hidden id="md-last-modified-time-editor">${lastModifiedTime}</span>
     </div>
 </body>
 </html>

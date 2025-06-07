@@ -9,17 +9,17 @@ async function saveContent() {
 
     const elements = {
         filePath: document.getElementById('md-file-path'),
-        lastModifiedTime: document.getElementById('md-last-modified-time')
+        timestampOfFileInEditor: document.getElementById('md-last-modified-time-editor')
     };
 
-    if (!elements.filePath || !elements.lastModifiedTime) {
+    if (!elements.filePath || !elements.timestampOfFileInEditor) {
         console.error('Required elements not found');
         return;
     }
 
     const uri = '/saveMarkdown?' + new URLSearchParams({
         filename: elements.filePath.textContent,
-        lastModifiedTime: elements.lastModifiedTime.textContent
+        timestampOfFileInEditor: elements.timestampOfFileInEditor.textContent
     });
 
     const result = await fetch(uri, {
@@ -32,11 +32,24 @@ async function saveContent() {
     if (result.status === 409) {
         console.log('File was not saved, as it was modified after lastSaveTime');
         const resultBody = await result.text();
-        console.log(resultBody);
-        return;
-    }
 
-    console.debug(`Save result: ${result.statusText} ${result.status}`);
+        // parse the result body to get the new filename and the file update timestamp
+        const resultJson = JSON.parse(resultBody);
+        const newFilename = resultJson.newFilename;
+        console.error(`File was not saved, as it was modified after lastSaveTime. New filename: ${newFilename}`);
+
+        // raise an alert to the user
+        const alertMessage = `File was not saved, as it was modified after lastSaveTime. New filename: ${newFilename}`;
+        alert(alertMessage);
+    } else if (result.status === 200) {
+        const resultBody = await result.text();
+        const resultJson = JSON.parse(resultBody);
+        console.log(`File saved. New file timestamp: ${resultJson.timestampOfFileInEditor}`);
+
+        elements.timestampOfFileInEditor.innerHTML = resultJson.timestampOfFileInEditor;
+    } else {
+        console.error(`Save result: ${result.statusText} ${result.status}`);
+    }
 }
 
 function downloadExcel(outputFileName, markdownFileName) {

@@ -13,6 +13,9 @@ import uk.anbu.devnotes.service.ConfigService
 
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.nio.file.attribute.FileTime
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class MarkdownControllerSpec extends Specification {
 
@@ -136,23 +139,63 @@ class MarkdownControllerSpec extends Specification {
         tempDir.deleteDir()
     }
 
-    def "saveMarkdown() should save markdown content"() {
+    def "saveMarkdown() should save markdown content when no conflicts exist"() {
         given:
         def tempFile = Files.createTempFile("test", ".md")
         def content = "# New content"
         configService.getDocsDirectory() >> tempFile.toFile().parentFile.absolutePath
         Files.write(tempFile, content.getBytes())
+        Files.setLastModifiedTime(tempFile,
+                FileTime.fromMillis(System.currentTimeMillis() - 24 * 60 * 60 * 1000))
+        var lastModifiedTime = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
 
         when:
-        def response = controller.saveMarkdown(tempFile.fileName.toString(), false, content)
+        def response = controller.saveMarkdown(tempFile.fileName.toString(),
+                lastModifiedTime, content)
 
         then:
-        response.statusCode == HttpStatus.FOUND
-        response.headers.getFirst("Location") == "/markdown?filename=" + tempFile.fileName.toString() + "&edit=false"
+        response.statusCode == HttpStatus.OK
+        !response.body.conflict
+        response.body.newFilename == tempFile.fileName.toString()
         Files.readString(tempFile) == content
 
         cleanup:
         Files.deleteIfExists(tempFile)
+    }
+
+    def "saveMarkdown() should create conflict file when file was modified after editor timestamp"() {
+        given:
+        def tempFile = Files.createTempFile("test", ".md")
+        def content = "# New content"
+        configService.getDocsDirectory() >> tempFile.toFile().parentFile.absolutePath
+        Files.write(tempFile, "# Original content".getBytes())
+
+        // Set editor timestamp to 2 hours ago
+        def editorTimestamp = LocalDateTime.now()
+                .minusHours(2)
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+
+        // Set file timestamp to 1 hour ago (newer than editor)
+        Files.setLastModifiedTime(tempFile,
+                FileTime.fromMillis(System.currentTimeMillis() - 60 * 60 * 1000))
+
+        when:
+        def response = controller.saveMarkdown(tempFile.fileName.toString(),
+                editorTimestamp, content)
+
+        then:
+        response.statusCode == HttpStatus.CONFLICT
+        response.body.conflict
+        response.body.newFilename == tempFile.fileName.toString() + "_conflict"
+        response.body.timestampOfFileInEditor == editorTimestamp
+        Files.exists(tempFile.resolveSibling(response.body.newFilename))
+        Files.readString(tempFile.resolveSibling(response.body.newFilename)) == content
+        Files.readString(tempFile) == "# Original content"
+
+        cleanup:
+        Files.deleteIfExists(tempFile)
+        Files.deleteIfExists(tempFile.resolveSibling(response.body.newFilename))
     }
 
     def "Markdown with a sql error should render the error message"() {

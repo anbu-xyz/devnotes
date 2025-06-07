@@ -3,6 +3,8 @@ package uk.anbu.devnotes.controller;
 import gg.jte.TemplateEngine;
 import gg.jte.TemplateOutput;
 import gg.jte.output.StringOutput;
+import lombok.AllArgsConstructor;
+import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.MarkdownRenderer;
 import uk.anbu.devnotes.service.ConfigService;
@@ -62,6 +65,7 @@ public class MarkdownController {
             params.put("htmlContent", htmlContent);
             params.put("title", constructMarkdownTitle(filename, markdownRoot));
             params.put("lastModifiedTime", lastModifiedTime(markdownFile.fullPath()));
+            params.put("markdownFile", filename);
             templateEngine.render("render/markdown-viewer.jte", params, output);
 
             return ResponseEntity.ok()
@@ -298,32 +302,53 @@ public class MarkdownController {
                 .replace("'", "&#39;");
     }
 
+    @Data
+    @AllArgsConstructor
+    public static class SaveResult {
+        private String newFilename;
+        private boolean conflict;
+        private String timestampOfFileInEditor;
+    }
+
     @PostMapping("/saveMarkdown")
-    public ResponseEntity<String> saveMarkdown(@RequestParam(name = "filename", required = false) String filename,
-                                               @RequestParam(name = "edit", required = false, defaultValue = "false") boolean editMode,
-                                               @RequestParam(name = "lastModifiedTime", required = true) String lastModifiedTime,
-                                               @RequestBody String content) {
+    public @ResponseBody ResponseEntity<SaveResult> saveMarkdown(
+            @RequestParam(name = "filename", required = false) String filename,
+            @RequestParam(name = "timestampOfFileInEditor") String timestampOfFileInEditor,
+            @RequestBody String content) {
         try {
             var decodedFilename = URLDecoder.decode(filename, StandardCharsets.UTF_8);
             Path filePath = Paths.get(configService.getDocsDirectory(), decodedFilename);
 
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-            LocalDateTime dateTime = LocalDateTime.parse(lastModifiedTime, formatter);
+            LocalDateTime dateTime = LocalDateTime.parse(timestampOfFileInEditor, formatter);
 
-            long instant = Files.getLastModifiedTime(filePath).toInstant().getEpochSecond();
-            LocalDateTime fileDateTime = LocalDateTime.ofInstant(Instant.ofEpochSecond(instant), ZoneId.systemDefault());
-            if (fileDateTime.isAfter(dateTime)) {
+            long fileModifiedInstant = Files.getLastModifiedTime(filePath).toInstant().getEpochSecond();
+            LocalDateTime timestampOfFileOnDisk = LocalDateTime.ofInstant(Instant.ofEpochSecond(fileModifiedInstant),
+                    ZoneId.systemDefault());
+            // try to save file under a new filename
+            int num = 1;
+            var newFilename = filename + "_conflict";
+            while (Files.exists(filePath.getParent().resolve(newFilename))) {
+                newFilename = filename + "_conflict_" + num++;
+            }
+
+            if (timestampOfFileOnDisk.isAfter(dateTime)) {
+                Files.write(filePath.getParent().resolve(newFilename), content.getBytes());
                 return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body("File was modified after lastSaveTime. Request timestamp: " + lastModifiedTime +
-                                " file modified at "+ fileDateTime);
+                        .body(new SaveResult(newFilename, true, timestampOfFileInEditor));
             }
             Files.write(filePath, content.getBytes());
-            return ResponseEntity.status(HttpStatus.FOUND)
-                    .header(HttpHeaders.LOCATION, "/markdown?filename=" + decodedFilename + "&edit=false")
-                    .build();
+            long updatedFileInstant = Files.getLastModifiedTime(filePath).toInstant().getEpochSecond();
+            LocalDateTime timestampOfUpdatedFile = LocalDateTime.ofInstant(Instant.ofEpochSecond(updatedFileInstant),
+                    ZoneId.systemDefault());
+            return ResponseEntity
+                    .status(HttpStatus.OK)
+                    .body(new SaveResult(filename, false, timestampOfUpdatedFile.format(formatter)));
         } catch (Exception e) {
             log.error("Error saving markdown file", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error saving file");
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(
+                    new SaveResult(filename, false, timestampOfFileInEditor)
+            );
         }
     }
 }
