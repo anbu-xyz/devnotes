@@ -44,7 +44,7 @@ async function saveContent() {
     } else if (result.status === 200) {
         const resultBody = await result.text();
         const resultJson = JSON.parse(resultBody);
-        console.log(`File saved. New file timestamp: ${resultJson.timestampOfFileInEditor}`);
+        console.debug(`File saved. New file timestamp: ${resultJson.timestampOfFileInEditor}`);
 
         elements.timestampOfFileInEditor.innerHTML = resultJson.timestampOfFileInEditor;
     } else {
@@ -134,15 +134,38 @@ document.body.addEventListener('htmx:afterSwap', evt => {
     }
 });
 
+function isElementVisible(el) {
+    if (!el) return false;
+
+    const style = window.getComputedStyle(el);
+    const rect = el.getBoundingClientRect();
+
+    return (
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        style.opacity !== '0' &&
+        rect.width > 0 &&
+        rect.height > 0 &&
+        rect.bottom > 0 &&
+        rect.right > 0 &&
+        rect.top < (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.left < (window.innerWidth || document.documentElement.clientWidth)
+    );
+}
+
 //-----------------------------------------------------------------------------
 // Autosave
 //-----------------------------------------------------------------------------
 (function() {
-    setInterval(async () => {
+    let intervalId = setInterval(async () => {
         const autoSaveCheckbox = document.getElementById('autoSaveCheckbox');
         const markdownEditor = document.getElementById('markdownEditor');
-        if (autoSaveCheckbox?.checked && markdownEditor) {
-            await saveContent();
+        if (isElementVisible(autoSaveCheckbox)) {
+            if (autoSaveCheckbox?.checked && markdownEditor) {
+                await saveContent();
+            }
         }
     }, 60000);
+
+    console.debug(`Autosave interval ${intervalId} started`);
 })();

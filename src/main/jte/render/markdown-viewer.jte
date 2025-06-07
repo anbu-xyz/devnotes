@@ -11,8 +11,6 @@
 <body>
     <!-- Note: only the div is used by the htmx to display the editor. Refer to "markdown.jte"
     for the rest of the code -->
-
-    <p hidden id="conflict-file-path"></p>
     <div id="markdownViewer" x-cloak x-show="!editMode">
         $unsafe{htmlContent}
         <button id="editButton" @click="editMode = true; htmx.trigger('#hiddenEditButton', 'click')" class="btn-blue-glow">
