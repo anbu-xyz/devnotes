@@ -157,7 +157,7 @@ const pomodoro = {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
-                UpdateTimestamp: new Date().toISOString().split('.')[0],
+                updateTimestamp: new Date().toISOString().split('.')[0],
                 timeLeftInSeconds: this.minutes * 60 + this.seconds,
                 state: newState
             })
