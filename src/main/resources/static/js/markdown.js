@@ -68,8 +68,9 @@ function createHomeLink(elementId) {
         console.error('Required elements not found for home link creation');
         return;
     }
+    const markdownFileElement = document.getElementById('md-file-path');
+    const folderPath = markdownFileElement.textContent.split('/').slice(0, -1).join('/');
 
-    const folderPath = '${markdownFile}'.split('/').slice(0, -1).join('/');
     const elements = {
         folder: createLinkElement('folder-open', `renderDirectoryContents?directoryName=${encodeURIComponent(folderPath)}`),
         edit: createLinkElement('edit', '#', () => editButton.click())
