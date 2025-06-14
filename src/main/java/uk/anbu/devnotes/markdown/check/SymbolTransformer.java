@@ -12,7 +12,7 @@ public class SymbolTransformer {
 
             if (current instanceof Text) {
                 String literal = ((Text) current).getLiteral();
-                if (literal.contains("[v]") || literal.contains("[x]")) {
+                if (literal.contains("[-v-]") || literal.contains("[-x-]")) {
                     Node parent = current.getParent();
                     current.unlink();
                     insertSymbolNodes(parent, literal);
@@ -28,8 +28,8 @@ public class SymbolTransformer {
     private static void insertSymbolNodes(Node parent, String text) {
         int pos = 0;
         while (pos < text.length()) {
-            int indexV = text.indexOf("[v]", pos);
-            int indexX = text.indexOf("[x]", pos);
+            int indexV = text.indexOf("[-v-]", pos);
+            int indexX = text.indexOf("[-x-]", pos);
 
             // Find the next symbol to replace
             int index;
@@ -51,20 +51,11 @@ public class SymbolTransformer {
                 break;
             }
 
-            // Handle escape with backslash
-            if (index > 0 && text.charAt(index - 1) == '\\') {
-                // Append text up to and including the backslash
+            if (index > pos) {
                 parent.appendChild(new Text(text.substring(pos, index)));
-                // Append literal [v] or [x] without the backslash
-                parent.appendChild(new Text(text.substring(index, index + 3)));
-                pos = index + 3;
-            } else {
-                if (index > pos) {
-                    parent.appendChild(new Text(text.substring(pos, index)));
-                }
-                parent.appendChild(new SymbolNode(type));
-                pos = index + 3; // Move past `[v]` or `[x]`
             }
+            parent.appendChild(new SymbolNode(type));
+            pos = index + 5; // Move past `[-v-]` or `[-x-]`
         }
     }
 }
