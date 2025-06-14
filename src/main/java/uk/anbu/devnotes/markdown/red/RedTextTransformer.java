@@ -49,7 +49,7 @@ public class RedTextTransformer {
 
             // Extract red text
             String redContent = text.substring(start + 5, end);
-            parent.appendChild(new RedNode(redContent));
+            parent.appendChild(new RedTextNode(redContent));
             pos = end + 6;
         }
     }
