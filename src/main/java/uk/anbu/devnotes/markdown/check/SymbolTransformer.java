@@ -51,12 +51,20 @@ public class SymbolTransformer {
                 break;
             }
 
-            if (index > pos) {
+            // Handle escape with backslash
+            if (index > 0 && text.charAt(index - 1) == '\\') {
+                // Append text up to and including the backslash
                 parent.appendChild(new Text(text.substring(pos, index)));
+                // Append literal [v] or [x] without the backslash
+                parent.appendChild(new Text(text.substring(index, index + 3)));
+                pos = index + 3;
+            } else {
+                if (index > pos) {
+                    parent.appendChild(new Text(text.substring(pos, index)));
+                }
+                parent.appendChild(new SymbolNode(type));
+                pos = index + 3; // Move past `[v]` or `[x]`
             }
-
-            parent.appendChild(new SymbolNode(type));
-            pos = index + 3; // Move past `[v]` or `[x]`
         }
     }
 }
