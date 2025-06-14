@@ -400,3 +400,7 @@ table.sortable .btn-blue-glow i {
     border-style: solid;
     border-width: 1px;
 }
+
+.color-red {
+    color: #d76969;
+}

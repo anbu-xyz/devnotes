@@ -16,6 +16,8 @@ import org.commonmark.node.Text;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.HtmlRenderer;
+import uk.anbu.devnotes.markdown.red.RedNodeRenderer;
+import uk.anbu.devnotes.markdown.red.RedTextTransformer;
 import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.types.Markdown;
@@ -55,6 +57,7 @@ public class MarkdownRenderer {
     }
 
     public String convertMarkdown(Markdown markdown, MarkdownFile markdownFile) {
+        String markdownText = markdown.text();
         Integer codeBlockCounter = 0;
         List<Extension> extensions = List.of(TablesExtension.create(),
                 StrikethroughExtension.create(),
@@ -64,12 +67,14 @@ public class MarkdownRenderer {
         Parser parser = Parser.builder()
                 .extensions(extensions)
                 .build();
-        Node document = parser.parse(markdown.text());
+        Node document = parser.parse(markdownText);
         processDocument(document, markdownFile, codeBlockCounter);
         HtmlRenderer renderer = HtmlRenderer.builder()
                 .extensions(extensions)
+                .nodeRendererFactory(new RedNodeRenderer.Factory())
                 .attributeProviderFactory(context -> new ImageAttributeProvider())
                 .build();
+        RedTextTransformer.transform(document);
         return renderer.render(document);
     }
 

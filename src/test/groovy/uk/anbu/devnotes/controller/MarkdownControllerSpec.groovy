@@ -81,11 +81,11 @@ class MarkdownControllerSpec extends Specification {
         doc.select("body > p:nth-of-type(2)").text() == "Would you like to create it?"
     }
 
-    def "markdown() should render markdown content"() {
+    def "markdown() should render content correctly"() {
         given:
         def tempFile = Files.createTempFile("test", ".md")
         configService.getDocsDirectory() >> tempFile.toFile().parentFile.absolutePath
-        Files.write(tempFile, "# Test".getBytes())
+        Files.write(tempFile, content.getBytes())
 
         when:
         def response = controller.markdownViewer(tempFile.fileName.toString())
@@ -93,10 +93,15 @@ class MarkdownControllerSpec extends Specification {
         then:
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
-        doc.select("#markdownViewer > h1").text() == "Test"
+        doc.select(selector).first().toString() == expectedOutput
 
         cleanup:
         Files.deleteIfExists(tempFile)
+
+        where:
+        content                                               | selector               | expectedOutput
+        "# Test"                                              | "#markdownViewer > h1" | "<h1>Test</h1>"
+        "This is [red]important[/red] and [red]urgent[/red]!" | "#markdownViewer > p"  | "<p>This is <span class=\"color-red\">important</span> and <span class=\"color-red\">urgent</span>!</p>"
     }
 
     def "markdown() should interpret image location as relative to current document"() {
