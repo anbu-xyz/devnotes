@@ -16,7 +16,7 @@ import java.nio.file.Paths;
 @Slf4j
 @RequiredArgsConstructor
 @RestController
-public class AddTodoController {
+public class TodoController {
 
     private final ConfigService configService;
 
