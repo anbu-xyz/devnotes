@@ -17,12 +17,16 @@ public class LocalImageTransformer {
 
     public void transform(Node current) {
         if (current instanceof Image image) {
-            String fileLocation = markdownFile.fileName()
+            var markdownFilename =  markdownFile.fileName();
+            if (markdownFilename == null) {
+                markdownFilename = "";
+            }
+            String fileLocation = markdownFilename
                     .replaceAll("\\\\", "/") // Windows
                     .replaceFirst("/[^/]+$", ""); // Remove filename
             if (((Image) current).getDestination().startsWith("/plantumlContent?")) {
                 // do nothing - this is to allow the plantuml renderer to render the image
-            } else if (fileLocation.isEmpty() || fileLocation.equals(markdownFile.fileName())) { // If the file is in the root directory
+            } else if (fileLocation.isEmpty() || fileLocation.equals(markdownFilename)) { // If the file is in the root directory
                 image.setDestination("/image?filename=" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
             } else if (image.getDestination().startsWith("/")) {
                 image.setDestination("/image?filename=" + URLEncoder.encode(image.getDestination(), StandardCharsets.UTF_8));
