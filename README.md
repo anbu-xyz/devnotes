@@ -238,6 +238,10 @@ To run the project, run the following command:
 java -Ddevnotes.docsDirectory=/path/to/docs -jar target/devnotes-0.0.1-SNAPSHOT.jar prod
 ```
 
+## Adding todo items
+
+Tips can be found in the [todo-tip.md](docs/todo-tip.md) file.
+
 ## License
 This project is licensed under MIT license.
 

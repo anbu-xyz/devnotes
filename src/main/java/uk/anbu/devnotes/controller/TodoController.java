@@ -2,7 +2,6 @@ package uk.anbu.devnotes.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,9 +28,7 @@ public class TodoController {
             Path markdownRoot = Paths.get(configService.getDocsDirectory());
             Path todoFilePath = markdownRoot.resolve(filename);
             TodoModifier.addFleetingItem(todoFilePath, newTodoItem);
-            return ResponseEntity.status(HttpStatus.FOUND)
-                    .header(HttpHeaders.LOCATION, "/markdown?filename=/Todo.md")
-                    .build();
+            return ResponseEntity.status(HttpStatus.CREATED).build();
         } catch (Exception e) {
             log.error("Error adding fleeting item", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error adding fleeting item");
