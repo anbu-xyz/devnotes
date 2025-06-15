@@ -18,7 +18,10 @@ public class AwesomeBarController {
     @GetMapping("/awesome-bar/command")
     public ResponseEntity<String> postAwesomeBar(@RequestParam("q") String command) {
         log.info("Command: {}", command);
-        return commandExecutor.executeCommand(command);
+        String[] words = command.split("\\s+");
+        String firstWord = words[0];
+        String restOfCommand = command.substring(firstWord.length()).trim();
+        return commandExecutor.executeCommand(firstWord, restOfCommand);
     }
 
 }
