@@ -27,6 +27,7 @@ public class ConfigController {
         model.put("sshKeyFile", configService.getSshKey().orElse("Not set"));
         model.put("dataSources", configService.getDataSources());
         model.put("sqlMaxRows", configService.getSqlMaxRows());
+        model.put("chromeDriverLocation", configService.getChromeDriverLocation().orElse("Not set"));
         TemplateOutput output = new StringOutput();
         templateEngine.render("tools/config.jte", model, output);
         return ResponseEntity.status(HttpStatus.OK)
@@ -39,6 +40,7 @@ public class ConfigController {
         if (params.containsKey("sqlMaxRows")) {
             configService.setSqlMaxRows(Integer.parseInt(params.get("sqlMaxRows")));
         }
+        configService.setChromeDriverLocation(params.get("chromeDriverLocation"));
         configService.saveAndReloadConfig();
 
         return ResponseEntity.status(HttpStatus.FOUND)

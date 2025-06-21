@@ -5,6 +5,7 @@ spring.profiles.active: prod
 devnotes:
   docsDirectory: @user.home@/docs
   sshKeyFile:
+  chromeDriverLocation:
 
 # jte configuration
 gg.jte:

@@ -5,6 +5,7 @@
 @param String sshKeyFile
 @param Map<String, DataSourceConfig> dataSources
 @param Integer sqlMaxRows
+@param String chromeDriverLocation
 
 <!DOCTYPE html>
 <html>
@@ -19,6 +20,11 @@
 <form action="/config" method="post" class="config-form">
     Markdown Directory: ${markdownDirectory}<br>
     SSH Key File: ${sshKeyFile}
+
+    <div class="form-group">
+        <label for="chromeDriverLocation">Chrome Driver Location:</label>
+        <input type="text" id="chromeDriverLocation" name="chromeDriverLocation" value="${chromeDriverLocation}" class="config-input">
+    </div>
 
     <div class="form-group">
         <label for="sqlMaxRows">Max SQL Result Rows:</label>

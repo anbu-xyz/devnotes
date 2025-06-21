@@ -24,6 +24,8 @@ public class ConfigService {
     private String docsDirectory;
     @Value("${devnotes.sshKeyFile}")
     private String sshKeyFile;
+    @Value("${devnotes.chromeDriverLocation}")
+    private String chromeDriverLocation;
     @Value("${devnotes.sql.maxRows:1000}")
     private int sqlMaxRows;
     private Map<String, DataSourceConfig> dataSources;
@@ -40,6 +42,7 @@ public class ConfigService {
         }
         log.info("Document root directory {}", docsDirectory);
         loadDataSourceConfigs();
+        loadOtherConfigs();
     }
 
     private void loadDataSourceConfigs() {
@@ -86,8 +89,35 @@ public class ConfigService {
     }
 
     public void saveAndReloadConfig() {
+        saveOtherConfigs();
         saveDataSourceConfigs();
         loadDataSourceConfigs();
+        loadOtherConfigs();
+    }
+
+    private void loadOtherConfigs() {
+        File otherConfigsFile = new File(docsDirectory, "config/config.yaml");
+        if (otherConfigsFile.exists()) {
+            ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+            try {
+                OtherConfigs otherConfigs = mapper.readValue(otherConfigsFile, OtherConfigs.class);
+                this.sqlMaxRows = otherConfigs.sqlMaxRows();
+                this.chromeDriverLocation = otherConfigs.chromeDriverLocation();
+            } catch (IOException e) {
+                throw new RuntimeException("Failed to load other configurations", e);
+            }
+            log.info("Loaded other configurations");
+        }
+    }
+
+    private void saveOtherConfigs() {
+        File otherConfigsFile = new File(docsDirectory, "config/config.yaml");
+        ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
+        try {
+            mapper.writeValue(otherConfigsFile, new OtherConfigs(sqlMaxRows, chromeDriverLocation));
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to save other configurations", e);
+        }
     }
 
     private void saveDataSourceConfigs() {
@@ -112,6 +142,17 @@ public class ConfigService {
         }
     }
 
+    public Optional<String> getChromeDriverLocation() {
+        if (chromeDriverLocation == null || chromeDriverLocation.isEmpty() || chromeDriverLocation.isBlank()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(chromeDriverLocation);
+        }
+    }
+
     public record DataSourceConfig(String name, String url, String username, String password, String driverClassName) {
+    }
+
+    public record OtherConfigs(int sqlMaxRows, String chromeDriverLocation) {
     }
 }

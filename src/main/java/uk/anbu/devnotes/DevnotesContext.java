@@ -12,7 +12,7 @@ public class DevnotesContext {
     @Bean
     MarkdownRenderer markdownRenderer(ConfigService configService,
                                       SqlExecutor sqlExecutor) {
-        GroovyExecutor groovyExecutor = new GroovyExecutor();
+        GroovyExecutor groovyExecutor = new GroovyExecutor(configService::getChromeDriverLocation);
         return new MarkdownRenderer(
                 sqlExecutor::renderResultAsJsonFile,
                 sqlExecutor::convertToHtmlTable,

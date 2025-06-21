@@ -14,11 +14,20 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 
 @Slf4j
 public class GroovyExecutor {
+
+    private final Supplier<Optional<String>> chromeDriverLocationSupplier;
+
+    public GroovyExecutor(Supplier<Optional<String>> chromeDriverLocationSupplier) {
+        this.chromeDriverLocationSupplier = chromeDriverLocationSupplier;
+    }
 
     public Node processGroovyCodeBlock(GroovyCodeBlockRequest request) {
         String outputFileName = generateOutputFileName(request.markdownFile(), request.groovyScript);
@@ -102,6 +111,12 @@ public class GroovyExecutor {
         try {
             log.info("Executing Groovy script");
             log.trace("Script source:\n{}", script);
+            if (chromeDriverLocationSupplier.get().isPresent()) {
+                log.info("Setting chrome driver location to {}", chromeDriverLocationSupplier.get().get());
+                System.setProperty("webdriver.chrome.driver", Objects.requireNonNull(chromeDriverLocationSupplier.get().orElse(null)));
+            } else {
+                log.info("Chrome driver location not set");
+            }
             Object result = shell.evaluate(script);
             log.info("Finished executing Groovy script");
             log.trace("Script result:\n{}", result);
