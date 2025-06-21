@@ -11,7 +11,6 @@ import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.HtmlRenderer;
-import uk.anbu.devnotes.markdown.check.SymbolNodeRenderer;
 import uk.anbu.devnotes.markdown.check.SymbolTransformer;
 import uk.anbu.devnotes.markdown.code.CodeBlockTransformer;
 import uk.anbu.devnotes.markdown.image.LocalImageTransformer;
@@ -77,7 +76,6 @@ public class MarkdownRenderer {
         HtmlRenderer renderer = HtmlRenderer.builder()
                 .extensions(extensions)
                 .nodeRendererFactory(new RedTextNodeRenderer.Factory())
-                .nodeRendererFactory(new SymbolNodeRenderer.Factory())
                 .attributeProviderFactory(context -> new ImageAttributeProvider())
                 .build();
         return renderer.render(document);

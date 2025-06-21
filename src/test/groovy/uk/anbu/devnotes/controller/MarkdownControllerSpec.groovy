@@ -93,16 +93,17 @@ class MarkdownControllerSpec extends Specification {
         then:
         Document doc = Jsoup.parse(response.body.toString())
         response.statusCode == HttpStatus.OK
-        doc.select(selector).first().toString() == expectedOutput
+        doc.select(selector).first().toString().replaceAll("\n *", "") == expectedOutput
 
         cleanup:
         Files.deleteIfExists(tempFile)
 
         where:
-        content                                                | selector               | expectedOutput
-        "# Test"                                               | "#markdownViewer > h1" | "<h1>Test</h1>"
-        "This is [red]important[/red] and [red]urgent[/red]!"  | "#markdownViewer > p"  | "<p>This is <span class=\"color-red\">important</span> and <span class=\"color-red\">urgent</span>!</p>"
-        "Checklist: [-v-] Task 1, [-x-] Task 2, [-v-] Task 3." | "#markdownViewer > p"  | "<p>Checklist: ✓ Task 1, ✗ Task 2, ✓ Task 3.</p>"
+        content                                                        | selector               | expectedOutput
+        "# Test"                                                       | "#markdownViewer > h1" | "<h1>Test</h1>"
+        "This is [red]important[/red] and [red]urgent[/red]!"          | "#markdownViewer > p"  | "<p>This is <span class=\"color-red\">important</span> and <span class=\"color-red\">urgent</span>!</p>"
+        "Checklist: [-v-] Task 1, [-x-] Task 2, [-v-] Task 3."         | "#markdownViewer > p"  | "<p>Checklist: ✓ Task 1, ✗ Task 2, ✓ Task 3.</p>"
+        "Checklist: <br>[-v-] Task 1, <br>[-x-] Task 2, [-v-] Task 3." | "#markdownViewer > p"  | "<p>Checklist: <br>✓ Task 1, <br>✗ Task 2, ✓ Task 3.</p>"
 
     }
 

@@ -6,56 +6,31 @@ import org.commonmark.node.Text;
 public class SymbolTransformer {
 
     public static void transform(Node node) {
-        Node current = node.getFirstChild();
-        while (current != null) {
-            Node next = current.getNext();
+        while (node != null) {
+            Node firstChild = node.getFirstChild();
 
-            if (current instanceof Text) {
-                String literal = ((Text) current).getLiteral();
-                if (literal.contains("[-v-]") || literal.contains("[-x-]")) {
-                    Node parent = current.getParent();
-                    current.unlink();
-                    insertSymbolNodes(parent, literal);
+            if (node instanceof Text) {
+                String literal = ((Text) node).getLiteral();
+                Text newText = new Text(literal);
+                boolean replaced = false;
+                if (literal.contains("[-v-]")) {
+                    newText = new Text(newText.getLiteral().replace("[-v-]", "✓"));
+                    replaced = true;
                 }
-            } else {
-                transform(current);
+                if (literal.contains("[-x-]")) {
+                    newText = new Text(newText.getLiteral().replace("[-x-]", "✗"));
+                    replaced = true;
+                }
+                if (replaced) {
+                    node.insertBefore(newText);
+                    node.unlink();
+                    node = newText;
+                }
             }
-
-            current = next;
-        }
-    }
-
-    private static void insertSymbolNodes(Node parent, String text) {
-        int pos = 0;
-        while (pos < text.length()) {
-            int indexV = text.indexOf("[-v-]", pos);
-            int indexX = text.indexOf("[-x-]", pos);
-
-            // Find the next symbol to replace
-            int index;
-            SymbolNode.Type type;
-
-            if (indexV == -1 && indexX == -1) {
-                index = -1;
-                type = null;
-            } else if (indexV != -1 && (indexX == -1 || indexV < indexX)) {
-                index = indexV;
-                type = SymbolNode.Type.CHECK;
-            } else {
-                index = indexX;
-                type = SymbolNode.Type.CROSS;
+            if (node.getFirstChild() != null) {
+                transform(firstChild);
             }
-
-            if (index == -1) {
-                parent.appendChild(new Text(text.substring(pos)));
-                break;
-            }
-
-            if (index > pos) {
-                parent.appendChild(new Text(text.substring(pos, index)));
-            }
-            parent.appendChild(new SymbolNode(type));
-            pos = index + 5; // Move past `[-v-]` or `[-x-]`
+            node = node.getNext();
         }
     }
 }
