@@ -1,12 +1,12 @@
 package uk.anbu.devnotes.module;
 
-import groovy.lang.GroovyShell;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Node;
 import org.commonmark.node.Text;
 import uk.anbu.devnotes.types.MarkdownFile;
+import uk.anbu.devnotes.util.GroovyShellRunner;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -21,11 +21,11 @@ import java.util.function.Supplier;
 import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 
 @Slf4j
-public class GroovyExecutor {
+public class GroovyRenderer {
 
     private final Supplier<Optional<String>> chromeDriverLocationSupplier;
 
-    public GroovyExecutor(Supplier<Optional<String>> chromeDriverLocationSupplier) {
+    public GroovyRenderer(Supplier<Optional<String>> chromeDriverLocationSupplier) {
         this.chromeDriverLocationSupplier = chromeDriverLocationSupplier;
     }
 
@@ -34,15 +34,16 @@ public class GroovyExecutor {
         Path outputPath = Paths.get(outputFileName);
 
         String output;
+        setEnvVariables();
         if (request.config().cachingEnabled()) {
             if (Files.exists(outputPath)) {
                 output = readFromFile(outputPath, outputFileName);
             } else {
-                output = executeGroovyScript(request.groovyScript);
+                output = GroovyShellRunner.execute(request.groovyScript);
                 saveOutput(outputFileName, output);
             }
         } else {
-            output = executeGroovyScript(request.groovyScript);
+            output = GroovyShellRunner.execute(request.groovyScript);
         }
 
         // Replace the code block with the output
@@ -62,6 +63,15 @@ public class GroovyExecutor {
         } else {
             return new Text(String.format("Error: Unknown target type '%s', use target type 'html', 'text', " +
                     "'code-block', 'csv-table' or 'csv-table-with-header'", request.targetType));
+        }
+    }
+
+    private void setEnvVariables() {
+        if (chromeDriverLocationSupplier.get().isPresent()) {
+            log.info("Setting chrome driver location to {}", chromeDriverLocationSupplier.get().get());
+            System.setProperty("webdriver.chrome.driver", Objects.requireNonNull(chromeDriverLocationSupplier.get().orElse(null)));
+        } else {
+            log.info("Chrome driver location not set");
         }
     }
 
@@ -104,27 +114,6 @@ public class GroovyExecutor {
         HtmlBlock htmlBlock = new HtmlBlock();
         htmlBlock.setLiteral(tableHtml.toString());
         return htmlBlock;
-    }
-
-    private String executeGroovyScript(String script) {
-        GroovyShell shell = new GroovyShell();
-        try {
-            log.info("Executing Groovy script");
-            log.trace("Script source:\n{}", script);
-            if (chromeDriverLocationSupplier.get().isPresent()) {
-                log.info("Setting chrome driver location to {}", chromeDriverLocationSupplier.get().get());
-                System.setProperty("webdriver.chrome.driver", Objects.requireNonNull(chromeDriverLocationSupplier.get().orElse(null)));
-            } else {
-                log.info("Chrome driver location not set");
-            }
-            Object result = shell.evaluate(script);
-            log.info("Finished executing Groovy script");
-            log.trace("Script result:\n{}", result);
-            return result != null ? result.toString() : "";
-        } catch (Exception e) {
-            log.error("Error executing Groovy script", e);
-            return "Error: " + e.getMessage();
-        }
     }
 
     private void saveOutput(String fileName, String content) {

@@ -7,7 +7,7 @@ import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Image;
 import org.commonmark.node.Node;
 import org.commonmark.node.Text;
-import uk.anbu.devnotes.module.GroovyExecutor;
+import uk.anbu.devnotes.module.GroovyRenderer;
 import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.types.MarkdownFile;
@@ -33,7 +33,7 @@ public class CodeBlockTransformer {
     private final MarkdownFile markdownFile;
     private final Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver;
     private final Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver;
-    private final Function<GroovyExecutor.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver;
+    private final Function<GroovyRenderer.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver;
     private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
 
     public void transform(Node current) {
@@ -97,8 +97,8 @@ public class CodeBlockTransformer {
         String groovyScript = codeBlock.getLiteral();
 
         String targetType = codeType.substring("groovy:".length(), openParenIndex);
-        var groovyCodeBlockRequest = new GroovyExecutor.GroovyCodeBlockRequest(groovyScript, targetType,
-                markdownFile, GroovyExecutor.GroovyCodeBlockConfig.fromMap(configMap));
+        var groovyCodeBlockRequest = new GroovyRenderer.GroovyCodeBlockRequest(groovyScript, targetType,
+                markdownFile, GroovyRenderer.GroovyCodeBlockConfig.fromMap(configMap));
         var node = groovyCodeBlockResolver.apply(groovyCodeBlockRequest);
         codeBlock.insertAfter(node);
         codeBlock.setInfo("hidden-groovy");

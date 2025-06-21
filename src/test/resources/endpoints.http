@@ -1,0 +1,9 @@
+GET http://localhost:8080/groovyToText
+
+"Hello World"
+
+###
+POST http://localhost:8080/addFleetingItem
+Content-Type: application/text
+
+"yet another item"

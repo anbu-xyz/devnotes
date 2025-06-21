@@ -35,12 +35,12 @@ public class MarkdownRenderer {
 
     private final Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver;
     private final Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver;
-    private final Function<GroovyExecutor.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver;
+    private final Function<GroovyRenderer.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver;
     private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
 
     public MarkdownRenderer(Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver,
                             Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver,
-                            Function<GroovyExecutor.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver,
+                            Function<GroovyRenderer.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver,
                             Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver) {
         this.sqlToJsonFileResolver = sqlToJsonFileResolver;
         this.sqlToHtmlTableResolver = sqlToHtmlTableResolver;
