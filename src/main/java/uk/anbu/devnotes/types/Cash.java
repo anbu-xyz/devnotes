@@ -1,5 +1,7 @@
 package uk.anbu.devnotes.types;
 
+import uk.anbu.devnotes.cash.CurrencyCodes;
+
 import java.math.BigDecimal;
 
 public record Cash(BigDecimal amount, String currency) {
@@ -11,6 +13,9 @@ public record Cash(BigDecimal amount, String currency) {
     }
 
     public static Cash from(String currency, BigDecimal amount) {
+        if (CurrencyCodes.getByAlphabeticCode(currency) == null) {
+            throw new IllegalArgumentException("Invalid currency: " + currency);
+        }
         return new Cash(amount, currency);
     }
 

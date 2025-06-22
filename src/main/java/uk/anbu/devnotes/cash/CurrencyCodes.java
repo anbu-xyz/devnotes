@@ -1,9 +1,7 @@
 package uk.anbu.devnotes.cash;
 
-import jakarta.annotation.PostConstruct;
-import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import uk.anbu.devnotes.types.CurrencyCode;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -16,21 +14,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-@Component
 @Slf4j
 public class CurrencyCodes {
     // Currency codes data source: https://datahub.io/core/currency-codes#codes-all
 
-    private final Map<String, CurrencyCode> currencyCodesByAlpha = new HashMap<>();
-    private final Map<String, CurrencyCode> currencyCodesByNumeric = new HashMap<>();
+    private static final Map<String, CurrencyCode> currencyCodesByAlpha = new HashMap<>();
+    private static final Map<String, CurrencyCode> currencyCodesByNumeric = new HashMap<>();
 
-    @Builder
-    public record CurrencyCode(String entity, String currency, String alphabeticCode,
-                               String numericCode, int minorUnit, String withdrawalDate) {
+    static {
+        try {
+            loadCurrencyCodes();
+        } catch (Exception e) {
+            log.error("Error loading currency codes", e);
+        }
     }
 
-    @PostConstruct
-    public void loadCurrencyCodes() {
+    static public void loadCurrencyCodes() {
         try (InputStream is = CurrencyCodes.class.getResourceAsStream("/currency-codes.csv");
              BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
 
@@ -52,7 +51,7 @@ public class CurrencyCodes {
         }
     }
 
-    Optional<CurrencyCode> processLine(String line) {
+    static Optional<CurrencyCode> processLine(String line) {
         if (line == null || line.isEmpty()) {
             log.warn("Empty currency code line");
             return Optional.empty();
@@ -92,7 +91,7 @@ public class CurrencyCodes {
         );
     }
 
-    private List<String> parseCsvLine(String line) {
+    private static List<String> parseCsvLine(String line) {
         List<String> values = new ArrayList<>();
         StringBuilder currentValue = new StringBuilder();
         boolean inQuotes = false;
@@ -112,12 +111,16 @@ public class CurrencyCodes {
         return Collections.unmodifiableList(values);
     }
 
-    public CurrencyCode getByAlphabeticCode(String code) {
+    public static CurrencyCode getByAlphabeticCode(String code) {
         return currencyCodesByAlpha.get(code);
     }
 
-    public CurrencyCode getByNumericCode(String code) {
+    public static CurrencyCode getByNumericCode(String code) {
         return currencyCodesByNumeric.get(code);
+    }
+
+    public static boolean isValidCurrencyCode(String code) {
+        return getByAlphabeticCode(code) != null;
     }
 
 }
