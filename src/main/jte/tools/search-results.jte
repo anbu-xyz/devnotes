@@ -23,7 +23,9 @@
 
         @for(SearchResult result : results)
             <div class="search-result-item">
-                <h3 class="file-name">${result.fileName()}</h3>
+                <a href="/markdown?filename=${result.fileName()}">
+                    <h3 class="file-name">${result.fileName()}</h3>
+                </a>
                 @if(result.preview() != null && !result.preview().isEmpty())
                     <p class="content-preview">
                         ${result.preview()}

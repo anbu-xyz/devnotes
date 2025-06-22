@@ -9,4 +9,4 @@ Content-Type: application/text
 "yet another item"
 
 ###
-GET http://localhost:8080/search?q=TODO,caseSensitive=true
+GET http://localhost:8080/search?q=TODO&json=true,caseSensitive=true
