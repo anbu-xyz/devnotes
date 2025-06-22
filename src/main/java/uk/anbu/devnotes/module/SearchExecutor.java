@@ -41,11 +41,10 @@ public class SearchExecutor {
             }
 
             if (allWordsFound) {
-                // Use first word for preview context
                 int index = searchContent.indexOf(words[0]);
                 int start = Math.max(0, index - 100);
                 int end = Math.min(searchContent.length(), index + words[0].length() + 100);
-                preview.append(fileContent.substring(start, end)).append("...\n");
+                preview.append(fileContent, start, end).append("...\n");
 
                 results.add(new SearchResult(file.getName(), preview.toString()));
             }

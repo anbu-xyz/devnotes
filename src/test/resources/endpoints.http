@@ -10,3 +10,6 @@ Content-Type: application/text
 
 ###
 GET http://localhost:8080/search?q=TODO&json=true,caseSensitive=true
+
+###
+GET http://localhost:8080/searchLocation?q=TODO&json=true
