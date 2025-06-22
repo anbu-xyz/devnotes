@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.CommandExecutor;
+import uk.anbu.devnotes.types.Command;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,7 +22,7 @@ public class AwesomeBarController {
         String[] words = command.split("\\s+");
         String firstWord = words[0];
         String restOfCommand = command.substring(firstWord.length()).trim();
-        return commandExecutor.executeCommand(firstWord, restOfCommand);
+        return commandExecutor.executeCommand(new Command(firstWord, restOfCommand));
     }
 
 }
