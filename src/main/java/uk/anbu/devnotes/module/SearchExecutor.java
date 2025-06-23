@@ -46,7 +46,11 @@ public class SearchExecutor {
                 int end = Math.min(searchContent.length(), index + words[0].length() + 100);
                 preview.append(fileContent, start, end).append("...\n");
 
-                results.add(new SearchResult(file.getName(), preview.toString()));
+                // find relative path to file
+                String relativePath = new File(docsDirectory).toURI()
+                        .relativize(file.toURI()).getPath();
+
+                results.add(new SearchResult(relativePath, preview.toString()));
             }
         }
         return results;

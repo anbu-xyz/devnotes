@@ -27,6 +27,19 @@ class SearchExecutorSpec extends Specification {
         results[0].preview.contains("Content")
     }
 
+    def "should correctly find files in subdirectories"() {
+        given:
+        new File(tempDir, "subdir").mkdir()
+        createTestFile(new File(tempDir, "subdir/test3.md"), "This is a test file with some Content")
+
+        when:
+        def results = searchExecutor.search("Content", true)
+
+        then:
+        results.size() == 1
+        results*.fileName == ["subdir/test3.md"]
+    }
+
     def "should find matches in files case insensitive"() {
         given:
         createTestFile("test1.md", "This is a test file with some Content")
@@ -102,5 +115,10 @@ class SearchExecutorSpec extends Specification {
 
     private void createTestFile(String fileName, String content) {
         new File(tempDir, fileName).text = content
+    }
+
+    private void createTestFile(File file, String content) {
+        file.parentFile.mkdirs()
+        file.text = content
     }
 }
