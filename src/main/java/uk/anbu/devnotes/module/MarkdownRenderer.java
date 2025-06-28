@@ -23,9 +23,6 @@ import uk.anbu.devnotes.types.Markdown;
 import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -35,12 +32,12 @@ public class MarkdownRenderer {
 
     private final Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver;
     private final Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver;
-    private final Function<GroovyRenderer.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver;
+    private final Function<GroovyRenderer.GroovyCodeBlockRequest, GroovyRenderer.GroovyOutput> groovyCodeBlockResolver;
     private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
 
     public MarkdownRenderer(Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver,
                             Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver,
-                            Function<GroovyRenderer.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver,
+                            Function<GroovyRenderer.GroovyCodeBlockRequest, GroovyRenderer.GroovyOutput> groovyCodeBlockResolver,
                             Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver) {
         this.sqlToJsonFileResolver = sqlToJsonFileResolver;
         this.sqlToHtmlTableResolver = sqlToHtmlTableResolver;
@@ -81,29 +78,6 @@ public class MarkdownRenderer {
         return renderer.render(document);
     }
 
-    public static String generateOutputFileName(MarkdownFile markdownFile, String scriptText) {
-        String hash = generateHash(scriptText);
-        var fileName = Paths.get(markdownFile.fileName()).getFileName().toString();
-        var generatedFileName = fileName.replaceFirst("[.][^.]+$", "") + "." + hash + ".output";
-        return markdownFile.fullPath().getParent().resolve(generatedFileName).toString();
-    }
-
-    private static String generateHash(String input) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(input.getBytes());
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hash) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
-            }
-            return hexString.substring(0, 16); // Use first 16 characters of the hash
-        } catch (NoSuchAlgorithmException e) {
-            log.error("Error generating hash", e);
-            return "error";
-        }
-    }
 
     public static class ImageAttributeProvider implements AttributeProvider {
         @Override

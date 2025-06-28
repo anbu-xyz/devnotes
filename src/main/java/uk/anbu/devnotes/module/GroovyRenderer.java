@@ -5,20 +5,14 @@ import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Node;
 import org.commonmark.node.Text;
-import uk.anbu.devnotes.types.MarkdownFile;
 import uk.anbu.devnotes.util.GroovyShellRunner;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
 
-import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
 
 @Slf4j
 public class GroovyRenderer {
@@ -29,40 +23,30 @@ public class GroovyRenderer {
         this.chromeDriverLocationSupplier = chromeDriverLocationSupplier;
     }
 
-    public Node processGroovyCodeBlock(GroovyCodeBlockRequest request) {
-        String outputFileName = generateOutputFileName(request.markdownFile(), request.groovyScript);
-        Path outputPath = Paths.get(outputFileName);
-
-        String output;
+    public GroovyOutput processGroovyCodeBlock(GroovyCodeBlockRequest request) {
         setEnvVariables();
-        if (request.config().cachingEnabled()) {
-            if (Files.exists(outputPath)) {
-                output = readFromFile(outputPath, outputFileName);
-            } else {
-                output = GroovyShellRunner.execute(request.groovyScript);
-                saveOutput(outputFileName, output);
-            }
-        } else {
-            output = GroovyShellRunner.execute(request.groovyScript);
-        }
+        var outputString = GroovyShellRunner.execute(request.groovyScript);
+        var node = convertOutputToNode(request.targetType, outputString);
+        return new GroovyOutput(outputString, node);
+    }
 
-        // Replace the code block with the output
-        if ("html".equals(request.targetType)) {
+    public static Node convertOutputToNode(String targetType, String output) {
+        if ("html".equals(targetType)) {
             HtmlBlock htmlBlock = new HtmlBlock();
             htmlBlock.setLiteral(output);
             return htmlBlock;
-        } else if ("text".equals(request.targetType)) {
+        } else if ("text".equals(targetType)) {
             return new Text(output);
-        } else if ("code-block".equals(request.targetType)) {
+        } else if ("code-block".equals(targetType)) {
             FencedCodeBlock fencedCodeBlock = new FencedCodeBlock();
             fencedCodeBlock.setInfo("text");
             fencedCodeBlock.setLiteral(output);
             return fencedCodeBlock;
-        } else if ("csv-table".equals(request.targetType) || "csv-table-with-header".equals(request.targetType)) {
-            return csvToHtmlTable(request.targetType, output);
+        } else if ("csv-table".equals(targetType) || "csv-table-with-header".equals(targetType)) {
+            return csvToHtmlTable(targetType, output);
         } else {
             return new Text(String.format("Error: Unknown target type '%s', use target type 'html', 'text', " +
-                    "'code-block', 'csv-table' or 'csv-table-with-header'", request.targetType));
+                    "'code-block', 'csv-table' or 'csv-table-with-header'", targetType));
         }
     }
 
@@ -73,19 +57,6 @@ public class GroovyRenderer {
         } else {
             log.info("Chrome driver location not set");
         }
-    }
-
-    private static String readFromFile(Path outputPath, String outputFileName) {
-        String output;
-        // If the output file already exists, read its content
-        try {
-            output = Files.readString(outputPath);
-            log.info("Using existing output file: {}", outputFileName);
-        } catch (IOException e) {
-            log.error("Error reading existing output file: {}", outputFileName, e);
-            output = "Error: Unable to read existing output file";
-        }
-        return output;
     }
 
     private static Node csvToHtmlTable(String targetType, String output) {
@@ -116,16 +87,6 @@ public class GroovyRenderer {
         return htmlBlock;
     }
 
-    private void saveOutput(String fileName, String content) {
-        try {
-            Path outputPath = Paths.get(fileName);
-            Files.createDirectories(outputPath.getParent());
-            Files.write(outputPath, content.getBytes());
-        } catch (IOException e) {
-            log.error("Error saving output file", e);
-        }
-    }
-
     public record GroovyCodeBlockConfig(Boolean cachingEnabled) {
         // constructor to parse from Map<String, String>
         public static GroovyCodeBlockConfig fromMap(Map<String, String> configMap) {
@@ -134,6 +95,7 @@ public class GroovyRenderer {
         }
     }
 
-    public record GroovyCodeBlockRequest(String groovyScript, String targetType, MarkdownFile markdownFile,
-                                         GroovyCodeBlockConfig config) {}
+    public record GroovyCodeBlockRequest(String groovyScript, String targetType, GroovyCodeBlockConfig config) {}
+
+    public record GroovyOutput(String outputString, Node node) {}
 }

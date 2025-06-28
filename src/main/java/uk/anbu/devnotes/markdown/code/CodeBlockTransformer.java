@@ -14,7 +14,9 @@ import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -23,6 +25,11 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static uk.anbu.devnotes.module.GroovyRenderer.convertOutputToNode;
+import static uk.anbu.devnotes.util.FileBasedCache.generateOutputFileName;
+import static uk.anbu.devnotes.util.FileBasedCache.readFromFile;
+import static uk.anbu.devnotes.util.FileBasedCache.saveOutput;
 
 @Slf4j
 @Builder
@@ -33,12 +40,12 @@ public class CodeBlockTransformer {
     private final MarkdownFile markdownFile;
     private final Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver;
     private final Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver;
-    private final Function<GroovyRenderer.GroovyCodeBlockRequest, Node> groovyCodeBlockResolver;
+    private final Function<GroovyRenderer.GroovyCodeBlockRequest, GroovyRenderer.GroovyOutput> groovyCodeBlockResolver;
     private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
 
     public void transform(Node current) {
         if (current instanceof FencedCodeBlock) {
-            processFencedCodeBlock((FencedCodeBlock) current, markdownFile);
+            processFencedCodeBlock((FencedCodeBlock) current);
         }
         if (current.getNext() != null) {
             transform(current.getNext());
@@ -48,7 +55,7 @@ public class CodeBlockTransformer {
         }
     }
 
-    private void processFencedCodeBlock(FencedCodeBlock codeBlock, MarkdownFile markdownFile) {
+    private void processFencedCodeBlock(FencedCodeBlock codeBlock) {
         String codeType = codeBlock.getInfo();
         // match codeType of format "groovy:targetType(config1:value1,config2:value2) or "groovy:targetType"
         if (codeType.matches("^groovy:([^(]+)\\(.*\\)$") || codeType.matches("^groovy:([^(]+)$")) {
@@ -98,8 +105,25 @@ public class CodeBlockTransformer {
 
         String targetType = codeType.substring("groovy:".length(), openParenIndex);
         var groovyCodeBlockRequest = new GroovyRenderer.GroovyCodeBlockRequest(groovyScript, targetType,
-                markdownFile, GroovyRenderer.GroovyCodeBlockConfig.fromMap(configMap));
-        var node = groovyCodeBlockResolver.apply(groovyCodeBlockRequest);
+                GroovyRenderer.GroovyCodeBlockConfig.fromMap(configMap));
+
+        String outputFileName = generateOutputFileName(markdownFile, groovyScript);
+        Path outputPath = Paths.get(outputFileName);
+
+        Node node;
+        if (groovyCodeBlockRequest.config().cachingEnabled()) {
+            if (Files.exists(outputPath)) {
+                String output = readFromFile(outputPath, outputFileName);
+                node = convertOutputToNode(targetType, output);
+            } else {
+                var output = groovyCodeBlockResolver.apply(groovyCodeBlockRequest);
+                saveOutput(outputPath, output.outputString());
+                node = output.node();
+            }
+        } else {
+            var output = groovyCodeBlockResolver.apply(groovyCodeBlockRequest);
+            node = output.node();
+        }
         codeBlock.insertAfter(node);
         codeBlock.setInfo("hidden-groovy");
     }

@@ -47,7 +47,7 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.*;
 
-import static uk.anbu.devnotes.module.MarkdownRenderer.generateOutputFileName;
+import static uk.anbu.devnotes.util.FileBasedCache.generateOutputFileName;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -132,7 +132,6 @@ public class SqlExecutor {
             jsonGenerator.close();
         } catch (Exception e) {
             log.error("Error executing SQL query", e);
-            // write a json result with error message to the output file
             writeErrorMessage(e, outputPath);
         }
         return outputPath;
