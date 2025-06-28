@@ -13,7 +13,7 @@ import java.security.NoSuchAlgorithmException;
 @Slf4j
 public class FileBasedCache {
 
-    public static String generateOutputFileName(MarkdownFile markdownFile, String scriptText) {
+    public static String generateCacheFileName(MarkdownFile markdownFile, String scriptText) {
         String hash = generateHash(scriptText);
         var fileName = Paths.get(markdownFile.fileName()).getFileName().toString();
         var generatedFileName = fileName.replaceFirst("[.][^.]+$", "") + "." + hash + ".outputString";
@@ -37,10 +37,10 @@ public class FileBasedCache {
         }
     }
 
-    public static String readFromFile(Path outputPath, String outputFileName) {
+    public static String readFromFile(Path outputFile, String outputFileName) {
         String output;
         try {
-            output = Files.readString(outputPath);
+            output = Files.readString(outputFile);
             log.info("Using existing outputString file: {}", outputFileName);
         } catch (IOException e) {
             log.error("Error reading existing outputString file: {}", outputFileName, e);
@@ -49,10 +49,10 @@ public class FileBasedCache {
         return output;
     }
 
-    public static void saveOutput(Path outputPath, String content) {
+    public static void saveOutput(Path outputFile, String content) {
         try {
-            Files.createDirectories(outputPath.getParent());
-            Files.write(outputPath, content.getBytes());
+            Files.createDirectories(outputFile.getParent());
+            Files.write(outputFile, content.getBytes());
         } catch (IOException e) {
             log.error("Error saving outputString file", e);
         }

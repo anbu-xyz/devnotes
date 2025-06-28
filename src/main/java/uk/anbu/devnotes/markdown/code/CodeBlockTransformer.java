@@ -14,9 +14,7 @@ import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -26,10 +24,7 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static uk.anbu.devnotes.module.GroovyRenderer.convertOutputToNode;
-import static uk.anbu.devnotes.util.FileBasedCache.generateOutputFileName;
-import static uk.anbu.devnotes.util.FileBasedCache.readFromFile;
-import static uk.anbu.devnotes.util.FileBasedCache.saveOutput;
+import static uk.anbu.devnotes.util.FileBasedCache.generateCacheFileName;
 
 @Slf4j
 @Builder
@@ -40,7 +35,7 @@ public class CodeBlockTransformer {
     private final MarkdownFile markdownFile;
     private final Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver;
     private final Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver;
-    private final Function<GroovyRenderer.GroovyCodeBlockRequest, GroovyRenderer.GroovyOutput> groovyCodeBlockResolver;
+    private final GroovyRenderer groovyRenderer;
     private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
 
     public void transform(Node current) {
@@ -59,7 +54,14 @@ public class CodeBlockTransformer {
         String codeType = codeBlock.getInfo();
         // match codeType of format "groovy:targetType(config1:value1,config2:value2) or "groovy:targetType"
         if (codeType.matches("^groovy:([^(]+)\\(.*\\)$") || codeType.matches("^groovy:([^(]+)$")) {
-            renderGroovyResult(codeBlock, markdownFile, codeType);
+            String cacheFileName = generateCacheFileName(markdownFile, codeBlock.getLiteral());
+            var node = groovyRenderer.renderResult(codeBlock, cacheFileName, codeType);
+            if (node.isEmpty()) {
+                codeBlock.insertBefore(new Text("Error: Unable to render Groovy result"));
+            } else {
+                codeBlock.insertAfter(node.get());
+                codeBlock.setInfo("hidden-groovy");
+            }
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
             renderSqlResult(codeBlock, markdownFile, codeType);
         } else if (codeType.matches("^plantuml\\(([^)]*)\\)$") || codeType.matches("^plantuml$")) {
@@ -77,55 +79,6 @@ public class CodeBlockTransformer {
         var image = new Image(url, "plantuml");
         codeBlock.insertAfter(image);
         codeBlock.setInfo("hidden-plantuml");
-    }
-
-    private void renderGroovyResult(FencedCodeBlock codeBlock, MarkdownFile markdownFile, String codeType) {
-        // Assuming codeType string is of format "groovy:targetType(config1:value1,config2:value2)"
-        // find location of first opening parenthesis
-        int openParenIndex = codeType.indexOf('(');
-        Map<String, String> configMap = new HashMap<>();
-        if (openParenIndex == -1) {
-            log.debug("Open parenthesis not found in config string {}, using default config", codeType);
-            openParenIndex = codeType.length();
-        } else {
-            // find location of last closing parenthesis
-            int closeParenIndex = codeType.lastIndexOf(')');
-            if (closeParenIndex == -1) {
-                log.error("Error rendering Groovy result: missing closing parenthesis. Unable to read config from {}", codeType);
-                return;
-            }
-            String[] configParts = codeType.substring(openParenIndex + 1, closeParenIndex).split(",");
-            for (String configKeyValue : configParts) {
-                String[] keyValue = configKeyValue.split(":");
-                configMap.put(keyValue[0], keyValue[1]);
-            }
-        }
-
-        String groovyScript = codeBlock.getLiteral();
-
-        String targetType = codeType.substring("groovy:".length(), openParenIndex);
-        var groovyCodeBlockRequest = new GroovyRenderer.GroovyCodeBlockRequest(groovyScript, targetType,
-                GroovyRenderer.GroovyCodeBlockConfig.fromMap(configMap));
-
-        String outputFileName = generateOutputFileName(markdownFile, groovyScript);
-        Path outputPath = Paths.get(outputFileName);
-
-        Node node;
-        if (groovyCodeBlockRequest.config().cachingEnabled()) {
-            if (Files.exists(outputPath)) {
-                String output = readFromFile(outputPath, outputFileName);
-                node = convertOutputToNode(targetType, output);
-            } else {
-                var output = groovyCodeBlockResolver.apply(groovyCodeBlockRequest);
-                saveOutput(outputPath, output.outputString());
-                node = output.node();
-            }
-        } else {
-            var output = groovyCodeBlockResolver.apply(groovyCodeBlockRequest);
-            node = output.node();
-        }
-        codeBlock.insertAfter(node);
-        codeBlock.setInfo("hidden-groovy");
     }
 
     private void renderSqlResult(FencedCodeBlock codeBlock, MarkdownFile markdownFile, String codeType) {

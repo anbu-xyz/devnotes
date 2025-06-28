@@ -7,11 +7,18 @@ import org.commonmark.node.Node;
 import org.commonmark.node.Text;
 import uk.anbu.devnotes.util.GroovyShellRunner;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
+
+import static uk.anbu.devnotes.util.FileBasedCache.readFromFile;
+import static uk.anbu.devnotes.util.FileBasedCache.saveOutput;
 
 
 @Slf4j
@@ -23,11 +30,58 @@ public class GroovyRenderer {
         this.chromeDriverLocationSupplier = chromeDriverLocationSupplier;
     }
 
-    public GroovyOutput processGroovyCodeBlock(GroovyCodeBlockRequest request) {
+    private GroovyOutput processGroovyCodeBlock(GroovyCodeBlockRequest request) {
         setEnvVariables();
         var outputString = GroovyShellRunner.execute(request.groovyScript);
         var node = convertOutputToNode(request.targetType, outputString);
         return new GroovyOutput(outputString, node);
+    }
+
+    public Optional<Node> renderResult(FencedCodeBlock codeBlock, String cacheFileName, String codeType) {
+        // Assuming codeType string is of format "groovy:targetType(config1:value1,config2:value2)"
+        // find location of first opening parenthesis
+        int openParenIndex = codeType.indexOf('(');
+        Map<String, String> configMap = new HashMap<>();
+        if (openParenIndex == -1) {
+            log.debug("Open parenthesis not found in config string {}, using default config", codeType);
+            openParenIndex = codeType.length();
+        } else {
+            // find location of last closing parenthesis
+            int closeParenIndex = codeType.lastIndexOf(')');
+            if (closeParenIndex == -1) {
+                log.error("Error rendering Groovy result: missing closing parenthesis. Unable to read config from {}", codeType);
+                return Optional.empty();
+            }
+            String[] configParts = codeType.substring(openParenIndex + 1, closeParenIndex).split(",");
+            for (String configKeyValue : configParts) {
+                String[] keyValue = configKeyValue.split(":");
+                configMap.put(keyValue[0], keyValue[1]);
+            }
+        }
+
+        String groovyScriptText = codeBlock.getLiteral();
+
+        String targetType = codeType.substring("groovy:".length(), openParenIndex);
+        var groovyCodeBlockRequest = new GroovyRenderer.GroovyCodeBlockRequest(groovyScriptText, targetType,
+                GroovyRenderer.GroovyCodeBlockConfig.fromMap(configMap));
+
+        Path outputFile = Paths.get(cacheFileName);
+
+        Node node;
+        if (groovyCodeBlockRequest.config().cachingEnabled()) {
+            if (Files.exists(outputFile)) {
+                var outputString = readFromFile(outputFile, cacheFileName);
+                node = GroovyRenderer.convertOutputToNode(targetType, outputString);
+            } else {
+                var output = processGroovyCodeBlock(groovyCodeBlockRequest);
+                saveOutput(outputFile, output.outputString());
+                node = output.node();
+            }
+        } else {
+            var output = processGroovyCodeBlock(groovyCodeBlockRequest);
+            node = output.node();
+        }
+        return Optional.of(node);
     }
 
     public static Node convertOutputToNode(String targetType, String output) {

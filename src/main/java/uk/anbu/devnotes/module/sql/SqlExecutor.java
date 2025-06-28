@@ -47,7 +47,7 @@ import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.*;
 
-import static uk.anbu.devnotes.util.FileBasedCache.generateOutputFileName;
+import static uk.anbu.devnotes.util.FileBasedCache.generateCacheFileName;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -66,7 +66,7 @@ public class SqlExecutor {
                 request.parameterValues().entrySet().stream()
                         .map(entry -> entry.getKey() + "=" + entry.getValue())
                         .collect(Collectors.joining("&")) : "";
-        String outputFileName = generateOutputFileName(request.markdownFile(),
+        String outputFileName = generateCacheFileName(request.markdownFile(),
                 request.sql() + ";" + parametersAsString + ";" + maxRows);
         Path outputPath = Paths.get(outputFileName);
 

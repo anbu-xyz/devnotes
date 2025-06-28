@@ -16,7 +16,7 @@ public class DevnotesContext {
         return new MarkdownRenderer(
                 sqlExecutor::renderResultAsJsonFile,
                 sqlExecutor::convertToHtmlTable,
-                groovyExecutor::processGroovyCodeBlock,
+                groovyExecutor,
                 configService::getDataSourceConfig
         );
     }
