@@ -71,7 +71,7 @@ public class GroovyRenderer {
         if (groovyCodeBlockRequest.config().cachingEnabled()) {
             if (Files.exists(outputFile)) {
                 var outputString = readFromFile(outputFile, cacheFileName);
-                node = GroovyRenderer.convertOutputToNode(targetType, outputString);
+                node = convertOutputToNode(targetType, outputString);
             } else {
                 var output = processGroovyCodeBlock(groovyCodeBlockRequest);
                 saveOutput(outputFile, output.outputString());
@@ -84,7 +84,7 @@ public class GroovyRenderer {
         return Optional.of(node);
     }
 
-    public static Node convertOutputToNode(String targetType, String output) {
+    private Node convertOutputToNode(String targetType, String output) {
         if ("html".equals(targetType)) {
             HtmlBlock htmlBlock = new HtmlBlock();
             htmlBlock.setLiteral(output);
@@ -141,15 +141,14 @@ public class GroovyRenderer {
         return htmlBlock;
     }
 
-    public record GroovyCodeBlockConfig(Boolean cachingEnabled) {
-        // constructor to parse from Map<String, String>
+    private record GroovyCodeBlockConfig(Boolean cachingEnabled) {
         public static GroovyCodeBlockConfig fromMap(Map<String, String> configMap) {
             var cachingEnabled = Boolean.parseBoolean(configMap.getOrDefault("cacheEnabled", "true"));
             return new GroovyCodeBlockConfig(cachingEnabled);
         }
     }
 
-    public record GroovyCodeBlockRequest(String groovyScript, String targetType, GroovyCodeBlockConfig config) {}
+    private record GroovyCodeBlockRequest(String groovyScript, String targetType, GroovyCodeBlockConfig config) {}
 
-    public record GroovyOutput(String outputString, Node node) {}
+    private record GroovyOutput(String outputString, Node node) {}
 }
