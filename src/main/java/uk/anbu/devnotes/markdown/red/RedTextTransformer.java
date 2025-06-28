@@ -12,11 +12,10 @@ public class RedTextTransformer {
             if (current instanceof Text) {
                 String literal = ((Text) current).getLiteral();
                 if (literal.contains("[red]") && literal.contains("[/red]")) {
-                    Node parent = current.getParent();
+                    // Process the text and append new nodes
+                    processRedText(current, literal);
                     // Remove the current text node from the tree
                     current.unlink();
-                    // Process the text and append new nodes
-                    processRedText(parent, literal, current);
                 }
             } else {
                 transform(current); // Recurse into children
@@ -26,30 +25,30 @@ public class RedTextTransformer {
         }
     }
 
-    private static void processRedText(Node parent, String text, Node referenceNode) {
+    private static void processRedText(Node referenceNode, String text) {
         int pos = 0;
         while (pos < text.length()) {
             int start = text.indexOf("[red]", pos);
             if (start == -1) {
-                parent.appendChild(new Text(text.substring(pos)));
+                referenceNode.insertBefore(new Text(text.substring(pos)));
                 break;
             }
 
             // Add preceding plain text if any
             if (start > pos) {
-                parent.appendChild(new Text(text.substring(pos, start)));
+                referenceNode.insertBefore(new Text(text.substring(pos, start)));
             }
 
             int end = text.indexOf("[/red]", start);
             if (end == -1) {
                 // No closing tag, treat rest as plain text
-                parent.appendChild(new Text(text.substring(start)));
+                referenceNode.insertBefore(new Text(text.substring(start)));
                 break;
             }
 
             // Extract red text
             String redContent = text.substring(start + 5, end);
-            parent.appendChild(new RedTextNode(redContent));
+            referenceNode.insertBefore(new RedTextNode(redContent));
             pos = end + 6;
         }
     }
