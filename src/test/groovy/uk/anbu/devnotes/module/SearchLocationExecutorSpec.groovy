@@ -12,9 +12,9 @@ class SearchLocationExecutorSpec extends Specification {
 
     def "should find matching files based on search terms"() {
         given:
-        def file1 = createFile("docs/test-file1.txt")
-        def file2 = createFile("docs/subfolder/test-file2.txt")
-        def file3 = createFile("docs/another-file.txt")
+        def file1 = createFile("docs/test-file1.md")
+        def file2 = createFile("docs/subfolder/test-file2.md")
+        def file3 = createFile("docs/another-file.md")
 
         def searchParam = "test file"
         def executor = new SearchLocationExecutor(tempDir, searchParam)
@@ -23,17 +23,17 @@ class SearchLocationExecutorSpec extends Specification {
         def results = executor.getResult()
 
         then:
-        results.size() == 2
-        results.collect { it.fileName() }.sort() == [
-                "docs/test-file1.txt",
-                "docs/subfolder/test-file2.txt"
+        results.results().size() == 2
+        results.results().collect { it.fileName() }.sort() == [
+                "docs/test-file1.md",
+                "docs/subfolder/test-file2.md"
         ].sort()
     }
 
     def "should return empty list when no matches found"() {
         given:
-        def file1 = createFile("docs/abc.txt")
-        def file2 = createFile("docs/def.txt")
+        def file1 = createFile("docs/abc.md")
+        def file2 = createFile("docs/def.md")
 
         def searchParam = "xyz"
         def executor = new SearchLocationExecutor(tempDir, searchParam)
@@ -42,13 +42,13 @@ class SearchLocationExecutorSpec extends Specification {
         def results = executor.getResult()
 
         then:
-        results.isEmpty()
+        results.results().isEmpty()
     }
 
     def "should match terms in order"() {
         given:
-        def file1 = createFile("docs/test-file-example.txt")
-        def file2 = createFile("docs/file-test-example.txt") // Wrong order
+        def file1 = createFile("docs/test-file-example.md")
+        def file2 = createFile("docs/file-test-example.md") // Wrong order
 
         def searchParam = "test file"
         def executor = new SearchLocationExecutor(tempDir, searchParam)
@@ -57,13 +57,13 @@ class SearchLocationExecutorSpec extends Specification {
         def results = executor.getResult()
 
         then:
-        results.size() == 1
-        results[0].fileName() == "docs/test-file-example.txt"
+        results.results().size() == 1
+        results.results()[0].fileName() == "docs/test-file-example.md"
     }
 
     def "should handle case insensitive search"() {
         given:
-        def file1 = createFile("docs/TEST-FILE.txt")
+        def file1 = createFile("docs/TEST-FILE.md")
 
         def searchParam = "test file"
         def executor = new SearchLocationExecutor(tempDir, searchParam)
@@ -72,8 +72,8 @@ class SearchLocationExecutorSpec extends Specification {
         def results = executor.getResult()
 
         then:
-        results.size() == 1
-        results[0].fileName() == "docs/TEST-FILE.txt"
+        results.results().size() == 1
+        results.results()[0].fileName() == "docs/TEST-FILE.md"
     }
 
     private Path createFile(String path) {

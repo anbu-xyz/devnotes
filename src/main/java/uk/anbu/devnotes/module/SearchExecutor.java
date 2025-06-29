@@ -3,21 +3,24 @@ package uk.anbu.devnotes.module;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.io.FileUtils;
 import uk.anbu.devnotes.types.SearchResult;
+import uk.anbu.devnotes.types.SearchResultList;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @RequiredArgsConstructor
 public class SearchExecutor {
     private final String docsDirectory;
 
-    public List<SearchResult> search(String searchParams, boolean caseSensitive) throws IOException {
+    public SearchResultList search(String searchParams, boolean caseSensitive) throws IOException {
         if (!new File(docsDirectory).isDirectory()) {
             throw new IOException("Invalid docs directory: " + docsDirectory);
         }
-        var files = FileUtils.listFiles(new File(docsDirectory), new String[]{"md"}, true);
+        var extensionsToSearch = new String[]{"md"};
+        var files = FileUtils.listFiles(new File(docsDirectory), extensionsToSearch, true);
         String[] words = searchParams.split("\\s+");
 
         if (!caseSensitive) {
@@ -53,7 +56,7 @@ public class SearchExecutor {
                 results.add(new SearchResult(relativePath, preview.toString()));
             }
         }
-        return results;
+        return new SearchResultList(Arrays.asList(extensionsToSearch), results);
     }
 
     private static String[] toLowerCase(String[] words) {

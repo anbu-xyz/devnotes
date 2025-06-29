@@ -22,9 +22,9 @@ class SearchExecutorSpec extends Specification {
         def results = searchExecutor.search("Content", true)
 
         then:
-        results.size() == 1
-        results[0].fileName == "test1.md"
-        results[0].preview.contains("Content")
+        results.results().size() == 1
+        results.results()[0].fileName == "test1.md"
+        results.results()[0].preview.contains("Content")
     }
 
     def "should correctly find files in subdirectories"() {
@@ -36,8 +36,8 @@ class SearchExecutorSpec extends Specification {
         def results = searchExecutor.search("Content", true)
 
         then:
-        results.size() == 1
-        results*.fileName == ["subdir/test3.md"]
+        results.results().size() == 1
+        results.results()*.fileName == ["subdir/test3.md"]
     }
 
     def "should find matches in files case insensitive"() {
@@ -49,9 +49,9 @@ class SearchExecutorSpec extends Specification {
         def results = searchExecutor.search("content", false)
 
         then:
-        results.size() == 2
-        results*.fileName.sort() == ["test1.md", "test2.md"]
-        results.every { it.preview.toLowerCase().contains("content") }
+        results.results().size() == 2
+        results.results()*.fileName.sort() == ["test1.md", "test2.md"]
+        results.results().every { it.preview.toLowerCase().contains("content") }
     }
 
     def "should find matches for multiple words"() {
@@ -63,9 +63,9 @@ class SearchExecutorSpec extends Specification {
         def results = searchExecutor.search("test file", false)
 
         then:
-        results.size() == 1
-        results[0].fileName == "test1.md"
-        results[0].preview.contains("test file")
+        results.results().size() == 1
+        results.results()[0].fileName == "test1.md"
+        results.results()[0].preview.contains("test file")
     }
 
     def "should return empty list when no matches found"() {
@@ -76,7 +76,7 @@ class SearchExecutorSpec extends Specification {
         def results = searchExecutor.search("nonexistent", false)
 
         then:
-        results.isEmpty()
+        results.results().isEmpty()
     }
 
     def "should include context in preview"() {
@@ -87,8 +87,8 @@ class SearchExecutorSpec extends Specification {
         def results = searchExecutor.search("target", true)
 
         then:
-        results.size() == 1
-        def preview = results[0].preview
+        results.results().size() == 1
+        def preview = results.results()[0].preview
         preview.length() > 200
         preview.contains("target")
         preview.endsWith("...\n")
@@ -99,7 +99,7 @@ class SearchExecutorSpec extends Specification {
         def results = searchExecutor.search("test", false)
 
         then:
-        results.isEmpty()
+        results.results().isEmpty()
     }
 
     def "should throw IOException for invalid directory"() {

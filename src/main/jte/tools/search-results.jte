@@ -1,7 +1,9 @@
 @import uk.anbu.devnotes.types.SearchResult
+@import uk.anbu.devnotes.types.SearchResultList
 @import java.util.List
 
-@param List<SearchResult> results
+@param SearchResultList results
+@param List<String> extensions
 @param String searchTerm
 
 <!DOCTYPE html>
@@ -15,13 +17,14 @@
 </head>
 
 <body>
+<h2>Searched file extensions <span>${String.join(", ", extensions)}</span></h2>
 <div class="search-results">
-    @if(results.isEmpty())
+    @if(results.results().isEmpty())
         <p>No results found for "${searchTerm}"</p>
     @else
-        <h2>${results.size()} results found for "${searchTerm}"</h2>
+        <h2>${results.results().size()} results found for "${searchTerm}"</h2>
 
-        @for(SearchResult result : results)
+        @for(SearchResult result : results.results())
             <div class="search-result-item">
                 <a href="/markdown?filename=${result.fileName()}">
                     <h3 class="file-name">${result.fileName()}</h3>

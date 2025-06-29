@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.SearchExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.types.SearchResult;
+import uk.anbu.devnotes.types.SearchResultList;
 
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class SearchController {
             searchParam = searchParam.trim();
             var result = new SearchExecutor(configService.getDocsDirectory())
                     .search(searchParam, caseSensitive);
-            if (result.isEmpty()) {
+            if (result.results().isEmpty()) {
                 return ResponseEntity.notFound().build();
             } else {
                 if (renderJsonResults) {
@@ -51,14 +52,14 @@ public class SearchController {
         }
     }
 
-    private ResponseEntity<String> renderJsonResults(List<SearchResult> result) throws JsonProcessingException {
+    private ResponseEntity<String> renderJsonResults(SearchResultList result) throws JsonProcessingException {
         var jsonOutput = objectMapper.writeValueAsString(result);
         return ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .body(jsonOutput);
     }
 
-    private ResponseEntity<String> renderHtmlResults(String searchParam, List<SearchResult> result) {
+    private ResponseEntity<String> renderHtmlResults(String searchParam, SearchResultList result) {
         return constructResponse(searchParam, result, templateEngine);
     }
 

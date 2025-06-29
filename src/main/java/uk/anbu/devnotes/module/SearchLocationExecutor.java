@@ -2,6 +2,7 @@ package uk.anbu.devnotes.module;
 
 import lombok.RequiredArgsConstructor;
 import uk.anbu.devnotes.types.SearchResult;
+import uk.anbu.devnotes.types.SearchResultList;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,20 +15,22 @@ public class SearchLocationExecutor {
     private final Path docsDir;
     private final String searchParam;
 
-    public List<SearchResult> getResult() throws IOException {
+    public SearchResultList getResult() throws IOException {
         final String searchParamLowercase = searchParam.trim().toLowerCase();
         final String[] searchTerms = searchParamLowercase.split("\\s+");
 
         List<SearchResult> results;
+        var extensionsToSearch = List.of("md");
 
         try (var files = Files.walk(docsDir)) {
             results = files.filter(Files::isRegularFile)
                     .map(path -> pathInfo(path, docsDir))
                     .filter(pathInfo -> matchInOrder(pathInfo, searchTerms))
+                    .filter(pathInfo -> extensionsToSearch.contains(pathInfo.originalPath().substring(pathInfo.originalPath().lastIndexOf('.') + 1)))
                     .map(pathInfo -> new SearchResult(pathInfo.standardizedPath(), ""))
                     .toList();
         }
-        return results;
+        return new SearchResultList(extensionsToSearch, results);
     }
 
     private static boolean matchInOrder(PathInfo pathInfo, String[] searchTerms) {

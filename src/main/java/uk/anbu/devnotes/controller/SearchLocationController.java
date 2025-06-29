@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.SearchLocationExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.types.SearchResult;
+import uk.anbu.devnotes.types.SearchResultList;
 
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -41,7 +42,7 @@ public class SearchLocationController {
             var result = new SearchLocationExecutor(docsDir, searchParam)
                     .getResult();
 
-            if (result.isEmpty()) {
+            if (result.results().isEmpty()) {
                 return ResponseEntity.notFound().build();
             } else {
                 if (renderJsonResults) {
@@ -57,27 +58,29 @@ public class SearchLocationController {
         }
     }
 
-    private ResponseEntity<String> renderJsonResults(List<SearchResult> result) throws JsonProcessingException {
+    private ResponseEntity<String> renderJsonResults(SearchResultList result) throws JsonProcessingException {
         var jsonOutput = objectMapper.writeValueAsString(result);
         return ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .body(jsonOutput);
     }
 
-    private ResponseEntity<String> renderHtmlResults(String searchParam, List<SearchResult> result) {
+    private ResponseEntity<String> renderHtmlResults(String searchParam, SearchResultList result) {
         return constructResponse(searchParam, result, templateEngine);
     }
 
-    static ResponseEntity<String> constructResponse(String searchParam, List<SearchResult> result, TemplateEngine templateEngine) {
+    static ResponseEntity<String> constructResponse(String searchParam, SearchResultList result,
+                                                    TemplateEngine templateEngine) {
         TemplateOutput output = new StringOutput();
         var params = new HashMap<String, Object>();
+        params.put("extensions", result.extensions());
         params.put("results", result);
         params.put("searchTerm", searchParam);
         templateEngine.render("tools/search-results.jte", params, output);
-        if (result.size() == 1) {
+        if (result.results().size() == 1) {
             return ResponseEntity
                     .status(HttpStatus.FOUND)
-                    .header(HttpHeaders.LOCATION, "/markdown?filename=" + result.get(0).fileName())
+                    .header(HttpHeaders.LOCATION, "/markdown?filename=" + result.results().get(0).fileName())
                     .build();
         } else {
             return ResponseEntity.ok()
