@@ -16,7 +16,7 @@ public class FileBasedCache {
     public static String generateCacheFileName(MarkdownFile markdownFile, String scriptText) {
         String hash = generateHash(scriptText);
         var fileName = Paths.get(markdownFile.fileName()).getFileName().toString();
-        var generatedFileName = fileName.replaceFirst("[.][^.]+$", "") + "." + hash + ".outputString";
+        var generatedFileName = fileName.replaceFirst("[.][^.]+$", "") + "." + hash + ".output";
         return markdownFile.fullPath().getParent().resolve(generatedFileName).toString();
     }
 
@@ -41,10 +41,10 @@ public class FileBasedCache {
         String output;
         try {
             output = Files.readString(outputFile);
-            log.info("Using existing outputString file: {}", outputFileName);
+            log.info("Using existing output file: {}", outputFileName);
         } catch (IOException e) {
-            log.error("Error reading existing outputString file: {}", outputFileName, e);
-            output = "Error: Unable to read existing outputString file";
+            log.error("Error reading existing output file: {}", outputFileName, e);
+            output = "Error: Unable to read existing output file";
         }
         return output;
     }
@@ -54,7 +54,7 @@ public class FileBasedCache {
             Files.createDirectories(outputFile.getParent());
             Files.write(outputFile, content.getBytes());
         } catch (IOException e) {
-            log.error("Error saving outputString file", e);
+            log.error("Error saving output file", e);
         }
     }
 

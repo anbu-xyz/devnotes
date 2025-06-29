@@ -132,7 +132,7 @@ public class DirectoryListingController {
                             lastModifiedSince(path)))
                     .sorted(Comparator.<FileEntry>comparingInt(e -> e.isDirectory() ? 0 : 1)
                             .thenComparing(f -> f.filename))
-                    .filter(e -> !e.filename.endsWith(".outputString"))
+                    .filter(e -> !e.filename.endsWith(".output"))
                     .toList();
 
             String title;

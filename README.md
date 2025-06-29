@@ -32,13 +32,13 @@ To embed executable groovy code in a markdown file, use the following syntax:
 #### To render the result as a csv table with header:
 ````
 ```groovy:csv-table-with-header
-def outputString = ""
-outputString += "N, N squared \n"
+def output = ""
+output += "N, N squared \n"
 for (int i = 0; i < 10; i++) {
-    outputString += "${i},${i * i}\n"
+    output += "${i},${i * i}\n"
 }
 
-outputString
+output
 ```
 ````
 
@@ -47,42 +47,42 @@ outputString
 #### To render the result as a csv table:
 ````
 ```groovy:csv-table
-def outputString = ""
+def output = ""
 for (int i = 0; i < 10; i++) {
-    outputString += "${i},${i * i}\n"
+    output += "${i},${i * i}\n"
 }
 
-outputString
+output
 ```
 ````
 
 #### To render the result as code block without any html formatting:
 ````
 ```groovy:code-block
-def outputString = """
+def output = """
 The following output will contain the angle brackets:
 
 <h1>Hello World</h1>
 
-outputString
+output
 ```
 ````
 
 #### To render the result as html:
 ````
 ```groovy:html
-def outputString = "<h1>Hello World</h1>"
+def output = "<h1>Hello World</h1>"
 
-outputString
+output
 ```
 ````
 
 #### To render the result as text:
 ````
 ```groovy:text
-def outputString = "Hello World"
+def output = "Hello World"
 
-outputString
+output
 ```
 ````
 The code will be executed and the result will be rendered in the markdown file.
