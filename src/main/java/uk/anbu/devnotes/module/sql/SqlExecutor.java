@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 
 import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
@@ -85,7 +86,9 @@ public class SqlExecutor {
         final Boolean[] dbHasMoreRowsThanMaxConfig = {false};
 
         try (FileWriter writer = new FileWriter(outputPath.toFile())) {
-            JsonGenerator jsonGenerator = objectMapper.getFactory().createGenerator(writer);
+            JsonGenerator jsonGenerator = objectMapper.registerModule(new JavaTimeModule())
+                    .getFactory()
+                    .createGenerator(writer);
             startOutermostObject(jsonGenerator);
 
             // Write SQL information
@@ -166,10 +169,6 @@ public class SqlExecutor {
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate(ConfigService.DataSourceConfig dataSourceConfig,
                                                                   int maxRowsConfig) {
 
-        // assert that maxRowsConfig is positive
-        if (maxRowsConfig <= 0) {
-            throw new IllegalArgumentException("maxRowsConfig must be positive");
-        }
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
         dataSource.setDriverClassName(dataSourceConfig.driverClassName());
         dataSource.setUrl(dataSourceConfig.url());

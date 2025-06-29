@@ -127,7 +127,7 @@ public class SqlExecutionController {
                 data.add(rowData);
             }
 
-            sqlExecutor.sortData(data, columnName, columnType, sortDirection);
+            SqlExecutor.sortData(data, columnName, columnType, sortDirection);
 
             // Convert sorted data back to JSON
             ArrayNode sortedDataNode = objectMapper.createArrayNode();
