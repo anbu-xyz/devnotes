@@ -20,7 +20,6 @@ import java.util.function.Supplier;
 import static uk.anbu.devnotes.util.FileBasedCache.readFromFile;
 import static uk.anbu.devnotes.util.FileBasedCache.saveOutput;
 
-
 @Slf4j
 public class GroovyRenderer {
 
