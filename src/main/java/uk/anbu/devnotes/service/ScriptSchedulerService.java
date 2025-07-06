@@ -19,7 +19,6 @@ import uk.anbu.devnotes.scheduled.GroovyScriptJob;
 import uk.anbu.devnotes.types.ScriptSchedule;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -29,7 +28,6 @@ import java.util.List;
 @Slf4j
 public class ScriptSchedulerService {
     private static final String CRON_FILENAME = "cron.yaml";
-    private static final String GIT_IGNORE_FILENAME = ".gitignore";
     private final ConfigService configService;
     private final Scheduler scheduler;
 
@@ -76,22 +74,9 @@ public class ScriptSchedulerService {
         Path docsDirectoryPath = Path.of(docsDirectory);
         Path configDirectory = docsDirectoryPath.resolve("config");
         Path cronPath = configDirectory.resolve(CRON_FILENAME);
-        Path dotGitPath = configDirectory.resolve(GIT_IGNORE_FILENAME);
 
         Files.createDirectories(configDirectory);
-        createGitIgnoreFile(dotGitPath);
         return cronPath;
-    }
-
-    private static void createGitIgnoreFile(Path dotGitPath) throws IOException {
-        if (Files.exists(dotGitPath)) {
-            String content = Files.readString(dotGitPath, StandardCharsets.UTF_8);
-            if (!content.contains(CRON_FILENAME)) {
-                Files.writeString(dotGitPath, content + "\n" + CRON_FILENAME, StandardCharsets.UTF_8);
-            }
-        } else {
-            Files.writeString(dotGitPath, CRON_FILENAME + "\n", StandardCharsets.UTF_8);
-        }
     }
 
     public void scheduleJob(ScriptSchedule schedule) throws SchedulerException {
