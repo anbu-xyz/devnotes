@@ -27,5 +27,9 @@ Config editor
 <a href="/config">/config</a>
 <br>
 
+Script Scheduler
+<a href="/scheduler">/scheduler</a>
+<br>
+
 </body>
 </html>

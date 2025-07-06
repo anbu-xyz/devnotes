@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -58,7 +59,12 @@ public class ScriptSchedulerController {
             schedulerService.saveSchedules(schedules);
             schedulerService.scheduleJob(schedule);
 
-            return ResponseEntity.ok("Script scheduled successfully");
+            var model = new HashMap<String, Object>();
+            model.put("schedule", schedule);
+
+            TemplateOutput output = new StringOutput();
+            templateEngine.render("tools/schedule-item.jte", model, output);
+            return ResponseEntity.ok(output.toString());
         } catch (Exception e) {
             log.error("Failed to schedule script", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -66,7 +72,7 @@ public class ScriptSchedulerController {
         }
     }
 
-    @PostMapping("/delete/{id}")
+    @DeleteMapping("/delete/{id}")
     public ResponseEntity<String> deleteSchedule(@PathVariable String id) {
         try {
             boolean deleted = schedulerService.deleteJob(id);
@@ -79,11 +85,27 @@ public class ScriptSchedulerController {
             schedules.removeIf(s -> s.id().equals(id));
             schedulerService.saveSchedules(schedules);
 
-            return ResponseEntity.ok("Script schedule deleted successfully");
+            return ResponseEntity.ok("");
         } catch (Exception e) {
             log.error("Failed to delete script schedule", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Failed to delete script schedule: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/empty-message")
+    public ResponseEntity<String> getEmptyMessage() {
+        try {
+            var model = new HashMap<String, Object>();
+            model.put("schedules", schedulerService.loadSchedules());
+
+            TemplateOutput output = new StringOutput();
+            templateEngine.render("tools/empty-schedule-message.jte", model, output);
+            return ResponseEntity.ok(output.toString());
+        } catch (IOException e) {
+            log.error("Failed to load schedules", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to check schedules: " + e.getMessage());
         }
     }
 }
