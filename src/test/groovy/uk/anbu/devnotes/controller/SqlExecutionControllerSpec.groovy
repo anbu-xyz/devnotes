@@ -145,7 +145,7 @@ class SqlExecutionControllerSpec extends Specification {
                 oldSql: "SELECT * FROM old",
                 newSql: "SELECT * FROM new",
                 maxRows: 10,
-                codeBlockCounter: 1,
+                codeBlockCounter: 0,
                 parameterValues: [:],
                 forceExecute: true
         )
@@ -169,6 +169,7 @@ SELECT * FROM old
         response.statusCode == HttpStatus.OK
         response.body == "<table>Updated Result</table>"
         Files.readString(markdownFile).contains("SELECT * FROM new")
+        !Files.readString(markdownFile).contains("SELECT * FROM old")
 
         cleanup:
         tempDir.deleteDir()
