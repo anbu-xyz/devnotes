@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus
 import spock.lang.Specification
 import uk.anbu.devnotes.module.GroovyRenderer
 import uk.anbu.devnotes.module.MarkdownRenderer
+import uk.anbu.devnotes.module.sql.SqlExecutor
 import uk.anbu.devnotes.service.ConfigService
 
 import java.nio.file.Files
@@ -23,15 +24,15 @@ class MarkdownControllerSpec extends Specification {
     MarkdownRenderer markdownRenderer
     TemplateEngine templateEngine
     ConfigService configService
-    def sqlToJsonFileResolver, sqlToHtmlTableResolver, groovyRenderer, dataSourceConfigResolver
+    def sqlExecutor, groovyRenderer, dataSourceConfigResolver
 
     def setup() {
-        sqlToJsonFileResolver = x -> Paths.get("src/test/resources/sql-result.json")
-        sqlToHtmlTableResolver = x -> "html-table"
+        sqlExecutor = Mock(SqlExecutor)
+        sqlExecutor.renderResultAsJsonFile(_ as SqlExecutor.JsonGenerationRequest) >> Paths.get("src/test/resources/sql-result.json")
+        sqlExecutor.convertToHtmlTable(_ as SqlExecutor.HtmlTableRequest) >> "html-table"
         groovyRenderer = new GroovyRenderer((r) -> Optional.empty())
         dataSourceConfigResolver = x -> new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "testUser", "testPass", "org.test.Driver")
-        markdownRenderer = new MarkdownRenderer(sqlToJsonFileResolver,
-                sqlToHtmlTableResolver,
+        markdownRenderer = new MarkdownRenderer(sqlExecutor,
                 groovyRenderer,
                 dataSourceConfigResolver)
         var codeResolver = new DirectoryCodeResolver(Paths.get("src/main/jte"))

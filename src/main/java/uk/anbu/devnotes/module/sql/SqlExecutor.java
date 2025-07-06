@@ -131,19 +131,39 @@ public class SqlExecutor {
                 jsonGenerator.writeEndArray();
             }
             jsonGenerator.writeBooleanField("dbHasMoreRowsThanMaxConfig", dbHasMoreRowsThanMaxConfig[0]);
+            jsonGenerator.writeBooleanField("error", false);
             endOutermostObject(jsonGenerator);
             jsonGenerator.close();
         } catch (Exception e) {
             log.error("Error executing SQL query", e);
-            writeErrorMessage(e, outputPath);
+            writeErrorMessage(e, outputPath, request, maxRows);
         }
         return outputPath;
     }
 
-    private void writeErrorMessage(Exception e, Path outputPath) {
+    private void writeErrorMessage(Exception e, Path outputPath,
+                                   JsonGenerationRequest request, int maxRows) {
         try (FileWriter writer = new FileWriter(outputPath.toFile())) {
             JsonGenerator jsonGenerator = objectMapper.getFactory().createGenerator(writer);
             startOutermostObject(jsonGenerator);
+
+            jsonGenerator.writeBooleanField("error", true);
+            // Write SQL information
+            jsonGenerator.writeObjectFieldStart("sql");
+            jsonGenerator.writeStringField("sqlText", request.sql());
+            jsonGenerator.writeObjectFieldStart("parameterValues");
+            if (request.parameterValues() != null) {
+                for (Map.Entry<String, String> entry : request.parameterValues().entrySet()) {
+                    jsonGenerator.writeStringField(entry.getKey(), entry.getValue());
+                }
+            }
+            jsonGenerator.writeEndObject(); // end parameterValues
+            jsonGenerator.writeEndObject(); // end sql
+
+            jsonGenerator.writeStringField("datasourceName", request.dataSourceConfig().name());
+            jsonGenerator.writeStringField("executionTime", LocalDateTime.now().toString());
+            jsonGenerator.writeNumberField("maxRowConfig", maxRows);
+            // -----
             jsonGenerator.writeArrayFieldStart("metadata");
             jsonGenerator.writeStartObject();
             jsonGenerator.writeStringField("name", "Error");
@@ -461,9 +481,11 @@ public class SqlExecutor {
                 LocalDateTime.of(1970, 1, 1, 0, 0)
                 : LocalDateTime.parse(rootNode.get("executionTime").asText());
         var dataSourceName = rootNode.get("datasourceName");
+        var isError = rootNode.get("error").asBoolean();
         if (dataSourceName == null) {
             log.error("Error rendering SQL result table: datasourceName not found in JSON");
-            return SqlResult.builder().isError(true).build();
+            return SqlResult.builder().isError(true)
+                    .build();
         } else {
             return SqlResult.builder()
                     .sql(new SqlResult.Sql(sql, parameterValues))
@@ -471,7 +493,7 @@ public class SqlExecutor {
                     .executionTime(executionTime)
                     .dbHasMoreRowsThanMaxConfig(dbHasMoreRowsThanMaxConfig)
                     .data(new SqlResult.Data(metadata, data))
-                    .isError(false)
+                    .isError(isError)
                     .maxRowConfig(rootNode.get("maxRowConfig").asInt())
                     .build();
         }

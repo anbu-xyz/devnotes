@@ -105,15 +105,20 @@ public class SqlExecutionController {
         }
     }
 
-
     @PostMapping(value = "/sortTable", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> sortTable(@RequestBody TableSortRequest request) {
         try {
-            var outputPath = Paths.get(configService.getDocsDirectory())
-                    .resolve(Path.of(request.getMarkdownFileName())
-                            .getParent()
-                            .resolve(request.getOutputFileName()));
-            JsonNode rootNode = objectMapper.readTree(outputPath.toFile());
+            var parentDir = Path.of(request.getMarkdownFileName())
+                    .getParent();
+            Path outputPath;
+            if (parentDir == null) {
+                outputPath = Path.of(request.getOutputFileName());
+            } else {
+                outputPath = parentDir.resolve(request.getOutputFileName());
+            }
+            var resolvedOutputPath = Paths.get(configService.getDocsDirectory())
+                    .resolve(outputPath);
+            JsonNode rootNode = objectMapper.readTree(resolvedOutputPath.toFile());
             JsonNode dataNode = rootNode.get("data");
 
             var columnName = request.getColumnName();
@@ -136,7 +141,7 @@ public class SqlExecutionController {
             ((ObjectNode) rootNode).set("data", sortedDataNode);
 
             // Write the sorted data back to the file
-            objectMapper.writeValue(outputPath.toFile(), rootNode);
+            objectMapper.writeValue(resolvedOutputPath.toFile(), rootNode);
 
             MarkdownFile markdownFile = new MarkdownFile(Path.of(configService.getDocsDirectory()), request.getMarkdownFileName());
             String htmlTable = sqlExecutor.convertToHtmlTable(rootNode, request.getDatasourceName(),
@@ -194,10 +199,10 @@ public class SqlExecutionController {
                     insideCodeBlock = false;
                 } else {
                     insideCodeBlock = true;
-                    codeBlockCount++;
                     if (codeBlockCount == n) {
                         break;
                     }
+                    codeBlockCount++;
                 }
             }
         }

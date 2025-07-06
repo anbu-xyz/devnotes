@@ -33,8 +33,7 @@ public class CodeBlockTransformer {
     @Builder.Default
     private Integer codeBlockCounter = 0;
     private final MarkdownFile markdownFile;
-    private final Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver;
-    private final Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver;
+    private final SqlExecutor sqlExecutor;
     private final GroovyRenderer groovyRenderer;
     private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
 
@@ -142,7 +141,7 @@ public class CodeBlockTransformer {
 
         var request = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, sql, parameterValues,
                 markdownFile, maxRows, false);
-        var outputPath = sqlToJsonFileResolver.apply(request);
+        var outputPath = sqlExecutor.renderResultAsJsonFile(request);
 
         return renderSqlResultTable(sql, outputPath, parameterValues, dataSourceConfig.name(),
                 markdownFile);
@@ -163,7 +162,7 @@ public class CodeBlockTransformer {
         var request = new SqlExecutor.HtmlTableRequest(sqlText, outputPath, parameterValues, dataSourceName,
                 markdownFile, codeBlockCounter);
         codeBlockCounter++;
-        String tableString = sqlToHtmlTableResolver.apply(request);
+        String tableString = sqlExecutor.convertToHtmlTable(request);
         HtmlBlock htmlBlock = new HtmlBlock();
         htmlBlock.setLiteral(tableString);
         return htmlBlock;

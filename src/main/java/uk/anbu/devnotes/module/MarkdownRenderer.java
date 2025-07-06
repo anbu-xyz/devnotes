@@ -30,17 +30,14 @@ import java.util.function.Function;
 @Slf4j
 public class MarkdownRenderer {
 
-    private final Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver;
-    private final Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver;
     private final GroovyRenderer groovyRenderer;
     private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
+    private final SqlExecutor sqlExecutor;
 
-    public MarkdownRenderer(Function<SqlExecutor.JsonGenerationRequest, Path> sqlToJsonFileResolver,
-                            Function<SqlExecutor.HtmlTableRequest, String> sqlToHtmlTableResolver,
+    public MarkdownRenderer(SqlExecutor sqlExecutor,
                             GroovyRenderer groovyRenderer,
                             Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver) {
-        this.sqlToJsonFileResolver = sqlToJsonFileResolver;
-        this.sqlToHtmlTableResolver = sqlToHtmlTableResolver;
+        this.sqlExecutor = sqlExecutor;
         this.groovyRenderer = groovyRenderer;
         this.dataSourceConfigResolver = dataSourceConfigResolver;
     }
@@ -57,8 +54,7 @@ public class MarkdownRenderer {
         Node document = parser.parse(markdownText);
         CodeBlockTransformer.builder()
                 .markdownFile(markdownFile)
-                .sqlToJsonFileResolver(sqlToJsonFileResolver)
-                .sqlToHtmlTableResolver(sqlToHtmlTableResolver)
+                .sqlExecutor(sqlExecutor)
                 .groovyRenderer(groovyRenderer)
                 .dataSourceConfigResolver(dataSourceConfigResolver)
                 .build()

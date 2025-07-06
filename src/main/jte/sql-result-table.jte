@@ -51,7 +51,31 @@
         </div>
     </div>
 @else
-    <div>
+    <div class="sql-result" x-data="{ showSql: false, changedSql: `${sqlResult.getSql().sqlText()}`, originalSql: `${sqlResult.getSql().sqlText()}` }">
         <p class="warning">Sql Result Error: check the logs</p>
+        <button class="btn-blue-glow" @click="showSql = !showSql">
+            <i class="fas fa-code"></i> Edit SQL
+        </button>
+        <div x-show="showSql">
+            <textarea x-model="changedSql" class="w-full h-32 p-2 border rounded"></textarea>
+            <button class="btn-blue-glow mt-2"
+                    hx-post="/saveSqlChanges"
+                    hx-trigger="click"
+                    hx-ext="json-enc"
+                    :hx-vals="JSON.stringify({
+                                datasourceName: '${datasourceName}',
+                                markdownFileName: '${markdownFileName}',
+                                codeBlockCounter: ${codeBlockCounter},
+                                oldSql: originalSql,
+                                newSql: changedSql,
+                                parameterValues: {},
+                                maxRows: ${maxRowConfig},
+                                forceExecute: true
+                          })"
+                    hx-target="closest div.sql-result"
+                    hx-swap="outerHTML">
+                <i class="fas fa-save"></i> Execute
+            </button>
+        </div>
     </div>
 @endif

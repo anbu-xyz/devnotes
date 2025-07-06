@@ -12,6 +12,10 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
+/**
+ * This class represents the output of a SQL query execution.
+ * It is used by tests to validate the output of the SQL query, not for rendering.
+ */
 public class SqlOutput {
     private SqlInfo sql;
     private String datasourceName;
@@ -20,6 +24,7 @@ public class SqlOutput {
     private List<MetadataColumn> metadata;
     private List<Map<String, Object>> data;
     private boolean dbHasMoreRowsThanMaxConfig;
+    private boolean error;
 
     @Data
     @NoArgsConstructor
