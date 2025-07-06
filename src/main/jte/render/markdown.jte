@@ -41,6 +41,13 @@
                 hx-select="#markdownEditor"
                 hx-get="/markdownEditor?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}">
         </button>
+        <div id="codeModal" class="modal-overlay">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <pre><code id="modalCode"></code></pre>
+                </div>
+            </div>
+        </div>
         <!-- JavaScript -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>

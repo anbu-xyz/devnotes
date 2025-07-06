@@ -123,6 +123,7 @@ document.body.addEventListener('htmx:afterSwap', evt => {
         markdownViewer: () => {
             createHomeLink("markdownViewer")
             invokePrismHighlighting()
+            setupCodeBlockModals()
         },
         markdownEditor: () => {
             attachEasyMdeOn('easyMdeEditor')
@@ -152,6 +153,44 @@ function isElementVisible(el) {
         rect.top < (window.innerHeight || document.documentElement.clientHeight) &&
         rect.left < (window.innerWidth || document.documentElement.clientWidth)
     );
+}
+
+//-----------------------------------------------------------------------------
+// Modal Dialog
+//-----------------------------------------------------------------------------
+
+function setupCodeBlockModals() {
+    const modal = document.getElementById('codeModal');
+    const modalCode = document.getElementById('modalCode');
+
+    // Add click handlers to all code blocks
+    document.querySelectorAll('pre code').forEach(block => {
+        block.addEventListener('click', function() {
+            modalCode.textContent = this.textContent;
+            modalCode.className = this.className; // Preserve syntax highlighting
+            modal.style.display = 'block';
+            Prism.highlightElement(modalCode);
+        });
+    });
+
+    // Close modal when clicking outside
+    if (modal) {
+        modal.addEventListener('click', function (e) {
+            if (e.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+    } else {
+        console.error('Modal element not found');
+        return;
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            modal.style.display = 'none';
+        }
+    });
 }
 
 //-----------------------------------------------------------------------------
