@@ -10,12 +10,13 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-@Data
-@NoArgsConstructor
 /**
  * This class represents the output of a SQL query execution.
- * It is used by tests to validate the output of the SQL query, not for rendering.
+ * It is used by tests to validate the output of the SQL query,
+ * not for rendering (yet).
  */
+@Data
+@NoArgsConstructor
 public class SqlOutput {
     private SqlInfo sql;
     private String datasourceName;
