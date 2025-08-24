@@ -10,7 +10,7 @@
     </parent>
     <groupId>uk.anbu</groupId>
     <artifactId>devnotes</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2</version>
     <name>devnotes</name>
     <description>Personal notes taking tool for developer in a typical corporate environment</description>
     <properties>
@@ -273,6 +273,18 @@
                 <artifactId>gmavenplus-plugin</artifactId>
                 <version>3.0.2</version>
                 <executions>
+                    <execution>
+                        <id>version-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>execute</goal>
+                        </goals>
+                        <configuration>
+                            <scripts>
+                                <script>file:///${project.basedir}/scripts/maven-version-checker.groovy</script>
+                            </scripts>
+                        </configuration>
+                    </execution>
                     <execution>
                         <goals>
                             <goal>addSources</goal>
