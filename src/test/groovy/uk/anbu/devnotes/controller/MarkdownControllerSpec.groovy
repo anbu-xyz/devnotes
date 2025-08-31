@@ -63,7 +63,7 @@ class MarkdownControllerSpec extends Specification {
         response.headers.getFirst("Location") == "/renderDirectoryContents?directoryName=" + tempDir.fileName.toString()
 
         cleanup:
-        tempDir.deleteDir()
+        tempDir.toFile().deleteDir()
     }
 
     def "markdown() should handle missing markdown file"() {
@@ -149,7 +149,7 @@ class MarkdownControllerSpec extends Specification {
         Files.exists(tempDir.resolve(filename))
 
         cleanup:
-        tempDir.deleteDir()
+        tempDir.toFile().deleteDir()
     }
 
     def "saveMarkdown() should save markdown content when no conflicts exist"() {

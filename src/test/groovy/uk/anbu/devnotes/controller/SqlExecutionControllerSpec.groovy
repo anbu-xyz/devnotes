@@ -76,7 +76,7 @@ class SqlExecutionControllerSpec extends Specification {
         response.body == "<table>Test Result</table>"
 
         cleanup:
-        tempDir.deleteDir()
+        tempDir.toFile().deleteDir()
     }
 
     def "reExecuteSql POST should handle invalid datasource"() {
@@ -134,7 +134,7 @@ class SqlExecutionControllerSpec extends Specification {
         response.body == "<table>Sorted Result</table>"
 
         cleanup:
-        tempDir.deleteDir()
+        tempDir.toFile().deleteDir()
     }
 
     def "saveSqlChanges should update markdown file and re-execute SQL"() {
@@ -172,7 +172,7 @@ SELECT * FROM old
         !Files.readString(markdownFile).contains("SELECT * FROM old")
 
         cleanup:
-        tempDir.deleteDir()
+        tempDir.toFile().deleteDir()
     }
 
     def "downloadExcel should return Excel file"() {
@@ -192,6 +192,6 @@ SELECT * FROM old
         response.headers.getContentDisposition().toString() == 'attachment; filename="sql_results.xlsx"'
 
         cleanup:
-        tempDir.deleteDir()
+        tempDir.toFile().deleteDir()
     }
 }

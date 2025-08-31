@@ -5,23 +5,26 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.2</version>
+        <version>3.5.5</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>uk.anbu</groupId>
     <artifactId>devnotes</artifactId>
-    <version>0.0.3</version>
+    <version>0.0.4</version>
     <name>devnotes</name>
     <description>Personal notes taking tool for developer in a typical corporate environment</description>
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <jte.version>3.2.1</jte.version>
         <jgit.version>7.3.0.202506031305-r</jgit.version>
         <comonmark.version>0.24.0</comonmark.version>
         <plantuml.version>1.2025.2</plantuml.version>
         <spock.version>2.4-M6-groovy-4.0</spock.version>
-        <groovy.version>4.0.16</groovy.version>
+        <groovy.version>4.0.17</groovy.version>
         <apachepoi.version>5.4.1</apachepoi.version>
+        <commons-io.version>2.16.1</commons-io.version>
+        <jsch.version>0.2.19</jsch.version>
+        <jsoup.version>1.18.1</jsoup.version>
     </properties>
     <dependencies>
         <dependency>
@@ -71,7 +74,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.16.1</version>
+            <version>${commons-io.version}</version>
         </dependency>
         <dependency>
             <groupId>org.eclipse.jgit</groupId>
@@ -99,7 +102,7 @@
             <!-- jsch to connect to git repositories using OPENSSH private keys instead of RSA -->
             <groupId>com.github.mwiede</groupId>
             <artifactId>jsch</artifactId>
-            <version>0.2.19</version>
+            <version>${jsch.version}</version>
         </dependency>
 
         <dependency>
@@ -164,6 +167,16 @@
             <artifactId>playwright</artifactId>
             <version>1.49.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy</artifactId>
+            <version>${groovy.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.groovy</groupId>
+            <artifactId>groovy-xml</artifactId>
+            <version>${groovy.version}</version>
+        </dependency>
 
         <!-- jte dependencies -->
         <dependency>
@@ -200,14 +213,14 @@
         </dependency>
         <dependency>
             <groupId>org.apache.groovy</groupId>
-            <artifactId>groovy-all</artifactId>
+            <artifactId>groovy</artifactId>
             <version>${groovy.version}</version>
             <type>pom</type>
         </dependency>
         <dependency>
             <groupId>org.jsoup</groupId>
             <artifactId>jsoup</artifactId>
-            <version>1.18.1</version>
+            <version>${jsoup.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -271,7 +284,7 @@
             <plugin>
                 <groupId>org.codehaus.gmavenplus</groupId>
                 <artifactId>gmavenplus-plugin</artifactId>
-                <version>3.0.2</version>
+                <version>4.2.1</version>
                 <executions>
                     <execution>
                         <id>version-check</id>
@@ -280,6 +293,7 @@
                             <goal>execute</goal>
                         </goals>
                         <configuration>
+                            <targetBytecode>17</targetBytecode>
                             <scripts>
                                 <script>file:///${project.basedir}/scripts/maven-version-checker.groovy</script>
                             </scripts>
@@ -296,6 +310,9 @@
                             <goal>removeStubs</goal>
                             <goal>removeTestStubs</goal>
                         </goals>
+                        <configuration>
+                            <targetBytecode>17</targetBytecode>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
