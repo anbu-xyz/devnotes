@@ -10,7 +10,7 @@
     </parent>
     <groupId>uk.anbu</groupId>
     <artifactId>devnotes</artifactId>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
     <name>devnotes</name>
     <description>Personal notes taking tool for developer in a typical corporate environment</description>
     <properties>

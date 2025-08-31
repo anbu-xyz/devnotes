@@ -35,12 +35,14 @@ class LocalImageTransformerSpec extends Specification {
         urlDecodedDestination == expectedPath
 
         where:
-        fileName        | imagePath           | expectedPath
-        "test.md"       | "image.png"         | "/image?filename=image.png"
-        "/docs/test.md" | "image.png"         | "/image?filename=/docs/image.png"
-        "docs/test.md"  | "image.png"         | "/image?filename=docs/image.png"
-        "test.md"       | "/absolute/img.png" | "/image?filename=/absolute/img.png"
-        "docs\\test.md" | "image.png"         | "/image?filename=docs/image.png"  // Windows path
+        fileName        | imagePath                   | expectedPath
+        "test.md"       | "http://example.com/image"  | "http://example.com/image"
+        "test.md"       | "https://example.com/image" | "https://example.com/image"
+        "test.md"       | "image.png"                 | "/image?filename=image.png"
+        "/docs/test.md" | "image.png"                 | "/image?filename=/docs/image.png"
+        "docs/test.md"  | "image.png"                 | "/image?filename=docs/image.png"
+        "test.md"       | "/absolute/img.png"         | "/image?filename=/absolute/img.png"
+        "docs\\test.md" | "image.png"                 | "/image?filename=docs/image.png"  // Windows path
     }
 
     def "should handle plantuml content urls"() {
