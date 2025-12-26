@@ -5,24 +5,24 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.5</version>
+        <version>3.5.9</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>uk.anbu</groupId>
     <artifactId>devnotes</artifactId>
-    <version>0.0.4</version>
+    <version>0.0.5</version>
     <name>devnotes</name>
     <description>Personal notes taking tool for developer in a typical corporate environment</description>
     <properties>
         <java.version>21</java.version>
         <jte.version>3.2.1</jte.version>
         <jgit.version>7.3.0.202506031305-r</jgit.version>
-        <comonmark.version>0.24.0</comonmark.version>
+        <comonmark.version>0.27.0</comonmark.version>
         <plantuml.version>1.2025.2</plantuml.version>
-        <spock.version>2.4-M6-groovy-4.0</spock.version>
-        <groovy.version>4.0.17</groovy.version>
-        <apachepoi.version>5.4.1</apachepoi.version>
-        <commons-io.version>2.16.1</commons-io.version>
+        <spock.version>2.4-groovy-5.0</spock.version>
+        <groovy.version>5.0.3</groovy.version>
+        <apachepoi.version>5.5.1</apachepoi.version>
+        <commons-io.version>2.21.0</commons-io.version>
         <jsch.version>0.2.19</jsch.version>
         <jsoup.version>1.18.1</jsoup.version>
     </properties>
@@ -293,7 +293,6 @@
                             <goal>execute</goal>
                         </goals>
                         <configuration>
-                            <targetBytecode>17</targetBytecode>
                             <scripts>
                                 <script>file:///${project.basedir}/scripts/maven-version-checker.groovy</script>
                             </scripts>
