@@ -4,8 +4,10 @@ spring.profiles.active: prod
 
 devnotes:
   docsDirectory: @user.home@/docs
+  allowedIps: 127.0.0.1,0:0:0:0:0:0:0:1
   sshKeyFile:
   chromeDriverLocation:
+  sql.maxRows: 1000
 
 # jte configuration
 gg.jte:
