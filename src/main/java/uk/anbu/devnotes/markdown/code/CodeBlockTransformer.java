@@ -38,14 +38,20 @@ public class CodeBlockTransformer {
     private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
 
     public void transform(Node current) {
+        // If there is a next sibling, process it
         if (current instanceof FencedCodeBlock) {
             processFencedCodeBlock((FencedCodeBlock) current);
+            // fenced code blocks cannot have children, so no need to process firstChild
+        } else {
+            log.trace("Not a fenced code block: {}. Ignored", current.getClass().getSimpleName());
+            if (current.getFirstChild() != null) {
+                // If there is a child, process it - depth-first traversal
+                transform(current.getFirstChild());
+            }
         }
         if (current.getNext() != null) {
+            // If there is a next sibling, process it
             transform(current.getNext());
-        }
-        if (current.getFirstChild() != null) {
-            transform(current.getFirstChild());
         }
     }
 
@@ -81,7 +87,8 @@ public class CodeBlockTransformer {
     }
 
     private void renderSqlResult(FencedCodeBlock codeBlock, MarkdownFile markdownFile, String codeType) {
-        String configString = codeType.substring(4, codeType.length() - 1);
+        // codetype is of format sql(config1:value1,config2:value2)
+        String configString = codeType.substring("sql(".length(), codeType.length() - 1);
         String[] configParts = configString.split(",");
         Map<String, String> configMap = new HashMap<>();
         for (String configKeyValue : configParts) {
@@ -101,15 +108,23 @@ public class CodeBlockTransformer {
         }
 
         String sql = codeBlock.getLiteral();
-        Node node;
+        Node newNodeToInsert;
         var maxRows = readMaxRows(configMap);
         var dataSourceConfig = dataSourceConfigResolver.apply(configMap.get("datasource"));
         if (dataSourceConfig == null) {
-            node = new Text("Error: DataSource '" + configMap.get("datasource") + "' not defined in config.");
+            newNodeToInsert = new Text("Error: DataSource '" + configMap.get("datasource") + "' not defined in config.");
         } else {
-            node = processSqlCodeBlock(sql, dataSourceConfig, markdownFile, maxRows);
+            try {
+                newNodeToInsert = processSqlCodeBlock(sql, dataSourceConfig, markdownFile, maxRows);
+            } catch (Exception e) {
+                log.error("Error rendering SQL result", e);
+                newNodeToInsert = new Text("Error rendering SQL result: " + e.getMessage()
+                        +" original SQL: " + sql);
+            }
         }
-        codeBlock.insertAfter(node);
+        codeBlock.insertBefore(newNodeToInsert);
+
+        // rename original info text from 'sql(...)' to 'hidden-sql' to hide it from rendering
         codeBlock.setInfo("hidden-sql");
     }
 
@@ -125,7 +140,7 @@ public class CodeBlockTransformer {
         }
     }
 
-    private Node processSqlCodeBlock(String sql, ConfigService.DataSourceConfig dataSourceConfig,
+    private HtmlBlock processSqlCodeBlock(String sql, ConfigService.DataSourceConfig dataSourceConfig,
                                      MarkdownFile markdownFile, int maxRows) {
 
         List<String> parameterNames = extractParameterNames(sql);
@@ -157,7 +172,7 @@ public class CodeBlockTransformer {
         return parameterNames;
     }
 
-    private Node renderSqlResultTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
+    private HtmlBlock renderSqlResultTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
                                       String dataSourceName, MarkdownFile markdownFile) {
         var request = new SqlExecutor.HtmlTableRequest(sqlText, outputPath, parameterValues, dataSourceName,
                 markdownFile, codeBlockCounter);
