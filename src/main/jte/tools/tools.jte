@@ -16,6 +16,9 @@
 Pomodoro Timer
 <a href="/pomodoro">/pomodoro</a><br>
 
+Awesome bar
+<a href="/awesome-bar">/awesome-bar</a><br>
+
 Base64 Encoder
 <a href="/base64">/base64</a><br>
 
