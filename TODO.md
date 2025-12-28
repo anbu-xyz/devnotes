@@ -5,7 +5,6 @@
 * Sometimes I've noticed editing sql using the widget duplicates it.
 
 ## Features
-* Allow pasting images into markdown files
 * Tools should list exchange rates
 * In SQL results, column with '$' prefix should be treated as currency and apply exchange rate.
 * Add a way to run parameterized queries

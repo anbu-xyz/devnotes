@@ -121,18 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // File upload handlers
     const pasteArea = document.getElementById('paste-area');
 
-    document.addEventListener('paste', e => {
-        const items = e.clipboardData.items;
-        for (let item of items) {
-            if (item.kind === 'file') {
-                const blob = item.getAsFile();
-                const fileName = `pasted_image_${Date.now()}.png`;
-                const file = new File([blob], fileName, {type: blob.type});
-                uploadFile(file);
-            }
-        }
-    });
-
     pasteArea.addEventListener('dragover', e => {
         e.preventDefault();
         e.stopPropagation();

@@ -78,6 +78,7 @@
 </div>
 <div hidden id="dl-current-directory-name">${directoryName}</div>
 
+<script src="/js/paste-image.js"></script>
 <script src="/js/directory-listing.js"></script>
 </body>
 </html>
