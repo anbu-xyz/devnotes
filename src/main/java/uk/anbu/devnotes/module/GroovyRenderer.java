@@ -29,7 +29,7 @@ public class GroovyRenderer {
         this.chromeDriverLocationSupplier = chromeDriverLocationSupplier;
     }
 
-    private GroovyOutput processGroovyCodeBlock(GroovyCodeBlockRequest request) {
+    private GroovyOutput processGroovyCodeBlock(GroovyCodeBlockRequest request) throws Exception {
         setEnvVariables();
         var outputString = GroovyShellRunner.execute(request.groovyScript);
         var node = convertOutputToNode(request.targetType, outputString);
@@ -72,34 +72,50 @@ public class GroovyRenderer {
                 var outputString = readFromFile(outputFile, cacheFileName);
                 node = convertOutputToNode(targetType, outputString);
             } else {
-                var output = processGroovyCodeBlock(groovyCodeBlockRequest);
-                saveOutput(outputFile, output.outputString());
-                node = output.node();
+                try {
+                    var output = processGroovyCodeBlock(groovyCodeBlockRequest);
+                    saveOutput(outputFile, output.outputString());
+                    node = output.node();
+                } catch (Exception e) {
+                    log.error("Error rendering Groovy result with caching enabled", e);
+                    node = new Text("Error executing Groovy script: " + e.getMessage());
+                }
             }
         } else {
-            var output = processGroovyCodeBlock(groovyCodeBlockRequest);
-            node = output.node();
+            try {
+                var output = processGroovyCodeBlock(groovyCodeBlockRequest);
+                node = output.node();
+            } catch (Exception e) {
+                log.error("Error rendering Groovy result with caching disabled", e);
+                node = new Text("Error executing Groovy script: " + e.getMessage());
+            }
         }
         return Optional.of(node);
     }
 
     private Node convertOutputToNode(String targetType, String output) {
-        if ("html".equals(targetType)) {
-            HtmlBlock htmlBlock = new HtmlBlock();
-            htmlBlock.setLiteral(output);
-            return htmlBlock;
-        } else if ("text".equals(targetType)) {
-            return new Text(output);
-        } else if ("code-block".equals(targetType)) {
-            FencedCodeBlock fencedCodeBlock = new FencedCodeBlock();
-            fencedCodeBlock.setInfo("text");
-            fencedCodeBlock.setLiteral(output);
-            return fencedCodeBlock;
-        } else if ("csv-table".equals(targetType) || "csv-table-with-header".equals(targetType)) {
-            return csvToHtmlTable(targetType, output);
-        } else {
-            return new Text(String.format("Error: Unknown target type '%s', use target type 'html', 'text', " +
-                    "'code-block', 'csv-table' or 'csv-table-with-header'", targetType));
+        switch (targetType) {
+            case "html" -> {
+                HtmlBlock htmlBlock = new HtmlBlock();
+                htmlBlock.setLiteral(output);
+                return htmlBlock;
+            }
+            case "text" -> {
+                return new Text(output);
+            }
+            case "code-block" -> {
+                FencedCodeBlock fencedCodeBlock = new FencedCodeBlock();
+                fencedCodeBlock.setInfo("text");
+                fencedCodeBlock.setLiteral(output);
+                return fencedCodeBlock;
+            }
+            case "csv-table", "csv-table-with-header" -> {
+                return csvToHtmlTable(targetType, output);
+            }
+            case null, default -> {
+                return new Text(String.format("Error: Unknown target type '%s', use target type 'html', 'text', " +
+                        "'code-block', 'csv-table' or 'csv-table-with-header'", targetType));
+            }
         }
     }
 
