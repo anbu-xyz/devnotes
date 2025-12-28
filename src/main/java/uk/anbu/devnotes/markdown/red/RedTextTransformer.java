@@ -27,29 +27,20 @@ public class RedTextTransformer {
 
     private static void processRedText(Node referenceNode, String text) {
         int pos = 0;
-        while (pos < text.length()) {
-            int start = text.indexOf("[red]", pos);
-            if (start == -1) {
-                referenceNode.insertBefore(new Text(text.substring(pos)));
-                break;
-            }
 
-            // Add preceding plain text if any
-            if (start > pos) {
-                referenceNode.insertBefore(new Text(text.substring(pos, start)));
-            }
-
+        int start = text.indexOf("[red]");
+        while(start != -1) {
+            referenceNode.insertBefore(new Text(text.substring(pos, start)));
             int end = text.indexOf("[/red]", start);
             if (end == -1) {
-                // No closing tag, treat rest as plain text
+                // No closing tag found, treat the rest as normal text
                 referenceNode.insertBefore(new Text(text.substring(start)));
-                break;
+                return;
             }
-
-            // Extract red text
-            String redContent = text.substring(start + 5, end);
-            referenceNode.insertBefore(new RedTextNode(redContent));
-            pos = end + 6;
+            referenceNode.insertBefore(new RedTextNode(text.substring(start + "[red]".length(), end)));
+            pos = end + "[/red]".length();
+            start = text.indexOf("[red]", pos);
         }
+        referenceNode.insertBefore(new Text(text.substring(pos)));
     }
 }

@@ -1,14 +1,14 @@
 # Developer Notes
 
-The goal of this tool is to help developers build personal knowledge base with markdown files in 
+The goal of this tool is to help developers build a personal knowledge base with markdown files in 
 a corporate environment.
 
-By a corporate environment, I mean 
+By a corporate environment, I mean:
 
-* you have no access to personal knowledge base building tools like obsidian, notion, etc.
-* you have access create a personal git repository and store documents in it
-* you need to work with multiple databases with different schemas - trying to remember the obscure table and column names is not fun
-* you need a scripting language to gather data and display it in a nice way
+* You do not have access to personal knowledge base tools like Obsidian, Notion, etc.
+* You have access to create a personal Git repository and store documents in it.
+* You need to work with multiple databases with different schemas—trying to remember obscure table and column names is not enjoyable.
+* You need a scripting language to gather data and display it in a user-friendly way.
 
 ## Requirements
 
@@ -19,17 +19,17 @@ By a corporate environment, I mean
 ## Features
 
 * Store documents as markdown files
-* Save the documents into a git repository
-* Execute groovy scripts and render results in multiple formats
-   - csv tables
-   - html
-   - text
+* Save documents into a Git repository
+* Execute Groovy scripts and render results in multiple formats:
+   - CSV tables
+   - HTML
+   - Text
 
 ### Groovy Scripting
 
-To embed executable groovy code in a markdown file, use the following syntax:
+To embed executable Groovy code in a markdown file, use the following syntax:
 
-#### To render the result as a csv table with header:
+#### To render the result as a CSV table with a header:
 ````
 ```groovy:csv-table-with-header
 def output = ""
@@ -89,7 +89,7 @@ The code will be executed and the result will be rendered in the markdown file.
 
 ### Playwright Scripting
 
-To embed executable playwright code in a markdown file, use the following syntax:
+To embed executable Playwright code in a markdown file, use the following syntax:
 
 ````
 ```groovy:text

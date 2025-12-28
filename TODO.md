@@ -2,7 +2,7 @@
 
 ## Bugs
 * Sorted column name should be stored in output file
-* Sometimes I've noticed editing sql using the widget duplicates it.
+* Sometimes I've noticed editing SQL using the widget duplicates it.
 
 ## Features
 * Tools should list exchange rates
