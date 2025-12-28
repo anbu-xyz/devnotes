@@ -1,6 +1,7 @@
 @param String markdownFile
 @param String title
 @param boolean editMode
+@param String directoryName
 
 <!DOCTYPE html>
 <html lang="en">
@@ -48,6 +49,10 @@
                 </div>
             </div>
         </div>
+        <div id="paste-area">
+            Paste image here
+        </div>
+        <div hidden id="dl-current-directory-name">${directoryName}</div>
         <!-- JavaScript -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>

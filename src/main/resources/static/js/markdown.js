@@ -1,4 +1,5 @@
 let easyMDE;
+const currentDirectoryName = document.getElementById('dl-current-directory-name').textContent;
 
 // Core functions
 async function saveContent() {
@@ -103,6 +104,16 @@ function invokePrismHighlighting() {
     Prism.highlightAll();
 }
 
+async function uploadFile(file) {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('path', currentDirectoryName);
+    const response = await fetch('/uploadFile', {method: 'POST', body: formData});
+    if (response.ok) window.location.reload();
+    else alert('Failed to upload file');
+}
+
 //-----------------------------------------------------------------------------
 // Event handlers
 //-----------------------------------------------------------------------------
@@ -154,6 +165,53 @@ function isElementVisible(el) {
         rect.left < (window.innerWidth || document.documentElement.clientWidth)
     );
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    // File upload handlers
+    const pasteArea = document.getElementById('paste-area');
+
+    document.addEventListener('paste', e => {
+        const items = e.clipboardData.items;
+        for (let item of items) {
+            if (item.kind === 'file') {
+                const blob = item.getAsFile();
+                const fileName = `pasted_image_${Date.now()}.png`;
+                const file = new File([blob], fileName, {type: blob.type});
+                uploadFile(file);
+            }
+        }
+    });
+
+    pasteArea.addEventListener('dragover', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.target.style.background = '#e1e1e1';
+    });
+
+    pasteArea.addEventListener('dragleave', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.target.style.background = '';
+    });
+
+    pasteArea.addEventListener('drop', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.target.style.background = '';
+        if (e.dataTransfer.files.length > 0) uploadFile(e.dataTransfer.files[0]);
+    });
+
+    // Set entry widths
+    const entryElements = document.querySelectorAll('.entry-main');
+    let maxWidth = Math.max(...Array.from(entryElements).map(el => {
+        el.style.width = 'auto';
+        const width = el.scrollWidth;
+        el.style.width = '';
+        return width;
+    }));
+    entryElements.forEach(div => div.style.width = `${maxWidth + 30}px`);
+});
+
 
 //-----------------------------------------------------------------------------
 // Modal Dialog

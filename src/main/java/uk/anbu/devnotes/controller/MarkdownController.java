@@ -276,6 +276,8 @@ public class MarkdownController {
         params.put("markdownFile", filename);
         params.put("editMode", editMode);
         params.put("title", title);
+        params.put("directoryName", markdownFile.getParent().equals(markdownRoot) ? "" :
+                markdownRoot.relativize(markdownFile.getParent()).toString().replace("\\", "/"));
         templateEngine.render("render/markdown.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");
