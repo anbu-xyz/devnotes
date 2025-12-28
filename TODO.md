@@ -10,3 +10,4 @@
 * Add a way to run parameterized queries
 * Autodetect a file being edited in another tab and stop new edits
 * Render JSON results as custom HTML
+* Design flash cards feature

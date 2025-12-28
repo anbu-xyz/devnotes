@@ -8,7 +8,7 @@
 @param String title
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
     <link rel="stylesheet" type="text/css" href="/css/directory-listing.css">
@@ -17,10 +17,33 @@
 </head>
 <body class="p-8">
 @if(directoryName.isEmpty())
-    <h1><i class="fas fa-home" onclick="writeToClipboard('${fileSystemPath}')"></i></h1>
+    <h1>
+        <i class="fas fa-home" onclick="writeToClipboard('${fileSystemPath}')"></i>
+    </h1>
 @else
     <h1>${directoryName}/ <i class="fas fa-copy" onclick="writeToClipboard('${fileSystemPath}')"></i></h1>
 @endif
+
+<div class="mt-8">
+    <button onclick="createMarkdown()" class="btn-blue-glow" title="New Markdown">
+        <i class="fas fa-file-alt tool-button"></i>
+    </button>
+    <button onclick="createSubdirectory()" class="btn-blue-glow" title="New Folder">
+        <i class="fas fa-folder-plus tool-button"></i>
+    </button>
+    |
+    <button onclick="document.getElementById('file-upload').click()" class="btn-blue-glow" title="Upload File">
+        <i class="fas fa-upload tool-button"></i>
+    </button>
+    <input type="file" id="file-upload" style="display: none;" onchange="uploadFile(this.files[0])">
+    |
+    <button class="btn-blue-glow" title="Tools">
+        <a href="/tools">
+             <i class="fas fa-tools tool-button"></i>
+        </a>
+    </button>
+</div>
+
 <ul class="directory-list">
     @if(directoryName.length() > 1)
         <li>
@@ -59,19 +82,6 @@
         </li>
     @endfor
 </ul>
-
-<div class="mt-8">
-    <button onclick="createSubdirectory()" class="btn-blue-glow">
-        <i class="fas fa-folder-plus"></i>Create New Subdirectory
-    </button>
-    <button onclick="createMarkdown()" class="btn-blue-glow">
-        <i class="fas fa-file-alt"></i>Create New Markdown
-    </button>
-    <button onclick="document.getElementById('file-upload').click()" class="btn-blue-glow">
-        <i class="fas fa-upload"></i>Upload File
-    </button>
-    <input type="file" id="file-upload" style="display: none;" onchange="uploadFile(this.files[0])">
-</div>
 
 <div id="paste-area">
     Paste image here

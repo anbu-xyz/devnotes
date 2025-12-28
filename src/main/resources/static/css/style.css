@@ -297,6 +297,14 @@ img {
     margin-right: 0.5rem;
 }
 
+.btn-blue-glow i.tool-button {
+    margin-right: 0;
+}
+
+.btn-blue-glow a:hover {
+    color: black;
+}
+
 #paste-area {
     width: 100%;
     height: 100px;
