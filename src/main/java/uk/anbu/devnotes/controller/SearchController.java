@@ -12,10 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.SearchExecutor;
 import uk.anbu.devnotes.service.ConfigService;
-import uk.anbu.devnotes.types.SearchResult;
 import uk.anbu.devnotes.types.SearchResultList;
-
-import java.util.List;
 
 import static uk.anbu.devnotes.controller.SearchLocationController.constructResponse;
 

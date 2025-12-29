@@ -1,31 +1,29 @@
 package uk.anbu.devnotes.markdown.code;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import gg.jte.ContentType;
+import gg.jte.TemplateEngine;
+import gg.jte.output.StringOutput;
 import gg.jte.resolve.DirectoryCodeResolver;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Node;
-import uk.anbu.devnotes.types.MarkdownFile;
-import uk.anbu.devnotes.service.ConfigService;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
-
-import gg.jte.TemplateEngine;
-import gg.jte.output.StringOutput;
+import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 @Slf4j
@@ -44,7 +42,7 @@ public class DataBlockTranslator {
         ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
         Map<String, Object> config;
         try {
-            config = yamlMapper.readValue(dataConfig, new TypeReference<Map<String, Object>>() {
+            config = yamlMapper.readValue(dataConfig, new TypeReference<>() {
             });
         } catch (Exception e) {
             var html = new HtmlBlock();
@@ -90,38 +88,10 @@ public class DataBlockTranslator {
             options = (Map<String, Object>) optionsObj;
         }
 
-        List<String> columns = null;
-        int limit = 0;
-        // options is never null (we default to empty map) so use it directly
-        if (options.containsKey("columns") && options.get("columns") instanceof List) {
-            columns = new ArrayList<>();
-            for (Object c : (List<?>) options.get("columns")) {
-                columns.add(c.toString());
-            }
-        }
-        if (options.containsKey("limit")) {
-            try {
-                limit = Integer.parseInt(options.get("limit").toString());
-            } catch (Exception ignored) {
-            }
-        }
-
-        // Execute query using a JDBC template built from DataSourceConfig
+        int limit = readLimit(options);
         List<Map<String, Object>> rows;
         try {
-            DriverManagerDataSource ds = new DriverManagerDataSource();
-            ds.setDriverClassName(dsConfig.driverClassName());
-            ds.setUrl(dsConfig.url());
-            ds.setUsername(dsConfig.username());
-            ds.setPassword(dsConfig.password());
-
-            var jdbcTemplate = new JdbcTemplate(ds);
-            if (limit > 0) {
-                jdbcTemplate.setMaxRows(limit);
-            }
-            NamedParameterJdbcTemplate named = new NamedParameterJdbcTemplate(jdbcTemplate);
-
-            rows = named.queryForList(query, new MapSqlParameterSource());
+            rows = buildDataRows(dsConfig, limit, query);
         } catch (Exception e) {
             var html = new HtmlBlock();
             html.setLiteral("<div>Error executing query against datasource '" + escapeHtml(dataSourceName)
@@ -130,41 +100,15 @@ public class DataBlockTranslator {
         }
 
         // If columns not provided, infer from first row
-        if (columns == null) {
-            columns = new ArrayList<>();
-            if (!rows.isEmpty()) {
-                // preserve insertion order from the map
-                columns.addAll(rows.get(0).keySet());
-            }
-        }
+        List<String> columns = readColumnsData(options, rows);
 
         // Check for output-template
         Object outputTemplateObj = config.get("output-template");
         String outputTemplateType = config.getOrDefault("output-template-type", "").toString();
-        Path tempDir = Files.createTempDirectory("jte-templates");
-        DirectoryCodeResolver codeResolver = new DirectoryCodeResolver(tempDir);
-        TemplateEngine templateEngine = TemplateEngine.create(codeResolver, ContentType.Html);
-        if (outputTemplateObj != null && "jte".equalsIgnoreCase(outputTemplateType) && templateEngine != null) {
+        if (outputTemplateObj != null && "jte".equalsIgnoreCase(outputTemplateType)) {
             String templateContent = outputTemplateObj.toString();
-            String templateName = "user-template.jte";
-            Path templatePath = tempDir.resolve(templateName);
-
-            Files.writeString(templatePath, templateContent); // Write the template content to the file
             try {
-                Map<String, Object> params = new HashMap<>();
-                params.put("columns", columns);
-                params.put("rows", rows);
-                params.put("datasource", dataSourceName);
-                params.put("markdownFile", mdName);
-
-                StringOutput output = new StringOutput();
-                templateEngine.render(templateName, params, output);
-                var html = new HtmlBlock();
-                html.setLiteral(output.toString());
-                return html;
-
-                // Inline jte templates (multi-line) are not supported by the runtime TemplateEngine used in this app.
-                // Fall back to default HTML table rendering below.
+                return userProvidedTemplate(columns, rows, dataSourceName, mdName, templateContent);
             } catch (Exception e) {
                 log.error("Error rendering data block template", e);
                 var html = new HtmlBlock();
@@ -173,12 +117,93 @@ public class DataBlockTranslator {
             }
         }
 
-        // Build HTML table (fallback)
+        return htmlFallbackTable(dataSourceName, columns, rows);
+    }
+
+    private static int readLimit(Map<String, Object> options) {
+        int limit = 0;
+        if (options.containsKey("limit")) {
+            try {
+                limit = Integer.parseInt(options.get("limit").toString());
+            } catch (Exception ignored) {
+            }
+        }
+        return limit;
+    }
+
+    private static List<String> readColumnsData(Map<String, Object> options, List<Map<String, Object>> rows) {
+        List<String> columns = null;
+        // options is never null (we default to empty map) so use it directly
+        if (options.containsKey("columns") && options.get("columns") instanceof List) {
+            columns = new ArrayList<>();
+            for (Object c : (List<?>) options.get("columns")) {
+                columns.add(c.toString());
+            }
+        }
+        if (columns == null) {
+            columns = new ArrayList<>();
+            if (!rows.isEmpty()) {
+                // preserve insertion order from the map
+                columns.addAll(rows.getFirst().keySet());
+            }
+        }
+
+        return columns;
+    }
+
+    @SneakyThrows
+    private static HtmlBlock userProvidedTemplate(List<String> columns, List<Map<String, Object>> rows,
+                                                  String dataSourceName, String mdName, String templateContent) {
+        Path tempDir = Files.createTempDirectory("jte-templates");
+        DirectoryCodeResolver codeResolver = new DirectoryCodeResolver(tempDir);
+        TemplateEngine templateEngine = TemplateEngine.create(codeResolver, ContentType.Html);
+
+        String templateName = "user-template.jte";
+        Path templatePath = tempDir.resolve(templateName);
+
+        Files.writeString(templatePath, templateContent); // Write the template content to the file
+
+        Map<String, Object> params = new HashMap<>();
+        params.put("columns", columns);
+        params.put("rows", rows);
+        params.put("datasource", dataSourceName);
+        params.put("markdownFile", mdName);
+
+        StringOutput output = new StringOutput();
+        templateEngine.render(templateName, params, output);
+        var html = new HtmlBlock();
+        html.setLiteral(output.toString());
+        return html;
+    }
+
+    private static List<Map<String, Object>> buildDataRows(ConfigService.DataSourceConfig dsConfig,
+                                                           int limit, String query) {
+        List<Map<String, Object>> rows;
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setDriverClassName(dsConfig.driverClassName());
+        ds.setUrl(dsConfig.url());
+        ds.setUsername(dsConfig.username());
+        ds.setPassword(dsConfig.password());
+
+        var jdbcTemplate = new JdbcTemplate(ds);
+        if (limit > 0) {
+            jdbcTemplate.setMaxRows(limit);
+        }
+        NamedParameterJdbcTemplate named = new NamedParameterJdbcTemplate(jdbcTemplate);
+
+        rows = named.queryForList(query, new MapSqlParameterSource());
+        return rows;
+    }
+
+    private static HtmlBlock htmlFallbackTable(String datasourceName, List<String> columns, List<Map<String,
+            Object>> rows) {
         StringBuilder sb = new StringBuilder();
         sb.append("<div class=\"data-block\">\n");
         sb.append("<table class=\"data-block-table\">\n");
         // header
         sb.append("<thead><tr>");
+        sb.append(String.format("<th colspan=%d>%s</th>", columns.size(), datasourceName));
+        sb.append("</tr><tr>");
         for (String col : columns) {
             sb.append("<th>").append(escapeHtml(col)).append("</th>");
         }
