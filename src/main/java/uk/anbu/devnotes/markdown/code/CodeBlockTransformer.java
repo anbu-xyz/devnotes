@@ -69,10 +69,27 @@ public class CodeBlockTransformer {
             }
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
             renderSqlResult(codeBlock, markdownFile, codeType);
+        } else if (codeType.matches("^data$")) {
+            renderDataBlock(codeBlock, markdownFile);
         } else if (codeType.matches("^plantuml\\(([^)]*)\\)$") || codeType.matches("^plantuml$")) {
             renderPlantUmlResult(codeBlock);
         } else {
             log.debug("unhandled code type: {}, delegating to default handler", codeType);
+        }
+    }
+
+    private void renderDataBlock(FencedCodeBlock codeBlock, MarkdownFile markdownFile) {
+        String dataConfig = codeBlock.getLiteral();
+        try {
+            Node newNodeToInsert = new DataBlockTranslator(dataSourceConfigResolver).renderDataBlock(dataConfig, markdownFile);
+            codeBlock.insertBefore(newNodeToInsert);
+
+            // rename original info text from 'data(...)' to 'hidden-data' to hide it from rendering
+            codeBlock.setInfo("hidden-data");
+        } catch (Exception e) {
+            log.error("Error rendering Data result", e);
+            Node newNodeToInsert = new Text("Error rendering SQL result: " + e.getMessage());
+            codeBlock.insertBefore(newNodeToInsert);
         }
     }
 
@@ -119,7 +136,7 @@ public class CodeBlockTransformer {
             } catch (Exception e) {
                 log.error("Error rendering SQL result", e);
                 newNodeToInsert = new Text("Error rendering SQL result: " + e.getMessage()
-                        +" original SQL: " + sql);
+                        + " original SQL: " + sql);
             }
         }
         codeBlock.insertBefore(newNodeToInsert);
@@ -141,7 +158,7 @@ public class CodeBlockTransformer {
     }
 
     private HtmlBlock processSqlCodeBlock(String sql, ConfigService.DataSourceConfig dataSourceConfig,
-                                     MarkdownFile markdownFile, int maxRows) {
+                                          MarkdownFile markdownFile, int maxRows) {
 
         List<String> parameterNames = extractParameterNames(sql);
         Map<String, String> parameterValues = new LinkedHashMap<>();
@@ -173,7 +190,7 @@ public class CodeBlockTransformer {
     }
 
     private HtmlBlock renderSqlResultTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
-                                      String dataSourceName, MarkdownFile markdownFile) {
+                                           String dataSourceName, MarkdownFile markdownFile) {
         var request = new SqlExecutor.HtmlTableRequest(sqlText, outputPath, parameterValues, dataSourceName,
                 markdownFile, codeBlockCounter);
         codeBlockCounter++;

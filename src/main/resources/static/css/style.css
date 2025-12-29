@@ -71,6 +71,10 @@ pre:has(> code.language-hidden-sql) {
     display: none;
 }
 
+pre:has(> code.language-hidden-data) {
+    display: none;
+}
+
 pre:has(> code.language-hidden-groovy) {
     display: none;
 }

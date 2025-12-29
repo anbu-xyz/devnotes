@@ -6,7 +6,7 @@ import org.commonmark.renderer.html.HtmlNodeRendererFactory;
 import org.commonmark.renderer.html.HtmlWriter;
 import org.commonmark.renderer.NodeRenderer;
 
-import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 public class RedTextNodeRenderer implements NodeRenderer {
@@ -18,13 +18,13 @@ public class RedTextNodeRenderer implements NodeRenderer {
 
     @Override
     public Set<Class<? extends Node>> getNodeTypes() {
-        return Collections.singleton(RedTextNode.class);
+        return Set.of(RedTextNode.class);
     }
 
     @Override
     public void render(Node node) {
         RedTextNode red = (RedTextNode) node;
-        html.tag("span", Collections.singletonMap("class", "color-red"));
+        html.tag("span", Map.of("class", "color-red"));
         html.text(red.getLiteral());
         html.tag("/span");
     }

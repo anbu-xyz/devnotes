@@ -2,6 +2,7 @@ package uk.anbu.devnotes.markdown;
 
 import org.commonmark.node.BulletList;
 import org.commonmark.node.Heading;
+import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.ListItem;
 import org.commonmark.node.Node;
 import org.commonmark.node.Text;
@@ -31,11 +32,10 @@ public class TodoModifier {
 
             Node node = document.getFirstChild();
             while (node != null) {
-                if (node instanceof Heading && ((Heading) node).getLevel() == 2) {
+                if (node instanceof Heading fleetingHeading && fleetingHeading.getLevel() == 2) {
                     String headingText = getSimpleText(node);
                     if (headingText.startsWith("Fleeting")) {
                         fleetingHeadingFound = true;
-                        var fleetingHeading = (Heading) node;
                         node = node.getNext();
                         if (node != null) {
                             if (node instanceof BulletList bulletList) {
@@ -63,7 +63,9 @@ public class TodoModifier {
 
     private static void addToBulletList(BulletList bulletList, String contentToAdd) {
         var newListItem = new ListItem();
-        newListItem.appendChild(new Text(contentToAdd));
+        var htmlBlock = new HtmlBlock();
+        htmlBlock.setLiteral(contentToAdd);
+        newListItem.appendChild(htmlBlock);
         bulletList.appendChild(newListItem);
     }
 

@@ -7,7 +7,7 @@ By a corporate environment, I mean:
 
 * You do not have access to personal knowledge base tools like Obsidian, Notion, etc.
 * You have access to create a personal Git repository and store documents in it.
-* You need to work with multiple databases with different schemas—trying to remember obscure table and column names is not enjoyable.
+* You need to work with multiple databases with different schemas - trying to remember obscure table and column names is not enjoyable.
 * You need a scripting language to gather data and display it in a user-friendly way.
 
 ## Requirements
