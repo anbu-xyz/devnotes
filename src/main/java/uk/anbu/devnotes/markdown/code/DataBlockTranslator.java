@@ -127,7 +127,8 @@ public class DataBlockTranslator {
             }
         }
 
-        return Optional.of(htmlFallbackTable(dataSourceName, columns, rows));
+        String heading = config.getOrDefault("heading", "").toString();
+        return Optional.of(htmlFallbackTable(heading, columns, rows));
     }
 
     private static Node combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows) {
@@ -242,15 +243,17 @@ public class DataBlockTranslator {
         return rows;
     }
 
-    private static HtmlBlock htmlFallbackTable(String datasourceName, List<String> columns, List<Map<String,
-            Object>> rows) {
+    private static HtmlBlock htmlFallbackTable(String heading, List<String> columns,
+                                               List<Map<String, Object>> rows) {
         StringBuilder sb = new StringBuilder();
         sb.append("<div class=\"data-block\">\n");
         sb.append("<table class=\"data-block-table\">\n");
         // header
-        sb.append("<thead><tr>");
-        sb.append(String.format("<th colspan=%d>%s</th>", columns.size(), datasourceName));
-        sb.append("</tr><tr>");
+        sb.append("<thead>");
+        if (heading != null && !heading.isEmpty()) {
+            sb.append(String.format("<tr><th colspan=%d>%s</th></tr>", columns.size(), heading));
+        }
+        sb.append("<tr>");
         for (String col : columns) {
             sb.append("<th>").append(escapeHtml(col)).append("</th>");
         }
