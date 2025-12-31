@@ -93,7 +93,8 @@ public class DataBlockTranslator {
         List<Map<String, Object>> rows;
         try {
             rows = buildDataRows(dsConfig, limit, query);
-            if (rows.isEmpty()) {
+            cleanNullColumns(rows);
+            if (rows.isEmpty() || rows.getFirst().isEmpty()) {
                 return Optional.empty();
             }
         } catch (Exception e) {
@@ -104,7 +105,10 @@ public class DataBlockTranslator {
         }
 
         // If columns not provided, infer from first row
-        List<String> columns = readColumnsData(options, rows);
+        var columns = readColumnsData(options, rows);
+        if (columns.size() == 1 && "false".equalsIgnoreCase(options.getOrDefault("dont-combine-single-column", "false").toString())) {
+            return Optional.of(combineIfSingleColumn(columns.getFirst(), rows));
+        }
 
         // Check for output-template
         Object outputTemplateObj = config.get("output-template");
@@ -123,6 +127,38 @@ public class DataBlockTranslator {
         }
 
         return Optional.of(htmlFallbackTable(dataSourceName, columns, rows));
+    }
+
+    private static Node combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows) {
+        HtmlBlock html = new HtmlBlock();
+        List<String> values = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            Object v = row.get(firstColumnName);
+            values.add(v == null ? "(null)" : v.toString());
+        }
+        html.setLiteral("<table class=\"data-block-combined\"> <tbody><tr><td class=\"column-name\">"
+                + escapeHtml(firstColumnName) + "</td><td>"
+                + escapeHtml(String.join(", ", values))
+                + "</td></tr></tbody></table>");
+        return html;
+    }
+
+    private static void cleanNullColumns(List<Map<String, Object>> rows) {
+        var allColumns = new ArrayList<>(rows.isEmpty() ? List.of() : rows.getFirst().keySet());
+        for (String col : allColumns) {
+            boolean allNull = true;
+            for (Map<String, Object> row : rows) {
+                if (row.get(col) != null) {
+                    allNull = false;
+                    break;
+                }
+            }
+            if (allNull) {
+                for (Map<String, Object> row : rows) {
+                    row.remove(col);
+                }
+            }
+        }
     }
 
     private static int readLimit(Map<String, Object> options) {
