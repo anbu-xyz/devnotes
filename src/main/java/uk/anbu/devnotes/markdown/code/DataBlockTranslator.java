@@ -189,6 +189,11 @@ public class DataBlockTranslator {
                 columns.addAll(rows.getFirst().keySet());
             }
         }
+        if (options.containsKey("columns-to-exclude") && options.get("columns-to-exclude") instanceof List) {
+            for (Object c : (List<?>) options.get("columns-to-exclude")) {
+                columns.remove(c.toString());
+            }
+        }
 
         return columns;
     }
