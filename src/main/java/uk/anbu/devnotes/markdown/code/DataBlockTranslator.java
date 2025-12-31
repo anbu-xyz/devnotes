@@ -106,7 +106,8 @@ public class DataBlockTranslator {
 
         // If columns not provided, infer from first row
         var columns = readColumnsData(options, rows);
-        if (columns.size() == 1 && "false".equalsIgnoreCase(options.getOrDefault("dont-combine-single-column", "false").toString())) {
+        if (columns.size() == 1
+                && "false".equalsIgnoreCase(options.getOrDefault("dont-combine-single-column", "false").toString())) {
             return Optional.of(combineIfSingleColumn(columns.getFirst(), rows));
         }
 

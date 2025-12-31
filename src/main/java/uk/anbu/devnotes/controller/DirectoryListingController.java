@@ -180,7 +180,13 @@ public class DirectoryListingController {
         try {
             Path markdownRoot = Paths.get(configService.getDocsDirectory());
             Path uploadPath = markdownRoot.resolve(path);
+            if (file == null || file.isEmpty() || file.getOriginalFilename() == null) {
+                return ResponseEntity.badRequest().body("No file selected for upload");
+            }
             Path filePath = uploadPath.resolve(file.getOriginalFilename());
+            if (filePath.getParent() != null && !Files.exists(filePath.getParent())) {
+                Files.createDirectories(filePath.getParent());
+            }
 
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
