@@ -23,6 +23,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -35,7 +36,7 @@ public class DataBlockTranslator {
     }
 
     @SneakyThrows
-    public Node renderDataBlock(String dataConfig, MarkdownFile markdownFile) {
+    public Optional<Node> renderDataBlock(String dataConfig, MarkdownFile markdownFile) {
         String mdName = markdownFile == null ? "" : markdownFile.fileName();
 
         // Parse YAML config
@@ -47,7 +48,7 @@ public class DataBlockTranslator {
         } catch (Exception e) {
             var html = new HtmlBlock();
             html.setLiteral("<div>Error parsing data block YAML (" + escapeHtml(mdName) + "): " + escapeHtml(e.getMessage()) + "</div>");
-            return html;
+            return Optional.of(html);
         }
 
         // Resolve datasource
@@ -55,7 +56,7 @@ public class DataBlockTranslator {
         if (source.isEmpty()) {
             var html = new HtmlBlock();
             html.setLiteral("<div>Error: 'source' not specified in data block (" + escapeHtml(mdName) + ").</div>");
-            return html;
+            return Optional.of(html);
         }
 
         // allow source strings like 'database/datasourceName' or just the name
@@ -69,7 +70,7 @@ public class DataBlockTranslator {
         if (dsConfig == null) {
             var html = new HtmlBlock();
             html.setLiteral("<div>Error: DataSource '" + escapeHtml(dataSourceName) + "' not configured (" + escapeHtml(mdName) + ").</div>");
-            return html;
+            return Optional.of(html);
         }
 
         // Extract query
@@ -77,7 +78,7 @@ public class DataBlockTranslator {
         if (query.isEmpty()) {
             var html = new HtmlBlock();
             html.setLiteral("<div>Error: 'query' not specified in data block (" + escapeHtml(mdName) + ").</div>");
-            return html;
+            return Optional.of(html);
         }
 
         // Extract options in a type-safe way
@@ -92,11 +93,14 @@ public class DataBlockTranslator {
         List<Map<String, Object>> rows;
         try {
             rows = buildDataRows(dsConfig, limit, query);
+            if (rows.isEmpty()) {
+                return Optional.empty();
+            }
         } catch (Exception e) {
             var html = new HtmlBlock();
             html.setLiteral("<div>Error executing query against datasource '" + escapeHtml(dataSourceName)
                     + "' (" + escapeHtml(mdName) + "): " + escapeHtml(e.getMessage()) + "</div>");
-            return html;
+            return Optional.of(html);
         }
 
         // If columns not provided, infer from first row
@@ -108,16 +112,17 @@ public class DataBlockTranslator {
         if (outputTemplateObj != null && "jte".equalsIgnoreCase(outputTemplateType)) {
             String templateContent = outputTemplateObj.toString();
             try {
-                return userProvidedTemplate(columns, rows, dataSourceName, mdName, templateContent);
+                var rendered = userProvidedTemplate(columns, rows, dataSourceName, mdName, templateContent);
+                return Optional.of(rendered);
             } catch (Exception e) {
                 log.error("Error rendering data block template", e);
                 var html = new HtmlBlock();
                 html.setLiteral("<div>Error rendering template for data block ('" + escapeHtml(mdName) + "'): " + escapeHtml(e.getMessage()) + "</div>");
-                return html;
+                return Optional.of(html);
             }
         }
 
-        return htmlFallbackTable(dataSourceName, columns, rows);
+        return Optional.of(htmlFallbackTable(dataSourceName, columns, rows));
     }
 
     private static int readLimit(Map<String, Object> options) {

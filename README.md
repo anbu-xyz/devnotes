@@ -155,6 +155,57 @@ Following parameters can be specified in the code block header:
 * datasource: Name of the SQL data source to use.
 * max_rows: Maximum number of rows to return.
 
+### Data blocks
+
+Data blocks are a more advanced way to embed executable code in a Markdown file. They allow you to specify 
+the data source, query, options, and output template.
+
+Example:
+
+````
+```data
+source: datasource1
+query: SELECT id, first_name, last_name FROM users
+options:
+  columns: [id, first_name, last_name]
+  limit: 10
+output-template-type: jte
+output-template: |
+  @import java.util.*
+  @param List<String>  columns
+  @param List<Map<String, Object>> rows
+  <table>
+      <thead>
+      <tr>
+          @for(var column : columns)
+              <th>${column}</th>
+          @endfor
+      </tr>
+      </thead>
+      <tbody>
+      @for(var row : rows)
+          <tr>
+              @for(String column : columns)
+                  <td>-${row.get(column) == null? "": row.get(column).toString()}</td>
+              @endfor
+          </tr>
+      @endfor
+      </tbody>
+  </table>
+```
+````
+
+#### Default without output-template
+
+If no output-template is specified, the default will be an HTML table.
+
+````
+```data
+source: datasource1
+query: SELECT * FROM users
+```
+````
+
 #### Database Connection Details
 
 The datasource details are defined in a yaml file under '/config/datasource.yaml'.
@@ -197,7 +248,7 @@ source.addEventListener('input', inputHandler);
 ### PlantUML
 PlantUML diagrams can be rendered using calling the URL `/plantuml?filename=diagram.puml`.
 
-Embedding plantuml diagrams in markdown files is supported using the following syntax:
+Embedding plantuml diagrams in Markdown files is supported using the following syntax:
 ````
 ```plantuml
 @startuml
@@ -241,6 +292,38 @@ java -Ddevnotes.docsDirectory=/path/to/docs -jar target/devnotes-0.0.1-SNAPSHOT.
 ## Adding todo items
 
 Tips can be found in the [todo-tip.md](docs/todo-tip.md) file.
+
+## Workarounds 
+
+### Script tags in Markdown files
+
+The script tags in Markdown files may not find the dom elements or variables defined in other 
+scripts in the page if they are executed before the page is fully loaded.
+
+This is one way to work around this issue by looping until the variable is defined:
+
+```html
+<script>
+  var tableUpdater; // define a variable that will be initialized later 
+  (function loopUntilDefined() {
+    let attemptCount = 0;
+    const maxAttempts = 10;
+    function tryLoop() {
+      if (!tableUpdater) {
+        attemptCount++;
+        if (attemptCount >= maxAttempts) {
+          console.error("Error: tableUpdater is still undefined after 10 attempts.");
+          return;
+        }
+        setTimeout(tryLoop, 10);
+        return;
+      }
+      tableUpdater();
+    }
+    tryLoop();
+  })();
+</script> 
+```
 
 ## License
 This project is licensed under MIT license.

@@ -81,8 +81,8 @@ public class CodeBlockTransformer {
     private void renderDataBlock(FencedCodeBlock codeBlock, MarkdownFile markdownFile) {
         String dataConfig = codeBlock.getLiteral();
         try {
-            Node newNodeToInsert = new DataBlockTranslator(dataSourceConfigResolver).renderDataBlock(dataConfig, markdownFile);
-            codeBlock.insertBefore(newNodeToInsert);
+            var newNodeToInsert = new DataBlockTranslator(dataSourceConfigResolver).renderDataBlock(dataConfig, markdownFile);
+            newNodeToInsert.ifPresent(codeBlock::insertBefore);
 
             // rename original info text from 'data(...)' to 'hidden-data' to hide it from rendering
             codeBlock.setInfo("hidden-data");
