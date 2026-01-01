@@ -19,7 +19,6 @@ import uk.anbu.devnotes.markdown.link.LocalLinkTransformer;
 import uk.anbu.devnotes.markdown.red.RedTextNodeRenderer;
 import uk.anbu.devnotes.markdown.red.RedTextTransformer;
 import uk.anbu.devnotes.module.sql.SqlExecutor;
-import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.types.Markdown;
 import uk.anbu.devnotes.types.MarkdownFile;

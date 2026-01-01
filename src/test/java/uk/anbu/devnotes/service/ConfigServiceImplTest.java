@@ -8,16 +8,16 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ConfigServiceTest {
+class ConfigServiceImplTest {
 
-    private ConfigService configService;
+    private ConfigServiceImpl configService;
 
     @BeforeEach
     void setUp() {
-        configService = new ConfigService();
+        configService = new ConfigServiceImpl();
         // Initialize with a sample data source
-        Map<String, ConfigService.DataSourceConfig> initialDataSources = new HashMap<>();
-        initialDataSources.put("testDB", new ConfigService.DataSourceConfig("testDB", "jdbc:test:url",
+        Map<String, ConfigServiceImpl.DataSourceConfig> initialDataSources = new HashMap<>();
+        initialDataSources.put("testDB", new ConfigServiceImpl.DataSourceConfig("testDB", "jdbc:test:url",
                 "testUser", "testPass", "org.test.Driver"));
         configService.setDataSources(initialDataSources);
     }
@@ -30,7 +30,7 @@ class ConfigServiceTest {
 
         configService.updateDataSources(newConfigs);
 
-        ConfigService.DataSourceConfig updatedConfig = configService.getDataSourceConfig("testDB");
+        ConfigServiceImpl.DataSourceConfig updatedConfig = configService.getDataSourceConfig("testDB");
         assertEquals("jdbc:new:url", updatedConfig.url());
         assertEquals("newUser", updatedConfig.username());
         assertEquals("testPass", updatedConfig.password()); // Should remain unchanged

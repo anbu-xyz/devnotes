@@ -9,6 +9,7 @@ import org.springframework.jdbc.datasource.DriverManagerDataSource
 import spock.lang.Specification
 import spock.lang.TempDir
 import uk.anbu.devnotes.service.ConfigService
+import uk.anbu.devnotes.service.ConfigServiceImpl
 import uk.anbu.devnotes.types.MarkdownFile
 
 import java.nio.file.Path
@@ -24,7 +25,7 @@ class SqlExecutorResultReadWriteSpec extends Specification {
 
     def setup() {
         // Set up ConfigService
-        configService = new ConfigService()
+        configService = new ConfigServiceImpl()
         configService.docsDirectory = tempDir.toString()
         configService.sqlMaxRows = 1000
 

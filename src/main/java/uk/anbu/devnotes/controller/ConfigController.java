@@ -8,7 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.service.ConfigServiceImpl;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,7 +18,7 @@ import java.util.Map;
 public class ConfigController {
 
     private final TemplateEngine templateEngine;
-    private final ConfigService configService;
+    private final ConfigServiceImpl configService;
 
     @GetMapping("/config")
     public ResponseEntity<String> configPage() {
