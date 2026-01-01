@@ -145,7 +145,7 @@ public class DataBlockTranslator {
     }
 
     private static void cleanNullColumns(List<Map<String, Object>> rows) {
-        var allColumns = new ArrayList<>(rows.isEmpty() ? List.of() : rows.getFirst().keySet());
+        var allColumns = new ArrayList<>(rows.isEmpty() ? List.of() : rows.get(0).keySet());
         for (String col : allColumns) {
             boolean allNull = true;
             for (Map<String, Object> row : rows) {
