@@ -10,6 +10,7 @@ import org.commonmark.node.Text;
 import uk.anbu.devnotes.module.GroovyRenderer;
 import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.net.URLEncoder;
@@ -35,7 +36,7 @@ public class CodeBlockTransformer {
     private final MarkdownFile markdownFile;
     private final SqlExecutor sqlExecutor;
     private final GroovyRenderer groovyRenderer;
-    private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
+    private final DatasourceConfigResolver dataSourceConfigResolver;
 
     public void transform(Node current) {
         // If there is a next sibling, process it
@@ -127,7 +128,7 @@ public class CodeBlockTransformer {
         String sql = codeBlock.getLiteral();
         Node newNodeToInsert;
         var maxRows = readMaxRows(configMap);
-        var dataSourceConfig = dataSourceConfigResolver.apply(configMap.get("datasource"));
+        var dataSourceConfig = dataSourceConfigResolver.resolve(configMap.get("datasource"));
         if (dataSourceConfig == null) {
             newNodeToInsert = new Text("Error: DataSource '" + configMap.get("datasource") + "' not defined in config.");
         } else {

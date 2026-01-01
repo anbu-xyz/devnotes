@@ -17,21 +17,21 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
 import uk.anbu.devnotes.markdown.code.datablock.YamlCodeblockConfig;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.function.Function;
 
 import static j2html.TagCreator.*;
 
 @Slf4j
 public class DataBlockTranslator {
-    private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
+    private final DatasourceConfigResolver dataSourceConfigResolver;
 
-    public DataBlockTranslator(Function<String, ConfigService.DataSourceConfig> resolver) {
-        this.dataSourceConfigResolver = resolver;
+    public DataBlockTranslator(DatasourceConfigResolver dataSourceConfigResolver) {
+        this.dataSourceConfigResolver = dataSourceConfigResolver;
     }
 
     @SneakyThrows
@@ -60,7 +60,7 @@ public class DataBlockTranslator {
 
         ConfigService.DataSourceConfig dsConfig = null;
         if (dataSourceConfigResolver != null) {
-            dsConfig = dataSourceConfigResolver.apply(dataSourceName);
+            dsConfig = dataSourceConfigResolver.resolve(dataSourceName);
         }
 
         if (dsConfig == null) {

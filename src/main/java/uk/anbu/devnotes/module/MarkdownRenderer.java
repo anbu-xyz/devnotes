@@ -20,23 +20,23 @@ import uk.anbu.devnotes.markdown.red.RedTextNodeRenderer;
 import uk.anbu.devnotes.markdown.red.RedTextTransformer;
 import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.types.Markdown;
 import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 @Slf4j
 public class MarkdownRenderer {
 
     private final GroovyRenderer groovyRenderer;
-    private final Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver;
+    private final DatasourceConfigResolver dataSourceConfigResolver;
     private final SqlExecutor sqlExecutor;
 
     public MarkdownRenderer(SqlExecutor sqlExecutor,
                             GroovyRenderer groovyRenderer,
-                            Function<String, ConfigService.DataSourceConfig> dataSourceConfigResolver) {
+                            DatasourceConfigResolver dataSourceConfigResolver) {
         this.sqlExecutor = sqlExecutor;
         this.groovyRenderer = groovyRenderer;
         this.dataSourceConfigResolver = dataSourceConfigResolver;
