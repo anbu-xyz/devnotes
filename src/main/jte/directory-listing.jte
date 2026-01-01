@@ -75,6 +75,11 @@
                 <button onclick="renameEntry('${entry.filename()}')">
                     <i class="fas fa-edit"></i>Rename
                 </button>
+                @if(!entry.isDirectory())
+                    <button onclick="copyFileEntry('${entry.filename()}')">
+                        <i class="fas fa-copy"></i>Make a Copy
+                    </button>
+                @endif
                 <button onclick="deleteEntry('${entry.filename()}')">
                     <i class="fas fa-trash-alt"></i>Delete
                 </button>

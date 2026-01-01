@@ -85,6 +85,24 @@ public class DirectoryListingController {
         }
     }
 
+    @PostMapping("/copyFileEntry")
+    public ResponseEntity<String> copyFileEntry(@RequestParam String path, @RequestParam String oldName,
+                                                @RequestParam String newName) {
+        try {
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
+            Path oldPath = markdownRoot.resolve(path).resolve(oldName);
+            if (oldPath.toFile().isDirectory()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Copying directories is not supported");
+            }
+            Path newPath = markdownRoot.resolve(path).resolve(newName);
+            Files.copy(oldPath, newPath);
+            return ResponseEntity.ok("Entry renamed successfully");
+        } catch (IOException e) {
+            log.error("Error renaming entry", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error renaming entry");
+        }
+    }
+
     @PostMapping("/deleteEntry")
     public ResponseEntity<String> deleteEntry(@RequestParam String path, @RequestParam String name) {
         try {

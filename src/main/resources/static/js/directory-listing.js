@@ -67,6 +67,17 @@ async function renameEntry(oldName) {
     }
 }
 
+async function copyFileEntry(oldName) {
+    hideActions();
+    const namePart = oldName.split('.').slice(0, -1).join('.') || oldName;
+    const extensionPart = oldName.includes('.') ? '.' + oldName.split('.').pop() : '';
+    const newName = prompt(`Copy ${oldName} to:`, namePart + '_copy' + extensionPart);
+    if (newName) {
+        const response = await makeRequest('/copyFileEntry', {oldName, newName});
+        if (response) window.location.reload();
+    }
+}
+
 async function deleteEntry(name) {
     hideActions();
     if (confirm(`Are you sure you want to delete ${name}?`)) {
