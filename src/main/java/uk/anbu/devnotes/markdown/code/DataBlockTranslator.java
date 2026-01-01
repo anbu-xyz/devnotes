@@ -7,6 +7,7 @@ import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
 import gg.jte.resolve.DirectoryCodeResolver;
 import j2html.tags.ContainerTag;
+import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.node.HtmlBlock;
@@ -27,12 +28,10 @@ import java.util.*;
 import static j2html.TagCreator.*;
 
 @Slf4j
+@RequiredArgsConstructor
 public class DataBlockTranslator {
     private final DatasourceConfigResolver dataSourceConfigResolver;
-
-    public DataBlockTranslator(DatasourceConfigResolver dataSourceConfigResolver) {
-        this.dataSourceConfigResolver = dataSourceConfigResolver;
-    }
+    private final ConfigService configService;
 
     @SneakyThrows
     public Optional<Node> renderDataBlock(String dataConfig, MarkdownFile markdownFile) {
@@ -78,10 +77,16 @@ public class DataBlockTranslator {
 
         // Extract options in a type-safe way
         var options = config.getOptions();
-        int limit = options == null ? 0 : options.getRowLimit();
+        int limit = configService.getSqlMaxRows() == 0 ? 100 : configService.getSqlMaxRows();
+        limit = options == null || options.getRowLimit() == 0 ? limit : options.getRowLimit();
+        boolean maxRowsReached = false;
         List<Map<String, Object>> rows;
         try {
-            rows = buildDataRows(dsConfig, limit, query);
+            rows = buildDataRows(dsConfig, limit + 1, query);
+            if (rows.size() > limit) {
+                rows = rows.subList(0, limit);
+                maxRowsReached = true;
+            }
             cleanNullColumns(rows);
             if (rows.isEmpty() || rows.getFirst().isEmpty()) {
                 return Optional.empty();
@@ -97,7 +102,7 @@ public class DataBlockTranslator {
         Boolean dontCombine = options == null ? null : options.getDontCombineSingleColumn();
 
         if (columns.size() == 1 && (dontCombine == null || !dontCombine)) {
-            return Optional.of(combineIfSingleColumn(columns.getFirst(), rows));
+            return Optional.of(combineIfSingleColumn(columns.getFirst(), rows, maxRowsReached));
         }
 
         // Check for output-template
@@ -122,16 +127,20 @@ public class DataBlockTranslator {
 
         String header = config.getHeader();
         // header might be a top-level property in YAML
-        return Optional.of(htmlFallbackTable(header == null ? "" : header, columns, rows));
+        return Optional.of(htmlFallbackTable(header == null ? "" : header, columns, rows, maxRowsReached));
     }
 
-    private static HtmlBlock combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows) {
+    private static HtmlBlock combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows,
+                                                   boolean maxRowsReached) {
         List<String> values = new ArrayList<>();
         for (Map<String, Object> row : rows) {
             Object v = row.get(firstColumnName);
             values.add(v == null ? "(null)" : v.toString());
         }
 
+        if (maxRowsReached) {
+            values.add(String.format("... max limit reached (%d)", rows.size()));
+        }
         ContainerTag<?> tbl = table().withClass("data-block-combined").with(
                 tbody().with(
                         tr().with(
@@ -226,7 +235,7 @@ public class DataBlockTranslator {
     }
 
     private static HtmlBlock htmlFallbackTable(String heading, List<String> columns,
-                                               List<Map<String, Object>> rows) {
+                                               List<Map<String, Object>> rows, boolean maxRowsReached) {
         var tableTag = table().withClass("data-block-table");
 
         // thead
@@ -243,12 +252,24 @@ public class DataBlockTranslator {
         // tbody
         ContainerTag<?> tbodyTag = tbody();
         for (Map<String, Object> row : rows) {
-            ContainerTag<?> rowTag = tr();
+            ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
             for (String col : columns) {
                 Object v = row.get(col);
                 rowTag.with(td().withText(v == null ? "(null)" : v.toString()));
             }
             tbodyTag.with(rowTag);
+        }
+
+        if (maxRowsReached) {
+            tbodyTag.with(tr().withClass("data-block-status-row").with(
+                    td().attr("colspan", String.valueOf(Math.max(1, columns.size())))
+                            .withText(String.format("... max limit reached (%d rows)", rows.size()))
+            ));
+        } else {
+            tbodyTag.with(tr().withClass("data-block-status-row").with(
+                    td().attr("colspan", String.valueOf(Math.max(1, columns.size())))
+                            .withText(String.format("Total rows: %d", rows.size()))
+            ));
         }
 
         ContainerTag<?> wrapper = div().withClass("data-block").with(tableTag.with(theadTag, tbodyTag));

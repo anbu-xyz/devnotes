@@ -1,5 +1,6 @@
 package uk.anbu.devnotes.module;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.Extension;
 import org.commonmark.ext.front.matter.YamlFrontMatterExtension;
@@ -19,6 +20,7 @@ import uk.anbu.devnotes.markdown.link.LocalLinkTransformer;
 import uk.anbu.devnotes.markdown.red.RedTextNodeRenderer;
 import uk.anbu.devnotes.markdown.red.RedTextTransformer;
 import uk.anbu.devnotes.module.sql.SqlExecutor;
+import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.types.Markdown;
 import uk.anbu.devnotes.types.MarkdownFile;
@@ -27,19 +29,13 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
+@RequiredArgsConstructor
 public class MarkdownRenderer {
 
     private final GroovyRenderer groovyRenderer;
     private final DatasourceConfigResolver dataSourceConfigResolver;
     private final SqlExecutor sqlExecutor;
-
-    public MarkdownRenderer(SqlExecutor sqlExecutor,
-                            GroovyRenderer groovyRenderer,
-                            DatasourceConfigResolver dataSourceConfigResolver) {
-        this.sqlExecutor = sqlExecutor;
-        this.groovyRenderer = groovyRenderer;
-        this.dataSourceConfigResolver = dataSourceConfigResolver;
-    }
+    private final ConfigService configService;
 
     public String convertMarkdown(Markdown markdown, MarkdownFile markdownFile) {
         String markdownText = markdown.text();
@@ -57,6 +53,7 @@ public class MarkdownRenderer {
                 .sqlExecutor(sqlExecutor)
                 .groovyRenderer(groovyRenderer)
                 .dataSourceConfigResolver(dataSourceConfigResolver)
+                .configService(configService)
                 .build()
                 .transform(document);
         LocalLinkTransformer.transform(document);

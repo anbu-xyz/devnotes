@@ -14,9 +14,10 @@ public class DevnotesContext {
                                       SqlExecutor sqlExecutor) {
         GroovyRenderer groovyExecutor = new GroovyRenderer(configService::getChromeDriverLocation);
         return new MarkdownRenderer(
-                sqlExecutor,
                 groovyExecutor,
-                configService::getDataSourceConfig
+                configService::getDataSourceConfig,
+                sqlExecutor,
+                configService
         );
     }
 }

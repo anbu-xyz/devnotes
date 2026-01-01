@@ -36,6 +36,7 @@ public class CodeBlockTransformer {
     private final SqlExecutor sqlExecutor;
     private final GroovyRenderer groovyRenderer;
     private final DatasourceConfigResolver dataSourceConfigResolver;
+    private final ConfigService configService;
 
     public void transform(Node current) {
         // If there is a next sibling, process it
@@ -81,7 +82,8 @@ public class CodeBlockTransformer {
     private void renderDataBlock(FencedCodeBlock codeBlock, MarkdownFile markdownFile) {
         String dataConfig = codeBlock.getLiteral();
         try {
-            var newNodeToInsert = new DataBlockTranslator(dataSourceConfigResolver).renderDataBlock(dataConfig, markdownFile);
+            var newNodeToInsert = new DataBlockTranslator(dataSourceConfigResolver, configService)
+                    .renderDataBlock(dataConfig, markdownFile);
             newNodeToInsert.ifPresent(codeBlock::insertBefore);
 
             // rename original info text from 'data(...)' to 'hidden-data' to hide it from rendering

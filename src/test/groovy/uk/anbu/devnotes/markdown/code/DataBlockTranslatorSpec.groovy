@@ -30,6 +30,8 @@ class DataBlockTranslatorSpec extends Specification {
     @Shared
     def resolver
     @Shared
+    ConfigService configService
+    @Shared
     DataBlockTranslator translator
 
     def setupSpec() {
@@ -40,7 +42,9 @@ class DataBlockTranslatorSpec extends Specification {
         conn.createStatement().execute("INSERT INTO users (id, name, email, password) VALUES (2, 'Bob', 'bob@example.com', 'hunter2')")
 
         resolver = { String name -> new ConfigService.DataSourceConfig(name, url, username, password, driver) }
-        translator = new DataBlockTranslator(resolver)
+        configService = Mock(ConfigService)
+        configService.getSqlMaxRows() >> 100
+        translator = new DataBlockTranslator(resolver, configService)
     }
 
     def cleanupSpec() {
@@ -97,8 +101,11 @@ options:
         then:
         result.isPresent()
         def doc = Jsoup.parse(result.get().literal)
-        def rows = doc.select("tbody tr")
+        def rows = doc.select("tbody tr.data-block-data-row")
         rows.size() == 1
+        def statusRow = doc.select("tbody tr.data-block-status-row")
+        statusRow.size() == 1
+        statusRow.first().text().contains("... max limit reached (1 rows)")
     }
 
     def "specifying a smaller columns list returns only those columns"() {
@@ -119,7 +126,7 @@ options:
         def headers = doc.select("thead th").collect { it.text() }
         headers == ["name", "email"]
 
-        def rows = doc.select("tbody tr")
+        def rows = doc.select("tbody tr.data-block-data-row")
         rows.size() == 2
         def firstCells = rows[0].select("td")
         firstCells[0].text() == "Alice"
