@@ -170,6 +170,11 @@ public class MarkdownController {
             return ResponseEntity.status(HttpStatus.FOUND)
                     .header(HttpHeaders.LOCATION, "/image?filename=" + filename)
                     .build();
+        } else if (isYaml(fileExtension)) {
+            var content = fetchYamlContent(filename, markdownRoot);
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                    .body(content.content());
         } else if (isGroovy(fileExtension)) {
             var content = fetchGroovyContent(filename, markdownRoot);
             return ResponseEntity.ok()
@@ -196,6 +201,10 @@ public class MarkdownController {
 
     private boolean isGroovy(String fileExtension) {
         return "groovy".equals(fileExtension);
+    }
+
+    private boolean isYaml(String fileExtension) {
+        return "yaml".equals(fileExtension);
     }
 
     @SneakyThrows
@@ -233,6 +242,18 @@ public class MarkdownController {
         params.put("groovyCodeContent", fileContent);
         params.put("title", filename);
         templateEngine.render("render/groovy.jte", params, output);
+
+        return new ContentWithType(output.toString(), "text/html");
+    }
+
+    private ContentWithType fetchYamlContent(String filename, Path markdownRoot) throws IOException {
+        String fileContent = new String(Files.readAllBytes(markdownRoot.resolve(filename)));
+
+        TemplateOutput output = new StringOutput();
+        var params = new HashMap<String, Object>();
+        params.put("yamlCodeContent", fileContent);
+        params.put("title", filename);
+        templateEngine.render("render/yaml.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");
     }
