@@ -127,16 +127,9 @@ public class DataBlockTranslator {
             }
         }
 
-        // heading might be a top-level property in YAML - try reading via reflection from config or fallback
-        String heading = null;
-        try {
-            java.lang.reflect.Field h = config.getClass().getDeclaredField("heading");
-            h.setAccessible(true);
-            Object hv = h.get(config);
-            heading = hv == null ? null : hv.toString();
-        } catch (NoSuchFieldException ignored) {
-        }
-        return Optional.of(htmlFallbackTable(heading == null ? "" : heading, columns, rows));
+        String header = config.getHeader();
+        // header might be a top-level property in YAML
+        return Optional.of(htmlFallbackTable(header == null ? "" : header, columns, rows));
     }
 
     private static Node combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows) {

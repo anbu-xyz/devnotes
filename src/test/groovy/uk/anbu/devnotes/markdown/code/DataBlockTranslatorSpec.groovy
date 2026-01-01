@@ -47,7 +47,7 @@ class DataBlockTranslatorSpec extends Specification {
         conn?.close()
     }
 
-    def "1 - source and query only returns a table with all columns"() {
+    def "source and query only returns a table with all columns"() {
         given:
         String yaml = '''
 source: datasource1
@@ -64,7 +64,25 @@ query: SELECT id, name, email, password FROM users ORDER BY id
         headers.containsAll(["id", "name", "email", "password"]*.toUpperCase())
     }
 
-    def "2 - limit option restricts the number of rows returned"() {
+    def "header get rendered if present"() {
+        given:
+        String yaml = '''
+header: User Information
+source: datasource1
+query: SELECT * FROM users
+'''
+
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def headers = doc.select("thead th").collect { it.text() }
+        headers.contains("User Information")
+    }
+
+    def "limit option restricts the number of rows returned"() {
         given:
         String yaml = '''
 source: datasource1
@@ -83,7 +101,7 @@ options:
         rows.size() == 1
     }
 
-    def "3 - specifying a smaller columns list returns only those columns"() {
+    def "specifying a smaller columns list returns only those columns"() {
         given:
         String yaml = '''
 source: datasource1
@@ -108,7 +126,7 @@ options:
         firstCells[1].text() == "alice@example.com"
     }
 
-    def "4 - columns-to-exclude removes the specified columns"() {
+    def "columns-to-exclude removes the specified columns"() {
         given:
         String yaml = '''
 source: datasource1
@@ -128,7 +146,7 @@ options:
         headers.containsAll(["id", "name", "email"]*.toUpperCase())
     }
 
-    def "5 - output template (jte) renders the provided template correctly"() {
+    def "output template (jte) renders the provided template correctly"() {
         given:
         String yaml = '''
 source: datasource1

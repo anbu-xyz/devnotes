@@ -4,12 +4,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.util.List;
-import java.util.Map;
 
 @Data
 public class YamlCodeblockConfig {
     private String source;
     private String query;
+    private String header;
     private Output output;
 
     // Map `options` in YAML to this object
