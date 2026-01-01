@@ -194,6 +194,16 @@
             <artifactId>jte</artifactId>
             <version>${jte.version}</version>
         </dependency>
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>${jsoup.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.j2html</groupId>
+            <artifactId>j2html</artifactId>
+            <version>1.6.0</version>
+        </dependency>
 
         <!-- PlantUML -->
         <dependency>
@@ -221,12 +231,6 @@
             <artifactId>groovy</artifactId>
             <version>${groovy.version}</version>
             <type>pom</type>
-        </dependency>
-        <dependency>
-            <groupId>org.jsoup</groupId>
-            <artifactId>jsoup</artifactId>
-            <version>${jsoup.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 

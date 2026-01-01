@@ -6,6 +6,7 @@ import gg.jte.ContentType;
 import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
 import gg.jte.resolve.DirectoryCodeResolver;
+import j2html.tags.ContainerTag;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.node.HtmlBlock;
@@ -20,12 +21,10 @@ import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Optional;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
+
+import static j2html.TagCreator.*;
 
 @Slf4j
 public class DataBlockTranslator {
@@ -45,17 +44,15 @@ public class DataBlockTranslator {
         try {
             config = yamlMapper.readValue(dataConfig, YamlCodeblockConfig.class);
         } catch (Exception e) {
-            var html = new HtmlBlock();
-            html.setLiteral("<div>Error parsing data block YAML (" + escapeHtml(mdName) + "): " + escapeHtml(e.getMessage()) + "</div>");
-            return Optional.of(html);
+            ContainerTag<?> err = div().withText("Error parsing data block YAML (" + mdName + "): " + e.getMessage());
+            return Optional.of(toHtmlBlock(err));
         }
 
         // Resolve datasource
         String source = config.getSource();
         if (source == null || source.isEmpty()) {
-            var html = new HtmlBlock();
-            html.setLiteral("<div>Error: 'source' not specified in data block (" + escapeHtml(mdName) + ").</div>");
-            return Optional.of(html);
+            ContainerTag<?> err = div().withText("Error: 'source' not specified in data block (" + mdName + ").");
+            return Optional.of(toHtmlBlock(err));
         }
 
         // allow source strings like 'database/datasourceName' or just the name
@@ -67,17 +64,16 @@ public class DataBlockTranslator {
         }
 
         if (dsConfig == null) {
-            var html = new HtmlBlock();
-            html.setLiteral("<div>Error: DataSource '" + escapeHtml(dataSourceName) + "' not configured (" + escapeHtml(mdName) + ").</div>");
-            return Optional.of(html);
+            ContainerTag<?> err = div()
+                    .withText("Error: DataSource '" + dataSourceName + "' not configured (" + mdName + ").");
+            return Optional.of(toHtmlBlock(err));
         }
 
         // Extract query
         String query = config.getQuery();
         if (query == null || query.isEmpty()) {
-            var html = new HtmlBlock();
-            html.setLiteral("<div>Error: 'query' not specified in data block (" + escapeHtml(mdName) + ").</div>");
-            return Optional.of(html);
+            ContainerTag<?> err = div().withText("Error: 'query' not specified in data block (" + mdName + ").");
+            return Optional.of(toHtmlBlock(err));
         }
 
         // Extract options in a type-safe way
@@ -91,18 +87,15 @@ public class DataBlockTranslator {
                 return Optional.empty();
             }
         } catch (Exception e) {
-            var html = new HtmlBlock();
-            html.setLiteral("<div>Error executing query against datasource '" + escapeHtml(dataSourceName)
-                    + "' (" + escapeHtml(mdName) + "): " + escapeHtml(e.getMessage()) + "</div>");
-            return Optional.of(html);
+            ContainerTag<?> err = div().withText("Error executing query against datasource '" + dataSourceName
+                    + "' (" + mdName + "): " + e.getMessage());
+            return Optional.of(toHtmlBlock(err));
         }
 
         // If columns not provided, infer from first row
         var columns = readColumnsData(options, rows);
         Boolean dontCombine = options == null ? null : options.getDontCombineSingleColumn();
-        if (columns.size() == 1 && Boolean.FALSE.equals(dontCombine) == false && Boolean.TRUE.equals(dontCombine) == false) {
-            // If dontCombineSingleColumn not set or not true, keep existing behavior: combine single column
-        }
+
         if (columns.size() == 1 && (dontCombine == null || !dontCombine)) {
             return Optional.of(combineIfSingleColumn(columns.get(0), rows));
         }
@@ -121,9 +114,9 @@ public class DataBlockTranslator {
                 return Optional.of(rendered);
             } catch (Exception e) {
                 log.error("Error rendering data block template", e);
-                var html = new HtmlBlock();
-                html.setLiteral("<div>Error rendering template for data block ('" + escapeHtml(mdName) + "'): " + escapeHtml(e.getMessage()) + "</div>");
-                return Optional.of(html);
+                ContainerTag<?> err = div()
+                        .withText("Error rendering template for data block ('" + mdName + "'): " + e.getMessage());
+                return Optional.of(toHtmlBlock(err));
             }
         }
 
@@ -132,22 +125,27 @@ public class DataBlockTranslator {
         return Optional.of(htmlFallbackTable(header == null ? "" : header, columns, rows));
     }
 
-    private static Node combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows) {
-        HtmlBlock html = new HtmlBlock();
+    private static HtmlBlock combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows) {
         List<String> values = new ArrayList<>();
         for (Map<String, Object> row : rows) {
             Object v = row.get(firstColumnName);
             values.add(v == null ? "(null)" : v.toString());
         }
-        html.setLiteral("<table class=\"data-block-combined\"> <tbody><tr><td class=\"column-name\">"
-                + escapeHtml(firstColumnName) + "</td><td>"
-                + escapeHtml(String.join(", ", values))
-                + "</td></tr></tbody></table>");
-        return html;
+
+        ContainerTag<?> tbl = table().withClass("data-block-combined").with(
+                tbody().with(
+                        tr().with(
+                                td().withClass("column-name").withText(firstColumnName),
+                                td().withText(String.join(", ", values))
+                        )
+                )
+        );
+
+        return toHtmlBlock(tbl);
     }
 
     private static void cleanNullColumns(List<Map<String, Object>> rows) {
-        var allColumns = new ArrayList<>(rows.isEmpty() ? List.of() : rows.getFirst().keySet());
+        var allColumns = new ArrayList<>(rows.isEmpty() ? List.of() : rows.get(0).keySet());
         for (String col : allColumns) {
             boolean allNull = true;
             for (Map<String, Object> row : rows) {
@@ -162,17 +160,6 @@ public class DataBlockTranslator {
                 }
             }
         }
-    }
-
-    private static int readLimit(Map<String, Object> options) {
-        int limit = 0;
-        if (options.containsKey("limit")) {
-            try {
-                limit = Integer.parseInt(options.get("limit").toString());
-            } catch (Exception ignored) {
-            }
-        }
-        return limit;
     }
 
     private static List<String> readColumnsData(YamlCodeblockConfig.SqlOptions options, List<Map<String, Object>> rows) {
@@ -241,53 +228,37 @@ public class DataBlockTranslator {
 
     private static HtmlBlock htmlFallbackTable(String heading, List<String> columns,
                                                List<Map<String, Object>> rows) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<div class=\"data-block\">\n");
-        sb.append("<table class=\"data-block-table\">\n");
-        // header
-        sb.append("<thead>");
+        ContainerTag<?> tableTag = table().withClass("data-block-table");
+
+        // thead
+        ContainerTag<?> theadTag = thead();
         if (heading != null && !heading.isEmpty()) {
-            sb.append(String.format("<tr><th colspan=%d>%s</th></tr>", columns.size(), heading));
+            theadTag.with(tr().with(th().attr("colspan", String.valueOf(Math.max(1, columns.size()))).withText(heading)));
         }
-        sb.append("<tr>");
+        ContainerTag<?> headerRow = tr();
         for (String col : columns) {
-            sb.append("<th>").append(escapeHtml(col)).append("</th>");
+            headerRow.with(th().withText(col));
         }
-        sb.append("</tr></thead>\n");
-        // body
-        sb.append("<tbody>\n");
+        theadTag.with(headerRow);
+
+        // tbody
+        ContainerTag<?> tbodyTag = tbody();
         for (Map<String, Object> row : rows) {
-            sb.append("<tr>");
+            ContainerTag<?> rowTag = tr();
             for (String col : columns) {
                 Object v = row.get(col);
-                sb.append("<td>").append(escapeHtml(v == null ? "(null)" : v.toString())).append("</td>");
+                rowTag.with(td().withText(v == null ? "(null)" : v.toString()));
             }
-            sb.append("</tr>\n");
+            tbodyTag.with(rowTag);
         }
-        sb.append("</tbody>\n");
-        sb.append("</table>\n");
-        sb.append("</div>\n");
 
-        var html = new HtmlBlock();
-        html.setLiteral(sb.toString());
-        return html;
+        ContainerTag<?> wrapper = div().withClass("data-block").with(tableTag.with(theadTag, tbodyTag));
+        return toHtmlBlock(wrapper);
     }
 
-    private static String escapeHtml(String in) {
-        if (in == null) return "";
-        StringBuilder out = new StringBuilder(Math.max(16, in.length()));
-        for (int i = 0; i < in.length(); i++) {
-            char c = in.charAt(i);
-            switch (c) {
-                case '&' -> out.append("&amp;");
-                case '<' -> out.append("&lt;");
-                case '>' -> out.append("&gt;");
-                case '"' -> out.append("&quot;");
-                case '\'' -> out.append("&#x27;");
-                case '/' -> out.append("&#x2F;");
-                default -> out.append(c);
-            }
-        }
-        return out.toString();
+    private static HtmlBlock toHtmlBlock(ContainerTag<?> tag) {
+        var html = new HtmlBlock();
+        html.setLiteral(tag.render());
+        return html;
     }
 }
