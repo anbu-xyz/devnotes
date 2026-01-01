@@ -1,0 +1,30 @@
+source: datasource1
+query: SELECT * FROM users
+options:
+  limit: 10
+  columns: ["id", "name", "email"]
+  columns-to-exclude: ["password"]
+output:
+  template-type: jte
+  template: |
+    @import java.util.*
+    @param List<String>  columns
+    @param List<Map<String, Object>> rows
+    <table>
+        <thead>
+        <tr>
+            @for(var column : columns)
+                <th>${column}</th>
+            @endfor
+        </tr>
+        </thead>
+        <tbody>
+        @for(var row : rows)
+           <tr>
+                @for(String column : columns)
+                    <td>-${row.get(column) == null? "": row.get(column).toString()}</td>
+                @endfor
+            </tr>
+        @endfor
+        </tbody>
+    </table>

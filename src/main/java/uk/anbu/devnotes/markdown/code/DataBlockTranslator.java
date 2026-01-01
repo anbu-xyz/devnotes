@@ -1,6 +1,5 @@
 package uk.anbu.devnotes.markdown.code;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import gg.jte.ContentType;
@@ -15,6 +14,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import uk.anbu.devnotes.markdown.code.datablock.YamlCodeblockConfig;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.types.MarkdownFile;
 
@@ -41,10 +41,9 @@ public class DataBlockTranslator {
 
         // Parse YAML config
         ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
-        Map<String, Object> config;
+        YamlCodeblockConfig config;
         try {
-            config = yamlMapper.readValue(dataConfig, new TypeReference<>() {
-            });
+            config = yamlMapper.readValue(dataConfig, YamlCodeblockConfig.class);
         } catch (Exception e) {
             var html = new HtmlBlock();
             html.setLiteral("<div>Error parsing data block YAML (" + escapeHtml(mdName) + "): " + escapeHtml(e.getMessage()) + "</div>");
@@ -52,8 +51,8 @@ public class DataBlockTranslator {
         }
 
         // Resolve datasource
-        String source = config.getOrDefault("source", "").toString();
-        if (source.isEmpty()) {
+        String source = config.getSource();
+        if (source == null || source.isEmpty()) {
             var html = new HtmlBlock();
             html.setLiteral("<div>Error: 'source' not specified in data block (" + escapeHtml(mdName) + ").</div>");
             return Optional.of(html);
@@ -74,22 +73,16 @@ public class DataBlockTranslator {
         }
 
         // Extract query
-        String query = config.getOrDefault("query", "").toString();
-        if (query.isEmpty()) {
+        String query = config.getQuery();
+        if (query == null || query.isEmpty()) {
             var html = new HtmlBlock();
             html.setLiteral("<div>Error: 'query' not specified in data block (" + escapeHtml(mdName) + ").</div>");
             return Optional.of(html);
         }
 
         // Extract options in a type-safe way
-        Object optionsObj = config.get("options");
-        Map<String, Object> options = Map.of();
-        if (optionsObj instanceof Map) {
-            //noinspection unchecked
-            options = (Map<String, Object>) optionsObj;
-        }
-
-        int limit = readLimit(options);
+        var options = config.getOptions();
+        int limit = options == null ? 0 : options.getRowLimit();
         List<Map<String, Object>> rows;
         try {
             rows = buildDataRows(dsConfig, limit, query);
@@ -106,16 +99,23 @@ public class DataBlockTranslator {
 
         // If columns not provided, infer from first row
         var columns = readColumnsData(options, rows);
-        if (columns.size() == 1
-                && "false".equalsIgnoreCase(options.getOrDefault("dont-combine-single-column", "false").toString())) {
-            return Optional.of(combineIfSingleColumn(columns.getFirst(), rows));
+        Boolean dontCombine = options == null ? null : options.getDontCombineSingleColumn();
+        if (columns.size() == 1 && Boolean.FALSE.equals(dontCombine) == false && Boolean.TRUE.equals(dontCombine) == false) {
+            // If dontCombineSingleColumn not set or not true, keep existing behavior: combine single column
+        }
+        if (columns.size() == 1 && (dontCombine == null || !dontCombine)) {
+            return Optional.of(combineIfSingleColumn(columns.get(0), rows));
         }
 
         // Check for output-template
-        Object outputTemplateObj = config.get("output-template");
-        String outputTemplateType = config.getOrDefault("output-template-type", "").toString();
-        if (outputTemplateObj != null && "jte".equalsIgnoreCase(outputTemplateType)) {
-            String templateContent = outputTemplateObj.toString();
+        String templateContent = null;
+        String outputTemplateType = null;
+        if (config.getOutput() != null) {
+            outputTemplateType = config.getOutput().getTemplateType();
+            templateContent = config.getOutput().getTemplate();
+        }
+
+        if (templateContent != null && "jte".equalsIgnoreCase(outputTemplateType)) {
             try {
                 var rendered = userProvidedTemplate(columns, rows, dataSourceName, mdName, templateContent);
                 return Optional.of(rendered);
@@ -127,8 +127,16 @@ public class DataBlockTranslator {
             }
         }
 
-        String heading = config.getOrDefault("heading", "").toString();
-        return Optional.of(htmlFallbackTable(heading, columns, rows));
+        // heading might be a top-level property in YAML - try reading via reflection from config or fallback
+        String heading = null;
+        try {
+            java.lang.reflect.Field h = config.getClass().getDeclaredField("heading");
+            h.setAccessible(true);
+            Object hv = h.get(config);
+            heading = hv == null ? null : hv.toString();
+        } catch (NoSuchFieldException ignored) {
+        }
+        return Optional.of(htmlFallbackTable(heading == null ? "" : heading, columns, rows));
     }
 
     private static Node combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows) {
@@ -174,14 +182,11 @@ public class DataBlockTranslator {
         return limit;
     }
 
-    private static List<String> readColumnsData(Map<String, Object> options, List<Map<String, Object>> rows) {
+    private static List<String> readColumnsData(YamlCodeblockConfig.SqlOptions options, List<Map<String, Object>> rows) {
         List<String> columns = null;
         // options is never null (we default to empty map) so use it directly
-        if (options.containsKey("columns") && options.get("columns") instanceof List) {
-            columns = new ArrayList<>();
-            for (Object c : (List<?>) options.get("columns")) {
-                columns.add(c.toString());
-            }
+        if (options != null && options.getColumns() != null && !options.getColumns().isEmpty()) {
+            columns = new ArrayList<>(options.getColumns());
         }
         if (columns == null) {
             columns = new ArrayList<>();
@@ -190,10 +195,8 @@ public class DataBlockTranslator {
                 columns.addAll(rows.getFirst().keySet());
             }
         }
-        if (options.containsKey("columns-to-exclude") && options.get("columns-to-exclude") instanceof List) {
-            for (Object c : (List<?>) options.get("columns-to-exclude")) {
-                columns.remove(c.toString());
-            }
+        if (options != null && options.getColumnsToExclude() != null && !options.getColumnsToExclude().isEmpty()) {
+            columns.removeAll(options.getColumnsToExclude());
         }
 
         return columns;

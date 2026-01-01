@@ -1,0 +1,187 @@
+package uk.anbu.devnotes.markdown.code
+
+import org.commonmark.node.HtmlBlock
+import spock.lang.Specification
+import spock.lang.TempDir
+import spock.lang.Shared
+import uk.anbu.devnotes.service.ConfigService
+import uk.anbu.devnotes.types.MarkdownFile
+import org.jsoup.Jsoup
+
+import java.nio.file.Path
+import java.sql.Connection
+import java.sql.DriverManager
+
+class DataBlockTranslatorSpec extends Specification {
+
+    @TempDir
+    Path tempDir
+
+    @Shared
+    String url = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
+    @Shared
+    String username = "sa"
+    @Shared
+    String password = ""
+    @Shared
+    String driver = "org.h2.Driver"
+    @Shared
+    Connection conn
+    @Shared
+    def resolver
+    @Shared
+    DataBlockTranslator translator
+
+    def setupSpec() {
+        // create shared in-memory H2 and populate with two users
+        conn = DriverManager.getConnection(url, username, password)
+        conn.createStatement().execute("CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), password VARCHAR(100))")
+        conn.createStatement().execute("INSERT INTO users (id, name, email, password) VALUES (1, 'Alice', 'alice@example.com', 'secret')")
+        conn.createStatement().execute("INSERT INTO users (id, name, email, password) VALUES (2, 'Bob', 'bob@example.com', 'hunter2')")
+
+        resolver = { String name -> new ConfigService.DataSourceConfig(name, url, username, password, driver) }
+        translator = new DataBlockTranslator(resolver)
+    }
+
+    def cleanupSpec() {
+        conn?.close()
+    }
+
+    def "1 - source and query only returns a table with all columns"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name, email, password FROM users ORDER BY id
+'''
+
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def headers = doc.select("thead th").collect { it.text() }
+        headers.containsAll(["id", "name", "email", "password"]*.toUpperCase())
+    }
+
+    def "2 - limit option restricts the number of rows returned"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name, email, password FROM users ORDER BY id
+options:
+  limit: 1
+'''
+
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr")
+        rows.size() == 1
+    }
+
+    def "3 - specifying a smaller columns list returns only those columns"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name, email, password FROM users ORDER BY id
+options:
+  columns: ["name", "email"]
+'''
+
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def headers = doc.select("thead th").collect { it.text() }
+        headers == ["name", "email"]
+
+        def rows = doc.select("tbody tr")
+        rows.size() == 2
+        def firstCells = rows[0].select("td")
+        firstCells[0].text() == "Alice"
+        firstCells[1].text() == "alice@example.com"
+    }
+
+    def "4 - columns-to-exclude removes the specified columns"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name, email, password FROM users ORDER BY id
+options:
+  columns-to-exclude: ['PASSWORD']
+'''
+
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def headers = doc.select("thead th").collect { it.text() }
+        !headers.contains("password") && !headers.contains("PASSWORD")
+        headers.containsAll(["id", "name", "email"]*.toUpperCase())
+    }
+
+    def "5 - output template (jte) renders the provided template correctly"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name, email, password FROM users ORDER BY id
+options:
+  limit: 10
+  columns: ["id", "name", "email", "password"]
+  columns-to-exclude: ["password"]
+output:
+  template-type: jte
+  template: |
+    @import java.util.*
+    @param List<String>  columns
+    @param List<Map<String, Object>> rows
+    <h1>Sample output</h1>
+    <table>
+        <thead>
+        <tr>
+            @for(var column : columns)
+                <th>${column}</th>
+            @endfor
+        </tr>
+        </thead>
+        <tbody>
+        @for(var row : rows)
+           <tr>
+                @for(String column : columns)
+                    <td>${row.get(column) == null? "": row.get(column).toString()}</td>
+                @endfor
+            </tr>
+        @endfor
+        </tbody>
+    </table>
+'''
+
+        when:
+        Optional<HtmlBlock> result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr")
+        rows.size() == 2
+
+        def firstCells = rows[0].select("td")
+        firstCells[1].text() == "Alice"
+        firstCells[2].text() == "alice@example.com"
+
+        def secondCells = rows[1].select("td")
+        secondCells[1].text() == "Bob"
+        secondCells[2].text() == "bob@example.com"
+
+        def h1 = doc.select("h1")
+        h1.text() == "Sample output"
+    }
+}
