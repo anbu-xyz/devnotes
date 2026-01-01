@@ -2,6 +2,7 @@ package uk.anbu.devnotes.module;
 
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.Extension;
+import org.commonmark.ext.front.matter.YamlFrontMatterExtension;
 import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.ext.image.attributes.ImageAttributesExtension;
@@ -46,7 +47,8 @@ public class MarkdownRenderer {
         List<Extension> extensions = List.of(TablesExtension.create(),
                 StrikethroughExtension.create(),
                 ImageAttributesExtension.create(),
-                InsExtension.create());
+                InsExtension.create(),
+                YamlFrontMatterExtension.create());
         Parser parser = Parser.builder()
                 .extensions(extensions)
                 .build();
@@ -72,7 +74,6 @@ public class MarkdownRenderer {
                 .build();
         return renderer.render(document);
     }
-
 
     public static class ImageAttributeProvider implements AttributeProvider {
         @Override

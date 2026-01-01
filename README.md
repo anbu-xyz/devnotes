@@ -119,10 +119,10 @@ import com.microsoft.playwright.Playwright
 def pageTitle = "Unable to get"
 
 try (Playwright playwright = Playwright.create()) {
-		// channel can be - "chrome" or "msedge"
-		def browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setChannel("chrome"))
-		def page = browser.newPage()
-		page.navigate("http://playwright.dev")
+	// channel can be - "chrome" or "msedge"
+	def browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setChannel("chrome"))
+	def page = browser.newPage()
+	page.navigate("http://playwright.dev")
     pageTitle = page.title()
 }
 pageTitle
