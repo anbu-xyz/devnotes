@@ -185,6 +185,11 @@ public class MarkdownController {
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)
                     .body(content.content());
+        } else if (isSql(fileExtension)) {
+            var content = fetchSqlContent(filename, markdownRoot);
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                    .body(content.content());
         } else if (isPlantuml(fileExtension)) {
             var content = fetchPlantumlContent(filename);
             return ResponseEntity.ok()
@@ -234,6 +239,18 @@ public class MarkdownController {
         return new ContentWithType(output.toString(), "text/html");
     }
 
+    private ContentWithType fetchSqlContent(String filename, Path markdownRoot) throws IOException {
+        String fileContent = new String(Files.readAllBytes(markdownRoot.resolve(filename)));
+
+        TemplateOutput output = new StringOutput();
+        var params = new HashMap<String, Object>();
+        params.put("sqlContent", fileContent);
+        params.put("title", filename);
+        templateEngine.render("render/sql.jte", params, output);
+
+        return new ContentWithType(output.toString(), "text/html");
+    }
+
     private ContentWithType fetchGroovyContent(String filename, Path markdownRoot) throws IOException {
         String fileContent = new String(Files.readAllBytes(markdownRoot.resolve(filename)));
 
@@ -259,7 +276,11 @@ public class MarkdownController {
     }
 
     private boolean isJavascript(String fileExtension) {
-        return "js".equals(fileExtension) || "mjs".equals(fileExtension);
+        return "js".equalsIgnoreCase(fileExtension) || "mjs".equalsIgnoreCase(fileExtension);
+    }
+
+    private boolean isSql(String fileExtension) {
+        return "sql".equalsIgnoreCase(fileExtension);
     }
 
     @PostMapping("/createNewMarkdown")
