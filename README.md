@@ -325,6 +325,24 @@ This is one way to work around this issue by looping until the variable is defin
 </script> 
 ```
 
+## SSL Certificate config
+
+To generate local SSL certificates for testing purposes, you can use the following command:
+
+```
+openssl req -nodes -x509 -sha256 -newkey rsa:4096 \
+  -keyout tls/localtls.key \
+  -out tls/localtls.crt \
+  -days 365 \
+  -subj "/C=GB/ST=London/L=London/O=Dev/OU=Lab/CN=localhost" \
+  -addext 'subjectAltName = IP:192.168.1.103,DNS:localhost'
+```
+
+You may have to adjust the IP and DNS values in the subjectAltName extension to match your local setup.
+
+Prefix `MSYS_NO_PATHCONV=1` to the command to avoid path conversion issues on Windows with Git Bash.
+
+
 ## License
 This project is licensed under MIT license.
 
