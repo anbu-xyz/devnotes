@@ -15,6 +15,10 @@ public class YamlCodeblockConfig {
     // Map `options` in YAML to this object
     @JsonProperty("options")
     private SqlOptions options;
+    @JsonProperty("hide-row-count")
+    private boolean hideRowCount = false;
+    @JsonProperty("hide-row-count-when-less-than")
+    private int hideRowCountWhenLessThan = 10;
 
     @Data
     public static class Output {

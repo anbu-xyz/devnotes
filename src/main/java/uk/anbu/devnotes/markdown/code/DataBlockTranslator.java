@@ -127,7 +127,7 @@ public class DataBlockTranslator {
 
         String header = config.getHeader();
         // header might be a top-level property in YAML
-        return Optional.of(htmlFallbackTable(header == null ? "" : header, columns, rows, maxRowsReached));
+        return Optional.of(htmlFallbackTable(config, columns, rows, maxRowsReached));
     }
 
     private static HtmlBlock combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows,
@@ -234,14 +234,15 @@ public class DataBlockTranslator {
         return rows;
     }
 
-    private static HtmlBlock htmlFallbackTable(String heading, List<String> columns,
+    private static HtmlBlock htmlFallbackTable(YamlCodeblockConfig config, List<String> columns,
                                                List<Map<String, Object>> rows, boolean maxRowsReached) {
         var tableTag = table().withClass("data-block-table");
 
         // thead
+        var header = config.getHeader() == null ? "" : config.getHeader();
         ContainerTag<?> theadTag = thead();
-        if (heading != null && !heading.isEmpty()) {
-            theadTag.with(tr().with(th().attr("colspan", String.valueOf(Math.max(1, columns.size()))).withText(heading)));
+        if (!header.isEmpty()) {
+            theadTag.with(tr().with(th().attr("colspan", String.valueOf(Math.max(1, columns.size()))).withText(header)));
         }
         ContainerTag<?> headerRow = tr();
         for (String col : columns) {
@@ -261,15 +262,19 @@ public class DataBlockTranslator {
         }
 
         if (maxRowsReached) {
-            tbodyTag.with(tr().withClass("data-block-status-row").with(
-                    td().attr("colspan", String.valueOf(Math.max(1, columns.size())))
-                            .withText(String.format("... max limit reached (%d rows)", rows.size()))
-            ));
+            tbodyTag.with(tr().withClass("align-right")
+                    .withClass("data-block-status-row")
+                    .with(
+                            td().attr("colspan", String.valueOf(Math.max(1, columns.size())))
+                                    .withText(String.format("... max limit reached (%d rows)", rows.size()))
+                    ));
         } else {
-            tbodyTag.with(tr().withClass("data-block-status-row").with(
-                    td().attr("colspan", String.valueOf(Math.max(1, columns.size())))
-                            .withText(String.format("Total rows: %d", rows.size()))
-            ));
+            if (!config.isHideRowCount() && rows.size() >= config.getHideRowCountWhenLessThan()) {
+                tbodyTag.with(tr().withClass("data-block-status-row").with(
+                        td().attr("colspan", String.valueOf(Math.max(1, columns.size())))
+                                .withText(String.format("Total rows: %d", rows.size()))
+                ));
+            }
         }
 
         ContainerTag<?> wrapper = div().withClass("data-block").with(tableTag.with(theadTag, tbodyTag));

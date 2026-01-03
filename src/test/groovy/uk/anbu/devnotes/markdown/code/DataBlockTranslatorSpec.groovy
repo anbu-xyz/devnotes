@@ -40,6 +40,7 @@ class DataBlockTranslatorSpec extends Specification {
         conn.createStatement().execute("CREATE TABLE users (id INT PRIMARY KEY, name VARCHAR(100), email VARCHAR(100), password VARCHAR(100))")
         conn.createStatement().execute("INSERT INTO users (id, name, email, password) VALUES (1, 'Alice', 'alice@example.com', 'secret')")
         conn.createStatement().execute("INSERT INTO users (id, name, email, password) VALUES (2, 'Bob', 'bob@example.com', 'hunter2')")
+        conn.createStatement().execute("INSERT INTO users (id, name, email, password) VALUES (3, 'Charlie', 'charlie@example.com', 'goodDay3')")
 
         resolver = { String name -> new ConfigService.DataSourceConfig(name, url, username, password, driver) }
         configService = Mock(ConfigService)
@@ -108,6 +109,45 @@ options:
         statusRow.first().text().contains("... max limit reached (1 rows)")
     }
 
+    def "row count can be seen when rowcount exceeds threshold"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT * FROM users
+hide-row-count-when-less-than: 1
+'''
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 3
+        def statusRow = doc.select("tbody tr.data-block-status-row")
+        statusRow.size() == 1
+        statusRow.first().text().contains("Total rows: 3")
+    }
+
+    def "row count can not be seen when rowcount is under threshold"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT * FROM users
+hide-row-count-when-less-than: 10
+'''
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 3
+        def statusRow = doc.select("tbody tr.data-block-status-row")
+        statusRow.size() == 0
+    }
+
     def "specifying a smaller columns list returns only those columns"() {
         given:
         String yaml = '''
@@ -127,7 +167,7 @@ options:
         headers == ["name", "email"]
 
         def rows = doc.select("tbody tr.data-block-data-row")
-        rows.size() == 2
+        rows.size() == 3
         def firstCells = rows[0].select("td")
         firstCells[0].text() == "Alice"
         firstCells[1].text() == "alice@example.com"
@@ -196,7 +236,7 @@ output:
         result.isPresent()
         def doc = Jsoup.parse(result.get().literal)
         def rows = doc.select("tbody tr")
-        rows.size() == 2
+        rows.size() == 3
 
         def firstCells = rows[0].select("td")
         firstCells[1].text() == "Alice"

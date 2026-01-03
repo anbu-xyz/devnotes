@@ -127,6 +127,10 @@ td td, th td, td th, th th {
     font-size: 1em;
 }
 
+td.align-right {
+    text-align: right;
+}
+
 th, td.column-name {
     background-color: #333;
 }
