@@ -33,8 +33,7 @@ public class YamlCodeblockConfig {
 
     @Data
     public static class SqlOptions {
-        // YAML uses `limit` so map it to rowLimit
-        @JsonProperty("limit")
+        @JsonProperty("row-limit")
         private int rowLimit = 100;
         private List<String> columns;
     }

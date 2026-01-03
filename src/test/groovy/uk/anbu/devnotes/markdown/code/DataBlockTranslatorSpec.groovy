@@ -93,7 +93,7 @@ query: SELECT * FROM users
 source: datasource1
 query: SELECT id, name, email, password FROM users ORDER BY id
 options:
-  limit: 1
+  row-limit: 1
 '''
 
         when:
