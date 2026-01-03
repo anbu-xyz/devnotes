@@ -134,6 +134,15 @@ td td, th td, td th, th th {
 .data-block-status-row, .data-block-status-cell {
     border: none;
     text-align: right;
+    color: gray;
+}
+
+.data-block-status-span {
+    color: gray;
+}
+
+.data-block-header-cell {
+    font-size: larger;
 }
 
 th, td.column-name {

@@ -158,14 +158,17 @@ public class DataBlockTranslator {
             values.add(v == null ? "(null)" : v.toString());
         }
 
-        if (maxRowsReached) {
-            values.add(String.format("... max limit reached (%d)", rows.size()));
-        }
         ContainerTag<?> tbl = table().withClass("data-block-combined").with(
                 tbody().with(
                         tr().with(
-                                td().withClass("column-name").withText(firstColumnName),
-                                td().withText(String.join(", ", values))
+                                th().withClass("column-name").withText(firstColumnName),
+                                td().with(
+                                        text(String.join(", ", values)),
+                                        span().withClass("data-block-status-span")
+                                                .withText(
+                                                        maxRowsReached ? String.format(" ... max limit reached (%d)", rows.size()) : ""
+                                                )
+                                )
                         )
                 )
         );
@@ -237,7 +240,11 @@ public class DataBlockTranslator {
         var header = config.getHeader() == null ? "" : config.getHeader();
         ContainerTag<?> theadTag = thead();
         if (!header.isEmpty()) {
-            theadTag.with(tr().with(th().attr("colspan", String.valueOf(Math.max(1, columns.size()))).withText(header)));
+            theadTag.with(tr().with(
+                    th()
+                            .withClass("data-block-header-cell")
+                            .attr("colspan", String.valueOf(Math.max(1, columns.size()))).withText(header))
+            );
         }
         ContainerTag<?> headerRow = tr();
         for (String col : columns) {
