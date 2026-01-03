@@ -7,6 +7,7 @@ import gg.jte.TemplateEngine;
 import gg.jte.output.StringOutput;
 import gg.jte.resolve.DirectoryCodeResolver;
 import j2html.tags.ContainerTag;
+import j2html.tags.specialized.TdTag;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +24,7 @@ import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
@@ -180,7 +182,7 @@ public class DataBlockTranslator {
     }
 
     private static void cleanNullColumns(List<LinkedHashMap<String, Object>> rows) {
-        var allColumns = new ArrayList<>(rows.isEmpty() ? List.of() : rows.get(0).keySet());
+        var allColumns = new ArrayList<>(rows.isEmpty() ? List.of() : rows.getFirst().keySet());
         for (String col : allColumns) {
             boolean allNull = true;
             for (Map<String, Object> row : rows) {
@@ -291,20 +293,7 @@ public class DataBlockTranslator {
         for (Map<String, Object> row : rows) {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
             for (String col : columns) {
-                Object v = row.get(col);
-                boolean dataIsNumber = false;
-                var dataCellText = v == null ? "(null)" : v.toString();
-                if (v instanceof Number) {
-                    dataIsNumber = true;
-                }
-                if (v instanceof java.math.BigDecimal || v instanceof Double || v instanceof Float) {
-                    dataCellText = String.format("%,.2f", v);
-                }
-                var dataCell = td().withText(dataCellText);
-                if (dataIsNumber) {
-                    dataCell.withClass("data-is-number");
-                }
-                rowTag.with(dataCell);
+                rowTag.with(createTdTag(col, row));
             }
             tbodyTag.with(rowTag);
         }
@@ -340,20 +329,7 @@ public class DataBlockTranslator {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
             rowTag.with(th().withText(col));
             for (Map<String, Object> row : rows) {
-                Object v = row.get(col);
-                boolean dataIsNumber = false;
-                var dataCellText = v == null ? "(null)" : v.toString();
-                if (v instanceof Number) {
-                    dataIsNumber = true;
-                }
-                if (v instanceof java.math.BigDecimal || v instanceof Double || v instanceof Float) {
-                    dataCellText = String.format("%,.2f", v);
-                }
-                var dataCell = td().withText(dataCellText);
-                if (dataIsNumber) {
-                    dataCell.withClass("data-is-number");
-                }
-                rowTag.with(dataCell);
+                rowTag.with(createTdTag(col, row));
             }
             tableTag.with(rowTag);
         }
@@ -376,6 +352,30 @@ public class DataBlockTranslator {
             }
         }
         return toHtmlBlock(tableTag);
+    }
+
+    private static TdTag createTdTag(String col, Map<String, Object> row) {
+        Object v = row.get(col);
+        boolean dataIsNumber = false;
+        var dataCellText = v == null ? "(null)" : v.toString();
+        if (v instanceof Number) {
+            dataIsNumber = true;
+        }
+        if (v instanceof java.math.BigDecimal || v instanceof Double || v instanceof Float) {
+            dataCellText = String.format("%,.2f", v);
+        }
+        if (v instanceof Blob blob) {
+            try {
+                dataCellText = String.format("<blob, %d bytes>", blob.length());
+            } catch (SQLException e) {
+                dataCellText = "<blob>";
+            }
+        }
+        var dataCell = td().withText(dataCellText);
+        if (dataIsNumber) {
+            dataCell.withClass("data-block-number");
+        }
+        return dataCell;
     }
 
     private static HtmlBlock toHtmlBlock(ContainerTag<?> tag) {

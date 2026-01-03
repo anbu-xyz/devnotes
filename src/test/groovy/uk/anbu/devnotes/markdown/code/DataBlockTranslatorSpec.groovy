@@ -86,6 +86,8 @@ transpose: true
         def doc = Jsoup.parse(result.get().literal)
         def firstRowHead = doc.select("tbody tr.data-block-data-row th").collect { it.text() }
         firstRowHead == ["ID", "NAME", "EMAIL", "PASSWORD"]
+        def topLeft = doc.select("tbody tr.data-block-data-row:first-child th").collect { it.text() }
+        topLeft == ["ID"]
         def firstRowData = doc.select("tbody tr.data-block-data-row:first-child td").collect { it.text() }
         firstRowData == ["1", "2", "3"]
     }
@@ -116,7 +118,6 @@ query: SELECT id, name, email, password FROM users ORDER BY id
 options:
   row-limit: 1
 '''
-
         when:
         def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
 
