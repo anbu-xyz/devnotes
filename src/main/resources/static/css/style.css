@@ -127,8 +127,12 @@ td td, th td, td th, th th {
     font-size: 1em;
 }
 
-td.align-right {
+.align-right {
     text-align: right;
+}
+
+.no-border {
+    border: none;
 }
 
 th, td.column-name {

@@ -114,20 +114,40 @@ public class DataBlockTranslator {
         }
 
         if (templateContent != null && "jte".equalsIgnoreCase(outputTemplateType)) {
-            try {
-                var rendered = userProvidedTemplate(columns, rows, dataSourceName, mdName, templateContent);
-                return Optional.of(rendered);
-            } catch (Exception e) {
-                log.error("Error rendering data block template", e);
-                ContainerTag<?> err = div()
-                        .withText("Error rendering template for data block ('" + mdName + "'): " + e.getMessage());
-                return Optional.of(toHtmlBlock(err));
-            }
+            return buildFromTemplate(columns, rows, dataSourceName, mdName, templateContent);
         }
 
-        String header = config.getHeader();
-        // header might be a top-level property in YAML
         return Optional.of(htmlFallbackTable(config, columns, rows, maxRowsReached));
+    }
+
+    private static Optional<Node> buildFromTemplate(List<String> columns, List<Map<String, Object>> rows, String dataSourceName, String mdName, String templateContent) {
+        try {
+            Path tempDir = Files.createTempDirectory("jte-templates");
+            DirectoryCodeResolver codeResolver = new DirectoryCodeResolver(tempDir);
+            TemplateEngine templateEngine = TemplateEngine.create(codeResolver, ContentType.Html);
+
+            String templateName = "user-template.jte";
+            Path templatePath = tempDir.resolve(templateName);
+
+            Files.writeString(templatePath, templateContent); // Write the template content to the file
+
+            Map<String, Object> params = new HashMap<>();
+            params.put("columns", columns);
+            params.put("rows", rows);
+            params.put("datasource", dataSourceName);
+            params.put("markdownFile", mdName);
+
+            StringOutput output = new StringOutput();
+            templateEngine.render(templateName, params, output);
+            var html = new HtmlBlock();
+            html.setLiteral(output.toString());
+            return Optional.of(html);
+        } catch (Exception e) {
+            log.error("Error rendering data block template", e);
+            ContainerTag<?> err = div()
+                    .withText("Error rendering template for data block ('" + mdName + "'): " + e.getMessage());
+            return Optional.of(toHtmlBlock(err));
+        }
     }
 
     private static HtmlBlock combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows,
@@ -190,31 +210,6 @@ public class DataBlockTranslator {
         return columns;
     }
 
-    @SneakyThrows
-    private static HtmlBlock userProvidedTemplate(List<String> columns, List<Map<String, Object>> rows,
-                                                  String dataSourceName, String mdName, String templateContent) {
-        Path tempDir = Files.createTempDirectory("jte-templates");
-        DirectoryCodeResolver codeResolver = new DirectoryCodeResolver(tempDir);
-        TemplateEngine templateEngine = TemplateEngine.create(codeResolver, ContentType.Html);
-
-        String templateName = "user-template.jte";
-        Path templatePath = tempDir.resolve(templateName);
-
-        Files.writeString(templatePath, templateContent); // Write the template content to the file
-
-        Map<String, Object> params = new HashMap<>();
-        params.put("columns", columns);
-        params.put("rows", rows);
-        params.put("datasource", dataSourceName);
-        params.put("markdownFile", mdName);
-
-        StringOutput output = new StringOutput();
-        templateEngine.render(templateName, params, output);
-        var html = new HtmlBlock();
-        html.setLiteral(output.toString());
-        return html;
-    }
-
     private static List<Map<String, Object>> buildDataRows(ConfigService.DataSourceConfig dsConfig,
                                                            int limit, String query) {
         List<Map<String, Object>> rows;
@@ -265,15 +260,20 @@ public class DataBlockTranslator {
             tbodyTag.with(tr().withClass("align-right")
                     .withClass("data-block-status-row")
                     .with(
-                            td().attr("colspan", String.valueOf(Math.max(1, columns.size())))
+                            td()
+                                    .withClass("no-border")
+                                    .attr("colspan", String.valueOf(Math.max(1, columns.size())))
                                     .withText(String.format("... max limit reached (%d rows)", rows.size()))
                     ));
         } else {
             if (!config.isHideRowCount() && rows.size() >= config.getHideRowCountWhenLessThan()) {
-                tbodyTag.with(tr().withClass("data-block-status-row").with(
-                        td().attr("colspan", String.valueOf(Math.max(1, columns.size())))
-                                .withText(String.format("Total rows: %d", rows.size()))
-                ));
+                tbodyTag.with(tr().withClass("data-block-status-row")
+                        .withClass("align-right")
+                        .with(
+                                td().withClass("no-border")
+                                        .attr("colspan", String.valueOf(Math.max(1, columns.size())))
+                                        .withText(String.format("Total rows: %d", rows.size()))
+                        ));
             }
         }
 
