@@ -152,7 +152,7 @@ hide-row-count-when-less-than: 10
         given:
         String yaml = '''
 source: datasource1
-query: SELECT id, name, email, password FROM users ORDER BY id
+query: SELECT * FROM users ORDER BY id
 options:
   columns: ["name", "email"]
 '''
@@ -163,8 +163,8 @@ options:
         then:
         result.isPresent()
         def doc = Jsoup.parse(result.get().literal)
-        def headers = doc.select("thead th").collect { it.text() }
-        headers == ["name", "email"]
+        def headers = doc.select("thead th").collect { it.text().toUpperCase() }
+        headers == ["name", "email"]*.toUpperCase()
 
         def rows = doc.select("tbody tr.data-block-data-row")
         rows.size() == 3
@@ -178,8 +178,7 @@ options:
         String yaml = '''
 source: datasource1
 query: SELECT id, name, email, password FROM users ORDER BY id
-options:
-  columns-to-exclude: ['PASSWORD']
+columns-to-exclude: ['password']
 '''
 
         when:
@@ -189,7 +188,7 @@ options:
         result.isPresent()
         def doc = Jsoup.parse(result.get().literal)
         def headers = doc.select("thead th").collect { it.text() }
-        !headers.contains("password") && !headers.contains("PASSWORD")
+        !headers*.toUpperCase().contains("PASSWORD")
         headers.containsAll(["id", "name", "email"]*.toUpperCase())
     }
 
@@ -198,10 +197,6 @@ options:
         String yaml = '''
 source: datasource1
 query: SELECT id, name, email, password FROM users ORDER BY id
-options:
-  limit: 10
-  columns: ["id", "name", "email", "password"]
-  columns-to-exclude: ["password"]
 output:
   template-type: jte
   template: |

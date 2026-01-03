@@ -23,6 +23,8 @@ import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 import static j2html.TagCreator.*;
@@ -80,9 +82,9 @@ public class DataBlockTranslator {
         int limit = configService.getSqlMaxRows() == 0 ? 100 : configService.getSqlMaxRows();
         limit = options == null || options.getRowLimit() == 0 ? limit : options.getRowLimit();
         boolean maxRowsReached = false;
-        List<Map<String, Object>> rows;
+        List<LinkedHashMap<String, Object>> rows;
         try {
-            rows = buildDataRows(dsConfig, limit + 1, query);
+            rows = buildDataRows(dsConfig, config, limit + 1);
             if (rows.size() > limit) {
                 rows = rows.subList(0, limit);
                 maxRowsReached = true;
@@ -98,11 +100,10 @@ public class DataBlockTranslator {
         }
 
         // If columns not provided, infer from first row
-        var columns = readColumnsData(options, rows);
-        Boolean dontCombine = options == null ? null : options.getDontCombineSingleColumn();
+        var columns = readColumnsData(config, rows);
 
-        if (columns.size() == 1 && (dontCombine == null || !dontCombine)) {
-            return Optional.of(combineIfSingleColumn(columns.getFirst(), rows, maxRowsReached));
+        if (columns.size() == 1 && config.isCombineSingleColumn()) {
+            return Optional.of(combineIfSingleColumn(rows, maxRowsReached));
         }
 
         // Check for output-template
@@ -117,10 +118,12 @@ public class DataBlockTranslator {
             return buildFromTemplate(columns, rows, dataSourceName, mdName, templateContent);
         }
 
-        return Optional.of(htmlFallbackTable(config, columns, rows, maxRowsReached));
+        return Optional.of(htmlFallbackTable(config, rows, maxRowsReached));
     }
 
-    private static Optional<Node> buildFromTemplate(List<String> columns, List<Map<String, Object>> rows, String dataSourceName, String mdName, String templateContent) {
+    private static Optional<Node> buildFromTemplate(List<String> columns,
+                                                    List<LinkedHashMap<String, Object>> rows,
+                                                    String dataSourceName, String mdName, String templateContent) {
         try {
             Path tempDir = Files.createTempDirectory("jte-templates");
             DirectoryCodeResolver codeResolver = new DirectoryCodeResolver(tempDir);
@@ -150,12 +153,12 @@ public class DataBlockTranslator {
         }
     }
 
-    private static HtmlBlock combineIfSingleColumn(String firstColumnName, List<Map<String, Object>> rows,
+    private static HtmlBlock combineIfSingleColumn(List<LinkedHashMap<String, Object>> rows,
                                                    boolean maxRowsReached) {
         List<String> values = new ArrayList<>();
+        String firstColumnName = rows.isEmpty() ? "" : rows.getFirst().keySet().iterator().next();
         for (Map<String, Object> row : rows) {
-            Object v = row.get(firstColumnName);
-            values.add(v == null ? "(null)" : v.toString());
+            values.add(row.get(firstColumnName) == null ? "(null)" : row.get(firstColumnName).toString());
         }
 
         ContainerTag<?> tbl = table().withClass("data-block-combined").with(
@@ -176,7 +179,7 @@ public class DataBlockTranslator {
         return toHtmlBlock(tbl);
     }
 
-    private static void cleanNullColumns(List<Map<String, Object>> rows) {
+    private static void cleanNullColumns(List<LinkedHashMap<String, Object>> rows) {
         var allColumns = new ArrayList<>(rows.isEmpty() ? List.of() : rows.get(0).keySet());
         for (String col : allColumns) {
             boolean allNull = true;
@@ -194,7 +197,8 @@ public class DataBlockTranslator {
         }
     }
 
-    private static List<String> readColumnsData(YamlCodeblockConfig.SqlOptions options, List<Map<String, Object>> rows) {
+    private static List<String> readColumnsData(YamlCodeblockConfig config, List<LinkedHashMap<String, Object>> rows) {
+        var options = config.getOptions();
         List<String> columns = null;
         if (options != null && options.getColumns() != null && !options.getColumns().isEmpty()) {
             columns = new ArrayList<>(options.getColumns());
@@ -206,16 +210,15 @@ public class DataBlockTranslator {
                 columns.addAll(rows.getFirst().keySet());
             }
         }
-        if (options != null && options.getColumnsToExclude() != null && !options.getColumnsToExclude().isEmpty()) {
-            columns.removeAll(options.getColumnsToExclude());
+        if (config.getColumnsToExclude() != null && !config.getColumnsToExclude().isEmpty()) {
+            columns.removeAll(config.getColumnsToExclude());
         }
 
         return columns;
     }
 
-    private static List<Map<String, Object>> buildDataRows(ConfigService.DataSourceConfig dsConfig,
-                                                           int limit, String query) {
-        List<Map<String, Object>> rows;
+    private static List<LinkedHashMap<String, Object>> buildDataRows(ConfigService.DataSourceConfig dsConfig,
+                                                           YamlCodeblockConfig config, int limit) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setDriverClassName(dsConfig.driverClassName());
         ds.setUrl(dsConfig.url());
@@ -228,14 +231,42 @@ public class DataBlockTranslator {
         }
         var named = new NamedParameterJdbcTemplate(jdbcTemplate);
 
-        rows = named.queryForList(query, new MapSqlParameterSource());
-        return rows;
+        var rows = named.queryForStream(config.getQuery(), new MapSqlParameterSource(),
+                (rs, rowNum) -> rowAsMap(config, rs));
+        return rows.toList();
     }
 
-    private static HtmlBlock htmlFallbackTable(YamlCodeblockConfig config, List<String> columns,
-                                               List<Map<String, Object>> rows, boolean maxRowsReached) {
+    private static LinkedHashMap<String, Object> rowAsMap(YamlCodeblockConfig config,
+                                                          ResultSet rs) throws SQLException {
+        var map = new LinkedHashMap<String, Object>();
+        var meta = rs.getMetaData();
+        var columnsToExclude = config.getColumnsToExclude().stream()
+                .map(String::toUpperCase)
+                .toList();
+        var columnsToSelect = config.getOptions() != null && config.getOptions().getColumns() != null
+                ? config.getOptions().getColumns().stream().map(String::toUpperCase).toList()
+                : null;
+        for (int i = 1; i <= meta.getColumnCount(); i++) {
+            String columnName = meta.getColumnLabel(i);
+            if (columnsToExclude.contains(columnName.toUpperCase())) {
+                continue;
+            }
+            if (columnsToSelect != null && !columnsToSelect.contains(columnName.toUpperCase())) {
+                continue;
+            }
+
+            Object value = rs.getObject(i);
+            map.put(columnName, value);
+        }
+        return map;
+    }
+
+    private static HtmlBlock htmlFallbackTable(YamlCodeblockConfig config,
+                                               List<LinkedHashMap<String, Object>> rows,
+                                               boolean maxRowsReached) {
         var tableTag = table().withClass("data-block-table");
 
+        var columns = rows.getFirst().keySet();
         // thead
         var header = config.getHeader() == null ? "" : config.getHeader();
         ContainerTag<?> theadTag = thead();

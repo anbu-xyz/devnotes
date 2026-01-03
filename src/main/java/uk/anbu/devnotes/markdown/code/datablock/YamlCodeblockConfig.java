@@ -17,6 +17,10 @@ public class YamlCodeblockConfig {
     private SqlOptions options;
     @JsonProperty("hide-row-count")
     private boolean hideRowCount = false;
+    @JsonProperty("columns-to-exclude")
+    private List<String> columnsToExclude = List.of();
+    @JsonProperty("combine-single-column")
+    private boolean combineSingleColumn = true;
     @JsonProperty("hide-row-count-when-less-than")
     private int hideRowCountWhenLessThan = 10;
 
@@ -33,9 +37,5 @@ public class YamlCodeblockConfig {
         @JsonProperty("limit")
         private int rowLimit = 100;
         private List<String> columns;
-        @JsonProperty("columns-to-exclude")
-        private List<String> columnsToExclude;
-        @JsonProperty("dont-combine-single-column")
-        private Boolean dontCombineSingleColumn;
     }
 }
