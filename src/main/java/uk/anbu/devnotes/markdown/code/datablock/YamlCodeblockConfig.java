@@ -31,7 +31,7 @@ public class YamlCodeblockConfig {
     public static class SqlOptions {
         // YAML uses `limit` so map it to rowLimit
         @JsonProperty("limit")
-        private int rowLimit;
+        private int rowLimit = 100;
         private List<String> columns;
         @JsonProperty("columns-to-exclude")
         private List<String> columnsToExclude;

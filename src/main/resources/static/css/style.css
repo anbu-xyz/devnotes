@@ -127,12 +127,13 @@ td td, th td, td th, th th {
     font-size: 1em;
 }
 
-.align-right {
+.data-is-number {
     text-align: right;
 }
 
-.no-border {
+.data-block-status-row, .data-block-status-cell {
     border: none;
+    text-align: right;
 }
 
 th, td.column-name {

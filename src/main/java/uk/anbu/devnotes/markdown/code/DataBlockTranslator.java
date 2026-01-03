@@ -251,26 +251,36 @@ public class DataBlockTranslator {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
             for (String col : columns) {
                 Object v = row.get(col);
-                rowTag.with(td().withText(v == null ? "(null)" : v.toString()));
+                boolean dataIsNumber = false;
+                var dataCellText = v == null ? "(null)" : v.toString();
+                if (v instanceof Number) {
+                    dataIsNumber = true;
+                }
+                if (v instanceof java.math.BigDecimal || v instanceof Double || v instanceof Float) {
+                    dataCellText = String.format("%,.2f", v);
+                }
+                var dataCell = td().withText(dataCellText);
+                if (dataIsNumber) {
+                    dataCell.withClass("data-is-number");
+                }
+                rowTag.with(dataCell);
             }
             tbodyTag.with(rowTag);
         }
 
         if (maxRowsReached) {
-            tbodyTag.with(tr().withClass("align-right")
+            tbodyTag.with(tr()
                     .withClass("data-block-status-row")
                     .with(
-                            td()
-                                    .withClass("no-border")
+                            td().withClass("data-block-status-cell")
                                     .attr("colspan", String.valueOf(Math.max(1, columns.size())))
                                     .withText(String.format("... max limit reached (%d rows)", rows.size()))
                     ));
         } else {
             if (!config.isHideRowCount() && rows.size() >= config.getHideRowCountWhenLessThan()) {
                 tbodyTag.with(tr().withClass("data-block-status-row")
-                        .withClass("align-right")
                         .with(
-                                td().withClass("no-border")
+                                td().withClass("data-block-status-cell")
                                         .attr("colspan", String.valueOf(Math.max(1, columns.size())))
                                         .withText(String.format("Total rows: %d", rows.size()))
                         ));
