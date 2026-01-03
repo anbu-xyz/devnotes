@@ -67,6 +67,27 @@ query: SELECT id, name, email, password FROM users ORDER BY id
         def doc = Jsoup.parse(result.get().literal)
         def headers = doc.select("thead th").collect { it.text() }
         headers.containsAll(["id", "name", "email", "password"]*.toUpperCase())
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 3
+    }
+
+    def "validate that transposed view gets rendered correctly"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name, email, password FROM users ORDER BY id
+transpose: true
+'''
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def firstRowHead = doc.select("tbody tr.data-block-data-row th").collect { it.text() }
+        firstRowHead == ["ID", "NAME", "EMAIL", "PASSWORD"]
+        def firstRowData = doc.select("tbody tr.data-block-data-row:first-child td").collect { it.text() }
+        firstRowData == ["1", "2", "3"]
     }
 
     def "header get rendered if present"() {

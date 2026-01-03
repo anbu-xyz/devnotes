@@ -264,6 +264,9 @@ public class DataBlockTranslator {
     private static HtmlBlock htmlFallbackTable(YamlCodeblockConfig config,
                                                List<LinkedHashMap<String, Object>> rows,
                                                boolean maxRowsReached) {
+        if (config.isTranspose()) {
+            return transposedViewTable(config, rows, maxRowsReached);
+        }
         var tableTag = table().withClass("data-block-table");
 
         var columns = rows.getFirst().keySet();
@@ -327,6 +330,52 @@ public class DataBlockTranslator {
 
         ContainerTag<?> wrapper = div().withClass("data-block").with(tableTag.with(theadTag, tbodyTag));
         return toHtmlBlock(wrapper);
+    }
+
+    private static HtmlBlock transposedViewTable(YamlCodeblockConfig config,
+                                                List<LinkedHashMap<String, Object>> rows, boolean maxRowsReached) {
+        var tableTag = table().withClass("data-block-table transpose");
+        var columns = rows.getFirst().keySet();
+        for (String col : columns) {
+            ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
+            rowTag.with(th().withText(col));
+            for (Map<String, Object> row : rows) {
+                Object v = row.get(col);
+                boolean dataIsNumber = false;
+                var dataCellText = v == null ? "(null)" : v.toString();
+                if (v instanceof Number) {
+                    dataIsNumber = true;
+                }
+                if (v instanceof java.math.BigDecimal || v instanceof Double || v instanceof Float) {
+                    dataCellText = String.format("%,.2f", v);
+                }
+                var dataCell = td().withText(dataCellText);
+                if (dataIsNumber) {
+                    dataCell.withClass("data-is-number");
+                }
+                rowTag.with(dataCell);
+            }
+            tableTag.with(rowTag);
+        }
+        if (maxRowsReached) {
+            tableTag.with(tr()
+                    .withClass("data-block-status-row")
+                    .with(
+                            td().withClass("data-block-status-cell")
+                                    .attr("colspan", String.valueOf(Math.max(1, rows.size() + 1)))
+                                    .withText(String.format("... max limit reached (%d rows)", rows.size()))
+                    ));
+        } else {
+            if (!config.isHideRowCount() && rows.size() >= config.getHideRowCountWhenLessThan()) {
+                tableTag.with(tr().withClass("data-block-status-row")
+                        .with(
+                                td().withClass("data-block-status-cell")
+                                        .attr("colspan", String.valueOf(Math.max(1, rows.size() + 1)))
+                                        .withText(String.format("Total rows: %d", rows.size()))
+                        ));
+            }
+        }
+        return toHtmlBlock(tableTag);
     }
 
     private static HtmlBlock toHtmlBlock(ContainerTag<?> tag) {

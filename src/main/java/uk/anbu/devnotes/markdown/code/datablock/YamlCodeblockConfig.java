@@ -10,11 +10,7 @@ public class YamlCodeblockConfig {
     private String source;
     private String query;
     private String header;
-    private Output output;
 
-    // Map `options` in YAML to this object
-    @JsonProperty("options")
-    private SqlOptions options;
     @JsonProperty("hide-row-count")
     private boolean hideRowCount = false;
     @JsonProperty("columns-to-exclude")
@@ -23,6 +19,11 @@ public class YamlCodeblockConfig {
     private boolean combineSingleColumn = true;
     @JsonProperty("hide-row-count-when-less-than")
     private int hideRowCountWhenLessThan = 10;
+    @JsonProperty("transpose")
+    private boolean transpose = false;
+
+    private SqlOptions options;
+    private Output output;
 
     @Data
     public static class Output {
