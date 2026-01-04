@@ -22,11 +22,18 @@ import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.types.MarkdownFile;
 
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Blob;
+import java.sql.Date;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 
 import static j2html.TagCreator.*;
@@ -233,9 +240,133 @@ public class DataBlockTranslator {
         }
         var named = new NamedParameterJdbcTemplate(jdbcTemplate);
 
-        var rows = named.queryForStream(config.getQuery(), new MapSqlParameterSource(),
+        MapSqlParameterSource paramSource = buildParameterSource(config);
+
+        var rows = named.queryForStream(config.getQuery(), paramSource,
                 (rs, rowNum) -> rowAsMap(config, rs));
         return rows.toList();
+    }
+
+    private static MapSqlParameterSource buildParameterSource(YamlCodeblockConfig config) {
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        if (config == null || config.getParameters() == null || config.getParameters().isEmpty()) {
+            return params;
+        }
+        for (Map.Entry<String, YamlCodeblockConfig.SqlParameter> e : config.getParameters().entrySet()) {
+            String name = e.getKey();
+            YamlCodeblockConfig.SqlParameter p = e.getValue();
+            if (p == null) {
+                continue;
+            }
+            Object rawValue = p.getValue();
+            String type = p.getType();
+            try {
+                Object coerced = coerceParameterValue(rawValue, type);
+                int sqlType = mapTypeToSqlType(type);
+                if (sqlType != Types.OTHER) {
+                    params.addValue(name, coerced, sqlType);
+                } else {
+                    params.addValue(name, coerced);
+                }
+            } catch (Exception ex) {
+                // if coercion failed, fall back to string representation
+                params.addValue(name, rawValue == null ? null : rawValue.toString());
+            }
+        }
+        return params;
+    }
+
+    private static Object coerceParameterValue(Object rawValue, String type) {
+        if (rawValue == null) return null;
+        if (type == null || type.isBlank()) return rawValue;
+        String t = type.trim().toLowerCase(Locale.ROOT);
+        if (rawValue instanceof Number) {
+            var n = (Number) rawValue;
+            switch (t) {
+                case "int":
+                case "integer":
+                case "short":
+                case "tinyint":
+                    return n.intValue();
+                case "long":
+                case "bigint":
+                    return n.longValue();
+                case "double":
+                case "float":
+                case "real":
+                    return n.doubleValue();
+                case "bigdecimal":
+                case "decimal":
+                    return BigDecimal.valueOf(n.doubleValue());
+                default:
+                    return rawValue;
+            }
+        }
+        String s = rawValue.toString();
+        switch (t) {
+            case "int":
+            case "integer":
+            case "short":
+            case "tinyint":
+                return Integer.parseInt(s);
+            case "long":
+            case "bigint":
+                return Long.parseLong(s);
+            case "double":
+            case "float":
+            case "real":
+                return Double.parseDouble(s);
+            case "bigdecimal":
+            case "decimal":
+                return new BigDecimal(s);
+            case "boolean":
+            case "bool":
+                return Boolean.parseBoolean(s);
+            case "string":
+            case "varchar":
+            case "text":
+                return s;
+            case "date":
+                try {
+                    LocalDate ld = LocalDate.parse(s);
+                    return Date.valueOf(ld);
+                } catch (DateTimeParseException ex) {
+                    throw new IllegalArgumentException("Invalid date format for parameter: " + s);
+                }
+            case "timestamp":
+            case "datetime":
+                try {
+                    // Try parse as LocalDateTime first, then LocalDate
+                    LocalDateTime ldt = LocalDateTime.parse(s);
+                    return Timestamp.valueOf(ldt);
+                } catch (DateTimeParseException ex) {
+                    try {
+                        LocalDate ld2 = LocalDate.parse(s);
+                        return Timestamp.valueOf(ld2.atStartOfDay());
+                    } catch (DateTimeParseException ex2) {
+                        throw new IllegalArgumentException("Invalid timestamp format for parameter: " + s);
+                    }
+                }
+            default:
+                return rawValue;
+        }
+    }
+
+    private static int mapTypeToSqlType(String type) {
+        if (type == null || type.isBlank()) return Types.OTHER;
+        String t = type.trim().toLowerCase(Locale.ROOT);
+        return switch (t) {
+            case "int", "integer", "short", "tinyint" -> Types.INTEGER;
+            case "long", "bigint" -> Types.BIGINT;
+            case "double", "float", "real" -> Types.DOUBLE;
+            case "bigdecimal", "decimal" -> Types.DECIMAL;
+            case "boolean", "bool" -> Types.BOOLEAN;
+            case "string", "varchar", "text" -> Types.VARCHAR;
+            case "date" -> Types.DATE;
+            case "timestamp", "datetime" -> Types.TIMESTAMP;
+            case "blob" -> Types.BLOB;
+            default -> Types.OTHER;
+        };
     }
 
     private static LinkedHashMap<String, Object> rowAsMap(YamlCodeblockConfig config,
@@ -362,7 +493,7 @@ public class DataBlockTranslator {
             dataIsNumber = true;
         }
         if (v instanceof java.math.BigDecimal || v instanceof Double || v instanceof Float) {
-            dataCellText = String.format("%,.2f", v);
+            dataCellText = String.format("%,.2f", ((Number) v).doubleValue());
         }
         if (v instanceof Blob blob) {
             try {

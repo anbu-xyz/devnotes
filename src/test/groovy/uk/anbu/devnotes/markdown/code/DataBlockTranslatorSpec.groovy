@@ -266,4 +266,64 @@ output:
         def h1 = doc.select("h1")
         h1.text() == "Sample output"
     }
+
+    def "parameterized query accepts typed parameters"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name, email FROM users WHERE id = :id
+parameters:
+  id:
+    type: integer
+    value: 2
+'''
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Bob"
+    }
+
+    def "parameterized query accepts shorthand scalar parameters"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name, email FROM users WHERE id = :id
+parameters:
+  id: 3
+'''
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Charlie"
+    }
+
+
+    def "parameterized query accepts string"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name, email FROM users WHERE email = :email
+parameters:
+  email: charlie@example.com
+'''
+        when:
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Charlie"
+    }
 }
