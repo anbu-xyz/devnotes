@@ -358,4 +358,33 @@ parameters:
         rows.size() == 1
         rows[0].select("td")[1].text() == "Charlie"
     }
+
+    def "query params override parameter and data block parameters"() {
+        given:
+        String paramYaml = '''
+id: 2
+'''
+
+        String dataYaml = '''
+source: datasource1
+query: SELECT id, name, email FROM users WHERE id = :id
+parameters:
+  id: 2
+'''
+
+        when:
+        registry.clear()
+        // simulate query parameter overriding everything
+        registry.put('id', 3)
+        ParameterBlockTranslator pTranslator = new ParameterBlockTranslator(registry)
+        pTranslator.renderParameterBlock(paramYaml)
+        def result = translator.renderDataBlock(dataYaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Charlie"
+    }
 }

@@ -34,7 +34,13 @@ public class ParameterBlockTranslator {
         }
 
         if (params != null && !params.isEmpty()) {
-            parameterRegistry.putAll(params);
+            for (Map.Entry<String, Object> e : params.entrySet()) {
+                String key = e.getKey();
+                Object value = e.getValue();
+                if (parameterRegistry.get(key) == null) {
+                    parameterRegistry.put(key, value);
+                }
+            }
         }
 
         ContainerTag<?> ok = div().withText("Loaded " + (params == null ? 0 : params.size()) + " parameters");

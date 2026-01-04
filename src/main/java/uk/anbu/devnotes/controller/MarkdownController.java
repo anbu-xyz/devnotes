@@ -52,13 +52,14 @@ public class MarkdownController {
     private final ConfigService configService;
 
     @GetMapping("/markdownViewer")
-    public ResponseEntity<String> markdownViewer(@RequestParam String filename) {
+    public ResponseEntity<String> markdownViewer(@RequestParam String filename,
+                                                 @RequestParam Map<String, String> allRequestParams) {
         try {
             Path markdownRoot = Paths.get(configService.getDocsDirectory());
             var markdownFile = new MarkdownFile(markdownRoot, filename);
             Assert.isTrue(markdownFile.exists(), "File does not exist " + filename);
             var markdown = new Markdown(Files.readAllBytes(markdownFile.fullPath()));
-            String htmlContent = markdownRenderer.convertMarkdown(markdown, markdownFile);
+            String htmlContent = markdownRenderer.convertMarkdown(markdown, markdownFile, allRequestParams);
 
             TemplateOutput output = new StringOutput();
             var params = new HashMap<String, Object>();
@@ -111,6 +112,7 @@ public class MarkdownController {
 
     @GetMapping("/markdown")
     public ResponseEntity<Object> markdown(@RequestParam(name = "filename", required = false) String filename,
+                                           @RequestParam Map<String, String> allRequestParams,
                                            @RequestParam(name = "edit", required = false, defaultValue = "false") boolean editMode) throws IOException {
         try {
             if (filename == null) {
@@ -123,6 +125,16 @@ public class MarkdownController {
                 filename = ".";
             } else if (filename.startsWith("/")) {
                 filename = filename.substring(1);
+            }
+
+            // Build a map of query params to pass to renderer, excluding internal params
+            var queryParams = new HashMap<String, Object>();
+            if (allRequestParams != null) {
+                for (var entry : allRequestParams.entrySet()) {
+                    String k = entry.getKey();
+                    if ("filename".equals(k) || "edit".equals(k)) continue;
+                    queryParams.put(k, entry.getValue());
+                }
             }
 
             Path markdownRoot = Paths.get(configService.getDocsDirectory());
@@ -142,7 +154,7 @@ public class MarkdownController {
             } else if (!filePath.toFile().exists() && fileExtension.equals("md")) {
                 return handleMissingMarkdownFile(filename);
             } else {
-                return readFileContent(filename, fileExtension, markdownRoot, editMode);
+                return readFileContent(filename, fileExtension, markdownRoot, editMode, queryParams);
             }
         } catch (Exception e) {
             log.error("Error rendering markdown", e);
@@ -160,9 +172,9 @@ public class MarkdownController {
     }
 
     private ResponseEntity<Object> readFileContent(String filename, String fileExtension,
-                                                   Path markdownRoot, boolean editMode) throws IOException {
+                                                   Path markdownRoot, boolean editMode, Map<String, Object> queryParams) throws IOException {
         if ("md".equals(fileExtension)) {
-            var content = fetchMarkdownContent(filename, markdownRoot, editMode);
+            var content = fetchMarkdownContent(filename, markdownRoot, editMode, queryParams);
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)
                     .body(content.content());
@@ -305,7 +317,8 @@ public class MarkdownController {
     }
 
     public ContentWithType fetchMarkdownContent(String filename,
-                                                Path markdownRoot, boolean editMode) throws IOException {
+                                                Path markdownRoot, boolean editMode,
+                                                Map<String, Object> queryParams) throws IOException {
         Assert.isTrue(filename.endsWith(".md"), "filename must end with .md");
         log.info("Fetching file: {}", filename);
         var markdownFile = markdownRoot.resolve(filename);
@@ -318,6 +331,7 @@ public class MarkdownController {
         params.put("markdownFile", filename);
         params.put("editMode", editMode);
         params.put("title", title);
+        params.put("urlQueryParams", queryParams);
         params.put("directoryName", markdownFile.getParent().equals(markdownRoot) ? "" :
                 markdownRoot.relativize(markdownFile.getParent()).toString().replace("\\", "/"));
         templateEngine.render("render/markdown.jte", params, output);

@@ -2,7 +2,7 @@
 @param String title
 @param boolean editMode
 @param String directoryName
-
+@param java.util.Map<String, Object> urlQueryParams
 <!DOCTYPE html>
 <html lang="en">
     <head>
@@ -33,14 +33,30 @@
                 hx-target="#markdownViewer"
                 hx-swap="outerHTML"
                 hx-select="div#markdownViewer"
-                hx-get="/markdownViewer?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}">
+                hx-get="/markdownViewer?filename=${
+                    java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)
+                }${
+                    urlQueryParams == null || urlQueryParams.isEmpty() ? "" : '&' +
+                    urlQueryParams.entrySet().stream()
+                        .map(e -> java.net.URLEncoder.encode(e.getKey(), java.nio.charset.StandardCharsets.UTF_8)
+                                + '=' + java.net.URLEncoder.encode(String.valueOf(e.getValue()), java.nio.charset.StandardCharsets.UTF_8))
+                        .collect(java.util.stream.Collectors.joining("&"))
+                }">
         </button>
         <button hidden id="hiddenEditButton"
                 hx-trigger="click"
                 hx-target="#markdownEditor"
                 hx-swap="outerHTML"
                 hx-select="#markdownEditor"
-                hx-get="/markdownEditor?filename=${java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)}">
+                hx-get="/markdownEditor?filename=${
+                    java.net.URLEncoder.encode(markdownFile, java.nio.charset.StandardCharsets.UTF_8)
+                }${
+                    urlQueryParams == null || urlQueryParams.isEmpty() ? "" : '&' +
+                    urlQueryParams.entrySet().stream()
+                        .map(e -> java.net.URLEncoder.encode(e.getKey(), java.nio.charset.StandardCharsets.UTF_8)
+                                + '=' + java.net.URLEncoder.encode(String.valueOf(e.getValue()), java.nio.charset.StandardCharsets.UTF_8))
+                        .collect(java.util.stream.Collectors.joining("&"))
+                }">
         </button>
         <div id="codeModal" class="modal-overlay">
             <div class="modal-dialog">

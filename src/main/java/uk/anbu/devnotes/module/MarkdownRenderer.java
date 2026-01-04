@@ -38,7 +38,7 @@ public class MarkdownRenderer {
     private final SqlExecutor sqlExecutor;
     private final ConfigService configService;
 
-    public String convertMarkdown(Markdown markdown, MarkdownFile markdownFile) {
+    public String convertMarkdown(Markdown markdown, MarkdownFile markdownFile, Map<String, String> queryParams) {
         String markdownText = markdown.text();
         List<Extension> extensions = List.of(TablesExtension.create(),
                 StrikethroughExtension.create(),
@@ -50,6 +50,10 @@ public class MarkdownRenderer {
                 .build();
         Node document = parser.parse(markdownText);
         var parameterRegistry = new ParameterRegistry();
+        // Seed registry with query params first so they can override later values
+        if (queryParams != null && !queryParams.isEmpty()) {
+            queryParams.forEach(parameterRegistry::put);
+        }
         CodeBlockTransformer.builder()
                 .markdownFile(markdownFile)
                 .sqlExecutor(sqlExecutor)

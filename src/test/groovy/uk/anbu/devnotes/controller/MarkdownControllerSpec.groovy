@@ -41,7 +41,7 @@ class MarkdownControllerSpec extends Specification {
 
     def "markdown() should redirect to index.md when filename is null"() {
         when:
-        def response = controller.markdown(null, false)
+        def response = controller.markdown(null, Map.of(), false)
 
         then:
         response.statusCode == HttpStatus.FOUND
@@ -54,7 +54,7 @@ class MarkdownControllerSpec extends Specification {
         configService.getDocsDirectory() >> tempDir.toFile().parentFile.absolutePath
 
         when:
-        def response = controller.markdown(tempDir.fileName.toString(), false)
+        def response = controller.markdown(tempDir.fileName.toString(), Map.of(), false)
 
         then:
         response.statusCode == HttpStatus.FOUND
@@ -70,7 +70,7 @@ class MarkdownControllerSpec extends Specification {
         configService.getDocsDirectory() >> tempFile.toFile().parentFile.absolutePath
 
         when:
-        def response = controller.markdown("non-existent.md", false)
+        def response = controller.markdown("non-existent.md", Map.of(), false)
 
         then:
         Document doc = Jsoup.parse(response.body.toString())
@@ -87,7 +87,7 @@ class MarkdownControllerSpec extends Specification {
         Files.write(tempFile, content.getBytes())
 
         when:
-        def response = controller.markdownViewer(tempFile.fileName.toString())
+        def response = controller.markdownViewer(tempFile.fileName.toString(), Map.of())
 
         then:
         Document doc = Jsoup.parse(response.body.toString())
@@ -121,7 +121,7 @@ class MarkdownControllerSpec extends Specification {
         configService.getDocsDirectory() >> tempDirectory.absolutePath
 
         when:
-        def response = controller.markdownViewer("nested1/nested2/new-file.md")
+        def response = controller.markdownViewer("nested1/nested2/new-file.md", Map.of())
 
         then:
         Document doc = Jsoup.parse(response.body.toString())
@@ -217,7 +217,7 @@ class MarkdownControllerSpec extends Specification {
         Files.write(tempFile, "# Test\n```sql(missing-database)\nselect * from user\n```".getBytes())
 
         when:
-        def response = controller.markdownViewer(tempFile.fileName.toString())
+        def response = controller.markdownViewer(tempFile.fileName.toString(), Map.of())
 
         then:
         Document doc = Jsoup.parse(response.body.toString())
