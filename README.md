@@ -274,12 +274,8 @@ graph TD
 ```
 ````
 Should render: 
-```mermaid
-graph TD
-  A[Start] --> B{Decision}
-  B -->|Yes| C[Do something]
-  B -->|No| D[Stop]
-```
+
+![](/docs/mermaid-example-flowchart.png)
 
 ### Javascript support
 
