@@ -16,11 +16,7 @@ import uk.anbu.devnotes.types.MarkdownFile;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -72,10 +68,29 @@ public class CodeBlockTransformer {
             renderSqlResult(codeBlock, markdownFile, codeType);
         } else if (codeType.matches("^data$")) {
             renderDataBlock(codeBlock, markdownFile);
+        } else if (codeType.matches("^mermaid$")) {
+            renderMermaidBlock(codeBlock, markdownFile);
         } else if (codeType.matches("^plantuml\\(([^)]*)\\)$") || codeType.matches("^plantuml$")) {
             renderPlantUmlResult(codeBlock);
         } else {
             log.debug("unhandled code type: {}, delegating to default handler", codeType);
+        }
+    }
+
+    private void renderMermaidBlock(FencedCodeBlock codeBlock, MarkdownFile markdownFile) {
+        String mermaidCode = codeBlock.getLiteral();
+        try {
+            Optional<Node> newNodeToInsert = new MermaidBlockTranslator()
+                    .renderDataBlock(mermaidCode);
+
+            newNodeToInsert.ifPresent(codeBlock::insertBefore);
+
+            // rename original info text from 'data(...)' to 'hidden-data' to hide it from rendering
+            codeBlock.setInfo("hidden-mermaid");
+        } catch (Exception e) {
+            log.error("Error rendering Data result", e);
+            Node newNodeToInsert = new Text("Error rendering SQL result: " + e.getMessage());
+            codeBlock.insertBefore(newNodeToInsert);
         }
     }
 

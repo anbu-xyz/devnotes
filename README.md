@@ -263,6 +263,24 @@ Bob ->> Alice : $warning("warning")
 ```
 ````
 
+### Mermaid support
+
+````
+```mermaid
+graph TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Do something]
+  B -->|No| D[Stop]
+```
+````
+Should render: 
+```mermaid
+graph TD
+  A[Start] --> B{Decision}
+  B -->|Yes| C[Do something]
+  B -->|No| D[Stop]
+```
+
 ### Javascript support
 
 Javascript script tags can be embedded in markdown files using the following syntax:

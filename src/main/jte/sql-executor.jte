@@ -1,6 +1,6 @@
 @import java.util.Set
 
-@param Set<String> dataSources = new java.util.HashSet<>()
+@param Set<String> dataSources = new java.util.HashSet<String>()
 
 <!DOCTYPE html>
 <html>

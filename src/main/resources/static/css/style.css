@@ -79,6 +79,13 @@ pre:has(> code.language-hidden-groovy) {
     display: none;
 }
 
+pre:has(> code.language-hidden-mermaid) {
+    display: none;
+}
+.mermaid {
+    display: none; /* Hide mermaid diagrams on load */
+}
+
 pre:has(> code.language-hidden-plantuml){
     display: none;
 }
@@ -99,6 +106,10 @@ ul ul, ol ol, ul ol, ol ul {
 }
 
 li {
+    margin: 0;
+}
+
+.content-preview {
     margin: 0;
 }
 

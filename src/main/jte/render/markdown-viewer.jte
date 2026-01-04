@@ -19,6 +19,14 @@
         <hr>
         <p><em>Last modified: <span id="md-last-modified-time-viewer">${lastModifiedTime}</span></em></p>
         <span hidden id="md-file-path">${markdownFile}</span>
+        <script>
+            window.mermaid.run({
+                querySelector: '.mermaid'
+            });
+            document.querySelectorAll('.mermaid').forEach((element) => {
+                element.style.display = 'block';
+            });
+        </script>
     </div>
 </body>
 </html>

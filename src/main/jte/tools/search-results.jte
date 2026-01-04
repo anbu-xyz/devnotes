@@ -5,6 +5,7 @@
 @param SearchResultList results
 @param List<String> extensions
 @param String searchTerm
+@param String searchPath
 
 <!DOCTYPE html>
 <html lang="en">
@@ -17,17 +18,21 @@
 </head>
 
 <body>
-<h2>Searched file extensions <span>${String.join(", ", extensions)}</span></h2>
+<h2>Searched file extensions <span>${String.join(", ", extensions)}</span>
+@if (searchPath != null && !searchPath.isEmpty())
+    in directory <span>${searchPath}</span>
+@endif
+</h2>
 <div class="search-results">
     @if(results.results().isEmpty())
         <p>No results found for "${searchTerm}"</p>
     @else
-        <h2>${results.results().size()} results found for "${searchTerm}"</h2>
+        <h3>${results.results().size()} results found for "${searchTerm}"</h3>
 
         @for(SearchResult result : results.results())
             <div class="search-result-item">
                 <a href="/markdown?filename=${result.fileName()}">
-                    <h3 class="file-name">${result.fileName()}</h3>
+                    <h4 class="file-name">${result.fileName()}</h4>
                 </a>
                 @if(result.preview() != null && !result.preview().isEmpty())
                     <p class="content-preview">

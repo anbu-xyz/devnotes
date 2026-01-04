@@ -78,6 +78,7 @@ public class SearchLocationController {
         params.put("extensions", result.extensions());
         params.put("results", result);
         params.put("searchTerm", searchParam);
+        params.put("searchPath", searchPath);
         templateEngine.render("tools/search-results.jte", params, output);
         if (result.results().size() == 1) {
             return ResponseEntity
