@@ -27,19 +27,24 @@ public class SearchController {
 
     @GetMapping("/search")
     public ResponseEntity<String> search(@RequestParam("q") String searchParam,
+          @RequestParam(value = "path", required = false) String searchPath,
           @RequestParam(value = "caseSensitive", required = false, defaultValue = "false") boolean caseSensitive,
           @RequestParam(value= "json", required = false, defaultValue = "false") boolean renderJsonResults) {
         try {
             searchParam = searchParam.trim();
             var result = new SearchExecutor(configService.getDocsDirectory())
-                    .search(searchParam, caseSensitive);
+                    .search(searchPath, searchParam, caseSensitive);
             if (result.results().isEmpty()) {
-                return ResponseEntity.notFound().build();
+                if (renderJsonResults) {
+                    return ResponseEntity.notFound().build();
+                } else {
+                    return renderHtmlResults(searchParam, searchPath, result);
+                }
             } else {
                 if (renderJsonResults) {
                     return renderJsonResults(result);
                 } else {
-                    return renderHtmlResults(searchParam, result);
+                    return renderHtmlResults(searchParam, searchPath, result);
                 }
             }
         } catch (Exception e) {
@@ -56,8 +61,9 @@ public class SearchController {
                 .body(jsonOutput);
     }
 
-    private ResponseEntity<String> renderHtmlResults(String searchParam, SearchResultList result) {
-        return constructResponse(searchParam, result, templateEngine);
+    private ResponseEntity<String> renderHtmlResults(String searchParam, String searchPath,
+                                                     SearchResultList result) {
+        return constructResponse(searchParam, searchPath, result, templateEngine);
     }
 
 }

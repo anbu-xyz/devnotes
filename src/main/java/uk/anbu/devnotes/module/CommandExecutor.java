@@ -36,14 +36,14 @@ public class CommandExecutor {
                         .header(HttpHeaders.LOCATION, "/search")
                         .build();
             }
-            return searchController.search(command.restOfCommand(), false, true);
+            return searchController.search(command.restOfCommand(), "", false, true);
         } else if ("location".equalsIgnoreCase(command.command())) {
             if (command.restOfCommand() == null || command.restOfCommand().isEmpty()) {
                 return ResponseEntity.status(HttpStatus.FOUND)
                         .header(HttpHeaders.LOCATION, "/searchLocation")
                         .build();
             }
-            return searchLocationController.searchLocation(command.restOfCommand(), true);
+            return searchLocationController.searchLocation(command.restOfCommand(), "", true);
         }
         return ResponseEntity.notFound().build();
     }

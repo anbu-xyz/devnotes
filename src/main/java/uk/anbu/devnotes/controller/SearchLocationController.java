@@ -35,6 +35,7 @@ public class SearchLocationController {
     @GetMapping("/searchLocation")
     public ResponseEntity<String> searchLocation(
             @RequestParam("q") String searchParam,
+            @RequestParam(value = "path", required = false) String searchPath,
             @RequestParam(value= "json", required = false, defaultValue = "false") boolean renderJsonResults) {
         try {
             var docsDir = Path.of(configService.getDocsDirectory());
@@ -48,7 +49,7 @@ public class SearchLocationController {
                 if (renderJsonResults) {
                     return renderJsonResults(result);
                 } else {
-                    return renderHtmlResults(searchParam, result);
+                    return renderHtmlResults(searchParam, searchPath, result);
                 }
             }
         } catch (Exception e) {
@@ -65,11 +66,12 @@ public class SearchLocationController {
                 .body(jsonOutput);
     }
 
-    private ResponseEntity<String> renderHtmlResults(String searchParam, SearchResultList result) {
-        return constructResponse(searchParam, result, templateEngine);
+    private ResponseEntity<String> renderHtmlResults(String searchParam, String searchPath, SearchResultList result) {
+        return constructResponse(searchParam, searchPath, result, templateEngine);
     }
 
-    static ResponseEntity<String> constructResponse(String searchParam, SearchResultList result,
+    static ResponseEntity<String> constructResponse(String searchParam, String searchPath,
+                                                    SearchResultList result,
                                                     TemplateEngine templateEngine) {
         TemplateOutput output = new StringOutput();
         var params = new HashMap<String, Object>();

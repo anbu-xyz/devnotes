@@ -7,6 +7,7 @@ import uk.anbu.devnotes.types.SearchResultList;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -15,12 +16,17 @@ import java.util.List;
 public class SearchExecutor {
     private final String docsDirectory;
 
-    public SearchResultList search(String searchParams, boolean caseSensitive) throws IOException {
-        if (!new File(docsDirectory).isDirectory()) {
+    public SearchResultList search(String searchPath, String searchParams,
+                                   boolean caseSensitive) throws IOException {
+        Path baseSearchPath = Path.of(docsDirectory);
+        if (searchParams != null && !searchParams.isBlank()) {
+            baseSearchPath = baseSearchPath.resolve(searchPath);
+        }
+        if (!baseSearchPath.toFile().isDirectory()) {
             throw new IOException("Invalid docs directory: " + docsDirectory);
         }
         var extensionsToSearch = new String[]{"md"};
-        var files = FileUtils.listFiles(new File(docsDirectory), extensionsToSearch, true);
+        var files = FileUtils.listFiles(baseSearchPath.toFile(), extensionsToSearch, true);
         String[] words = searchParams.split("\\s+");
 
         if (!caseSensitive) {

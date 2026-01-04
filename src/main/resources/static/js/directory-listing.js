@@ -49,6 +49,15 @@ async function createSubdirectory() {
     }
 }
 
+async function searchSubdirectory(subdirName) {
+    hideActions();
+    const searchText = prompt("Enter text to search:");
+    if (searchText) {
+        // redirect to search results page
+        window.location.href = `/search?path=${encodeURIComponent(subdirName)}&q=${encodeURIComponent(searchText)}`;
+    }
+}
+
 async function createMarkdown() {
     hideActions();
     let fileName = prompt("Enter markdown file name (without .md extension):");

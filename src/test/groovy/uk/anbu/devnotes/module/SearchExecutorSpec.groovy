@@ -19,7 +19,7 @@ class SearchExecutorSpec extends Specification {
         createTestFile("test2.md", "Another file with different content")
 
         when:
-        def results = searchExecutor.search("Content", true)
+        def results = searchExecutor.search("", "Content", true)
 
         then:
         results.results().size() == 1
@@ -33,7 +33,7 @@ class SearchExecutorSpec extends Specification {
         createTestFile(new File(tempDir, "subdir/test3.md"), "This is a test file with some Content")
 
         when:
-        def results = searchExecutor.search("Content", true)
+        def results = searchExecutor.search("", "Content", true)
 
         then:
         results.results().size() == 1
@@ -46,7 +46,7 @@ class SearchExecutorSpec extends Specification {
         createTestFile("test2.md", "Another file with different content")
 
         when:
-        def results = searchExecutor.search("content", false)
+        def results = searchExecutor.search("", "content", false)
 
         then:
         results.results().size() == 2
@@ -60,7 +60,7 @@ class SearchExecutorSpec extends Specification {
         createTestFile("test2.md", "Another test document")
 
         when:
-        def results = searchExecutor.search("test file", false)
+        def results = searchExecutor.search("", "test file", false)
 
         then:
         results.results().size() == 1
@@ -73,7 +73,7 @@ class SearchExecutorSpec extends Specification {
         createTestFile("test1.md", "This is a test file")
 
         when:
-        def results = searchExecutor.search("nonexistent", false)
+        def results = searchExecutor.search("", "nonexistent", false)
 
         then:
         results.results().isEmpty()
@@ -84,7 +84,7 @@ class SearchExecutorSpec extends Specification {
         createTestFile("test1.md", "A" * 200 + "target" + "B" * 200)
 
         when:
-        def results = searchExecutor.search("target", true)
+        def results = searchExecutor.search("", "target", true)
 
         then:
         results.results().size() == 1
@@ -96,7 +96,7 @@ class SearchExecutorSpec extends Specification {
 
     def "should handle empty directory"() {
         when:
-        def results = searchExecutor.search("test", false)
+        def results = searchExecutor.search("", "test", false)
 
         then:
         results.results().isEmpty()
@@ -107,7 +107,7 @@ class SearchExecutorSpec extends Specification {
         searchExecutor = new SearchExecutor("/nonexistent/path")
 
         when:
-        searchExecutor.search("test", false)
+        searchExecutor.search("", "test", false)
 
         then:
         thrown(IOException)
