@@ -15,6 +15,7 @@ import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.HtmlRenderer;
 import uk.anbu.devnotes.markdown.check.SymbolTransformer;
 import uk.anbu.devnotes.markdown.code.CodeBlockTransformer;
+import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 import uk.anbu.devnotes.markdown.image.LocalImageTransformer;
 import uk.anbu.devnotes.markdown.link.LocalLinkTransformer;
 import uk.anbu.devnotes.markdown.red.RedTextNodeRenderer;
@@ -48,12 +49,14 @@ public class MarkdownRenderer {
                 .extensions(extensions)
                 .build();
         Node document = parser.parse(markdownText);
+        var parameterRegistry = new ParameterRegistry();
         CodeBlockTransformer.builder()
                 .markdownFile(markdownFile)
                 .sqlExecutor(sqlExecutor)
                 .groovyRenderer(groovyRenderer)
                 .dataSourceConfigResolver(dataSourceConfigResolver)
                 .configService(configService)
+                .parameterRegistry(parameterRegistry)
                 .build()
                 .transform(document);
         LocalLinkTransformer.transform(document);

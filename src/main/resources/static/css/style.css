@@ -79,6 +79,10 @@ pre:has(> code.language-hidden-groovy) {
     display: none;
 }
 
+pre:has(> code.language-hidden-parameter) {
+    display: none;
+}
+
 pre:has(> code.language-hidden-mermaid) {
     display: none;
 }

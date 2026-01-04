@@ -1,10 +1,12 @@
 package uk.anbu.devnotes.markdown.code
 
-import org.commonmark.node.HtmlBlock
+import org.commonmark.node.Node
 import spock.lang.Specification
 import spock.lang.TempDir
 import spock.lang.Shared
 import uk.anbu.devnotes.service.ConfigService
+import uk.anbu.devnotes.service.DatasourceConfigResolver
+import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry
 import uk.anbu.devnotes.types.MarkdownFile
 import org.jsoup.Jsoup
 
@@ -33,6 +35,8 @@ class DataBlockTranslatorSpec extends Specification {
     ConfigService configService
     @Shared
     DataBlockTranslator translator
+    @Shared
+    ParameterRegistry registry
 
     def setupSpec() {
         // create shared in-memory H2 and populate with two users
@@ -42,10 +46,11 @@ class DataBlockTranslatorSpec extends Specification {
         conn.createStatement().execute("INSERT INTO users (id, name, email, password) VALUES (2, 'Bob', 'bob@example.com', 'hunter2')")
         conn.createStatement().execute("INSERT INTO users (id, name, email, password) VALUES (3, 'Charlie', 'charlie@example.com', 'goodDay3')")
 
-        resolver = { String name -> new ConfigService.DataSourceConfig(name, url, username, password, driver) }
+        resolver = ({ String name -> new ConfigService.DataSourceConfig(name, url, username, password, driver) } as DatasourceConfigResolver)
         configService = Mock(ConfigService)
         configService.getSqlMaxRows() >> 100
-        translator = new DataBlockTranslator(resolver, configService)
+        registry = new ParameterRegistry()
+        translator = new DataBlockTranslator(resolver, configService, registry)
     }
 
     def cleanupSpec() {
@@ -247,7 +252,7 @@ output:
 '''
 
         when:
-        Optional<HtmlBlock> result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+        Optional<Node> result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
 
         then:
         result.isPresent()
@@ -318,6 +323,33 @@ parameters:
 '''
         when:
         def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Charlie"
+    }
+
+    def "parameter block can override data block parameters"() {
+        given:
+        String paramYaml = '''
+id: 3
+'''
+
+        String dataYaml = '''
+source: datasource1
+query: SELECT id, name, email FROM users WHERE id = :id
+parameters:
+  id: 2
+'''
+
+        when:
+        registry.clear()
+        ParameterBlockTranslator pTranslator = new ParameterBlockTranslator(registry)
+        pTranslator.renderParameterBlock(paramYaml)
+        def result = translator.renderDataBlock(dataYaml, new MarkdownFile(tempDir, "example.md"))
 
         then:
         result.isPresent()

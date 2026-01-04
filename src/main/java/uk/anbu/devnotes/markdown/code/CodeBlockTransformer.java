@@ -12,6 +12,7 @@ import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.types.MarkdownFile;
+import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -33,6 +34,7 @@ public class CodeBlockTransformer {
     private final GroovyRenderer groovyRenderer;
     private final DatasourceConfigResolver dataSourceConfigResolver;
     private final ConfigService configService;
+    private final ParameterRegistry parameterRegistry;
 
     public void transform(Node current) {
         // If there is a next sibling, process it
@@ -68,8 +70,10 @@ public class CodeBlockTransformer {
             renderSqlResult(codeBlock, markdownFile, codeType);
         } else if (codeType.matches("^data$")) {
             renderDataBlock(codeBlock, markdownFile);
+        } else if (codeType.matches("^parameter$")) {
+            renderParameterBlock(codeBlock);
         } else if (codeType.matches("^mermaid$")) {
-            renderMermaidBlock(codeBlock, markdownFile);
+            renderMermaidBlock(codeBlock);
         } else if (codeType.matches("^plantuml\\(([^)]*)\\)$") || codeType.matches("^plantuml$")) {
             renderPlantUmlResult(codeBlock);
         } else {
@@ -77,7 +81,7 @@ public class CodeBlockTransformer {
         }
     }
 
-    private void renderMermaidBlock(FencedCodeBlock codeBlock, MarkdownFile markdownFile) {
+    private void renderMermaidBlock(FencedCodeBlock codeBlock) {
         String mermaidCode = codeBlock.getLiteral();
         try {
             Optional<Node> newNodeToInsert = new MermaidBlockTranslator()
@@ -94,10 +98,24 @@ public class CodeBlockTransformer {
         }
     }
 
+    private void renderParameterBlock(FencedCodeBlock codeBlock) {
+        String yaml = codeBlock.getLiteral();
+        try {
+            var translator = new ParameterBlockTranslator(parameterRegistry);
+            Node newNodeToInsert = translator.renderParameterBlock(yaml);
+            codeBlock.insertBefore(newNodeToInsert);
+            codeBlock.setInfo("hidden-parameter");
+        } catch (Exception e) {
+            log.error("Error rendering Parameter block", e);
+            Node newNodeToInsert = new Text("Error rendering parameter block: " + e.getMessage());
+            codeBlock.insertBefore(newNodeToInsert);
+        }
+    }
+
     private void renderDataBlock(FencedCodeBlock codeBlock, MarkdownFile markdownFile) {
         String dataConfig = codeBlock.getLiteral();
         try {
-            var newNodeToInsert = new DataBlockTranslator(dataSourceConfigResolver, configService)
+            var newNodeToInsert = new DataBlockTranslator(dataSourceConfigResolver, configService, parameterRegistry)
                     .renderDataBlock(dataConfig, markdownFile);
             newNodeToInsert.ifPresent(codeBlock::insertBefore);
 
@@ -184,7 +202,14 @@ public class CodeBlockTransformer {
             // TODO: Implement user input for parameter values
             // For now, we'll use placeholder values
             for (String param : parameterNames) {
-                parameterValues.put(param, "placeholder_value");
+                if (parameterRegistry != null) {
+                    var sp = parameterRegistry.get(param);
+                    if (sp != null) {
+                        parameterValues.put(param, sp.toString());
+                        continue;
+                    }
+                }
+                parameterValues.put(param, "");
             }
         }
 

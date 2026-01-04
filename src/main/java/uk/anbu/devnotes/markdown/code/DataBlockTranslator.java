@@ -17,6 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 import uk.anbu.devnotes.markdown.code.datablock.YamlCodeblockConfig;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
@@ -43,6 +44,7 @@ import static j2html.TagCreator.*;
 public class DataBlockTranslator {
     private final DatasourceConfigResolver dataSourceConfigResolver;
     private final ConfigService configService;
+    private final ParameterRegistry parameterRegistry;
 
     @SneakyThrows
     public Optional<Node> renderDataBlock(String dataConfig, MarkdownFile markdownFile) {
@@ -226,7 +228,7 @@ public class DataBlockTranslator {
         return columns;
     }
 
-    private static List<LinkedHashMap<String, Object>> buildDataRows(ConfigService.DataSourceConfig dsConfig,
+    private List<LinkedHashMap<String, Object>> buildDataRows(ConfigService.DataSourceConfig dsConfig,
                                                            YamlCodeblockConfig config, int limit) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setDriverClassName(dsConfig.driverClassName());
@@ -247,32 +249,46 @@ public class DataBlockTranslator {
         return rows.toList();
     }
 
-    private static MapSqlParameterSource buildParameterSource(YamlCodeblockConfig config) {
+    private MapSqlParameterSource buildParameterSource(YamlCodeblockConfig config) {
         MapSqlParameterSource params = new MapSqlParameterSource();
-        if (config == null || config.getParameters() == null || config.getParameters().isEmpty()) {
-            return params;
-        }
-        for (Map.Entry<String, YamlCodeblockConfig.SqlParameter> e : config.getParameters().entrySet()) {
-            String name = e.getKey();
-            YamlCodeblockConfig.SqlParameter p = e.getValue();
-            if (p == null) {
-                continue;
-            }
-            Object rawValue = p.getValue();
-            String type = p.getType();
-            try {
-                Object coerced = coerceParameterValue(rawValue, type);
-                int sqlType = mapTypeToSqlType(type);
-                if (sqlType != Types.OTHER) {
-                    params.addValue(name, coerced, sqlType);
-                } else {
-                    params.addValue(name, coerced);
+        // First, add YAML-local parameters (they take precedence)
+        if (config != null && config.getParameters() != null && !config.getParameters().isEmpty()) {
+            for (Map.Entry<String, YamlCodeblockConfig.SqlParameter> e : config.getParameters().entrySet()) {
+                String name = e.getKey();
+                YamlCodeblockConfig.SqlParameter p = e.getValue();
+                if (p == null) {
+                    continue;
                 }
+                Object rawValue = p.getValue();
+                String type = p.getType();
+                try {
+                    Object coerced = coerceParameterValue(rawValue, type);
+                    int sqlType = mapTypeToSqlType(type);
+                    if (sqlType != Types.OTHER) {
+                        params.addValue(name, coerced, sqlType);
+                    } else {
+                        params.addValue(name, coerced);
+                    }
+                } catch (Exception ex) {
+                    // if coercion failed, fall back to string representation
+                    params.addValue(name, rawValue == null ? null : rawValue.toString());
+                }
+            }
+        }
+
+        // Merge shared parameters from the registry
+        var shared = parameterRegistry == null ? Map.<String, Object>of() : parameterRegistry.getAll();
+        for (Map.Entry<String, Object> se : shared.entrySet()) {
+            String name = se.getKey();
+            Object rawValue = se.getValue();
+            try {
+                // Allow registry (shared) values to override YAML-local parameters
+                params.addValue(name, rawValue);
             } catch (Exception ex) {
-                // if coercion failed, fall back to string representation
                 params.addValue(name, rawValue == null ? null : rawValue.toString());
             }
         }
+
         return params;
     }
 
