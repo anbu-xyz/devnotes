@@ -31,7 +31,14 @@ active: true
 
         then:
         result != null
-        result.literal.contains('Loaded 3 parameters')
+        // Expect a simple two-column table: each key and its value should appear in <td> elements
+        def html = result.literal
+        html.contains('<td>id</td>')
+        html.contains('<td>2</td>')
+        html.contains('<td>name</td>')
+        html.contains('<td>Alice</td>')
+        html.contains('<td>active</td>')
+        html.contains('<td>true</td>')
 
         registry.getAll().size() == 3
         def idParam = registry.get('id')

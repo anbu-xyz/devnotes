@@ -13,7 +13,7 @@ import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 
 import java.util.Map;
 
-import static j2html.TagCreator.div;
+import static j2html.TagCreator.*;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -25,7 +25,7 @@ public class ParameterBlockTranslator {
         ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
         Map<String, Object> params;
         try {
-            params = yamlMapper.readValue(yaml, new TypeReference<Map<String, Object>>() {});
+            params = yamlMapper.readValue(yaml, new TypeReference<>() {});
         } catch (Exception e) {
             ContainerTag<?> err = div().withText("Error parsing parameter block YAML: " + e.getMessage());
             var html = new HtmlBlock();
@@ -43,9 +43,23 @@ public class ParameterBlockTranslator {
             }
         }
 
-        ContainerTag<?> ok = div().withText("Loaded " + (params == null ? 0 : params.size()) + " parameters");
+        // Build a simple two-column table (key | value). No headers or footers.
+        ContainerTag<?> tableTag = table();
+        ContainerTag<?> tbodyTag = tbody();
+        if (params != null && !params.isEmpty()) {
+            for (Map.Entry<String, Object> e : params.entrySet()) {
+                String key = e.getKey();
+                Object value = e.getValue();
+                String valueText = value == null ? "(null)" : value.toString();
+                tbodyTag.with(tr().with(
+                        td().withText(key),
+                        td().withText(valueText)
+                ));
+            }
+        }
+        tableTag.with(tbodyTag);
         var html = new HtmlBlock();
-        html.setLiteral(ok.render());
+        html.setLiteral(tableTag.render());
         return html;
     }
 }
