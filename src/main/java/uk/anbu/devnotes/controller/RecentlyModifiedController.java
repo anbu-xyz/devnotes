@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.RecentlyModifiedExecutor;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.types.RecentlyModifiedList;
 import uk.anbu.devnotes.types.SearchResultList;
 
 import java.nio.file.Path;
@@ -44,7 +45,7 @@ public class RecentlyModifiedController {
                 if (renderJsonResults) {
                     return renderJsonResults(result);
                 } else {
-                    return renderHtmlResults("", result);
+                    return renderHtmlResults(result);
                 }
             }
         } catch (Exception e) {
@@ -54,25 +55,24 @@ public class RecentlyModifiedController {
         }
     }
 
-    private ResponseEntity<String> renderJsonResults(SearchResultList result) throws JsonProcessingException {
+    private ResponseEntity<String> renderJsonResults(RecentlyModifiedList result) throws JsonProcessingException {
         var jsonOutput = objectMapper.writeValueAsString(result);
         return ResponseEntity.ok()
                 .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
                 .body(jsonOutput);
     }
 
-    private ResponseEntity<String> renderHtmlResults(String searchParam, SearchResultList result) {
-        return constructResponse(searchParam, result, templateEngine);
+    private ResponseEntity<String> renderHtmlResults(RecentlyModifiedList result) {
+        return constructResponse(result, templateEngine);
     }
 
-    static ResponseEntity<String> constructResponse(String searchParam, SearchResultList result,
+    static ResponseEntity<String> constructResponse(RecentlyModifiedList result,
                                                     TemplateEngine templateEngine) {
         TemplateOutput output = new StringOutput();
         var params = new HashMap<String, Object>();
         params.put("extensions", result.extensions());
         params.put("results", result);
-        params.put("searchTerm", searchParam);
-        templateEngine.render("tools/search-results.jte", params, output);
+        templateEngine.render("tools/recently-modified.jte", params, output);
         if (result.results().size() == 1) {
             return ResponseEntity
                     .status(HttpStatus.FOUND)

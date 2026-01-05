@@ -2,12 +2,14 @@ package uk.anbu.devnotes.module;
 
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
-import uk.anbu.devnotes.types.SearchResult;
-import uk.anbu.devnotes.types.SearchResultList;
+import uk.anbu.devnotes.types.RecentlyModifiedList;
+import uk.anbu.devnotes.types.RecentlyModifiedListEntry;
+import uk.anbu.devnotes.util.DateTimeUtil;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -18,7 +20,7 @@ public class RecentlyModifiedExecutor {
 
     private final Path docsDir;
 
-    public SearchResultList getResult() throws IOException {
+    public RecentlyModifiedList getResult() throws IOException {
         // Keep a bounded min-heap of size 20 based on last-modified time (ascending). This
         // ensures we only retain the 20 most-recently modified files while streaming the walk.
         final int MAX_RESULTS = 20;
@@ -31,14 +33,17 @@ public class RecentlyModifiedExecutor {
                     .forEach(path -> fillHeap(path, extensionsToSearch, heap, MAX_RESULTS));
         }
 
-        List<SearchResult> results = new ArrayList<>(heap.size());
+        List<RecentlyModifiedListEntry> results = new ArrayList<>(heap.size());
         ArrayList<Item> items = new ArrayList<>(heap);
         items.sort(Comparator.comparingLong((Item i) -> i.lastModified).reversed());
         for (Item it : items) {
-            results.add(new SearchResult(it.standardizedPath, ""));
+            long now = System.currentTimeMillis();
+            Duration duration = Duration.ofMillis(now - it.lastModified);
+            String human = DateTimeUtil.toHumanReadable(duration);
+            results.add(new RecentlyModifiedListEntry(it.standardizedPath, human));
         }
 
-        return new SearchResultList(extensionsToSearch, results);
+        return new RecentlyModifiedList(extensionsToSearch, results);
     }
 
     @SneakyThrows
