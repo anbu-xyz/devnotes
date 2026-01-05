@@ -35,6 +35,9 @@
     <button onclick="searchSubdirectory('${directoryName}')" class="btn-blue-glow" title="Search Folder">
         <i class="fas fa-search tool-button"></i>
     </button>
+    <button onclick="recentlyModified()" class="btn-blue-glow" title="Recently Modified Files">
+        <i class="fas fa-history tool-button"></i>
+    </button>
     |
     <button onclick="document.getElementById('file-upload').click()" class="btn-blue-glow" title="Upload File">
         <i class="fas fa-upload tool-button"></i>

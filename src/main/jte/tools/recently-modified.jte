@@ -16,7 +16,7 @@
 </head>
 
 <body>
-<h2>Searched file extensions <span>${String.join(", ", extensions)}</span>
+<h2>Recently modified files with extension: <span>${String.join(", ", extensions)}</span>
 @if (searchPath != null && !searchPath.isEmpty())
     in directory <span>${searchPath}</span>
 @endif

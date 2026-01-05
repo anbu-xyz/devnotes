@@ -58,6 +58,11 @@ async function searchSubdirectory(subdirName) {
     }
 }
 
+async function recentlyModified() {
+    hideActions();
+    window.location.href = `/recent`;
+}
+
 async function createMarkdown() {
     hideActions();
     let fileName = prompt("Enter markdown file name (without .md extension):");
