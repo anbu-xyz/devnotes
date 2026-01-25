@@ -146,6 +146,7 @@ document.body.addEventListener('htmx:afterSwap', evt => {
             createHomeLink("markdownViewer")
             invokePrismHighlighting()
             setupCodeBlockModals()
+            setupDataBlockSourceToggle()
         },
         markdownEditor: () => {
             attachEasyMdeOn('easyMdeEditor')
@@ -212,6 +213,60 @@ function setupCodeBlockModals() {
         if (e.key === 'Escape' && modal.style.display === 'block') {
             modal.style.display = 'none';
         }
+    });
+}
+
+// Toggle visibility of the hidden data "Source" pre blocks when the Source menu item is clicked
+function setupDataBlockSourceToggle() {
+    // Ensure this is attached only once
+    if (window._dataBlockSourceToggleAttached) return;
+    window._dataBlockSourceToggleAttached = true;
+
+    document.body.addEventListener('click', function (e) {
+        const link = e.target.closest('.data-block-menu a');
+        if (!link) return;
+        if (link.textContent.trim() !== 'Source') return;
+
+        e.preventDefault();
+
+        // Find the nearest data-block container
+        const dataBlock = link.closest('.data-block');
+        const menu = link.closest('.data-block-menu');
+        menu.style.display = 'none'; // Hide menu after click
+        if (!dataBlock) return;
+
+        // Helper to toggle a <pre> element's display
+        const togglePre = (pre) => {
+            if (!pre) return;
+            const style = window.getComputedStyle(pre);
+            pre.style.display = (style.display === 'none' ? 'block' : 'none');
+        };
+
+        // Strategy: First look in the immediate following siblings of the data-block
+        let sibling = dataBlock.nextElementSibling;
+        while (sibling) {
+            if (sibling.tagName === 'PRE' && sibling.querySelector('code.language-hidden-data')) {
+                togglePre(sibling);
+                return;
+            }
+            // Also consider if a descendant contains the hidden pre
+            const innerCode = sibling.querySelector && sibling.querySelector('pre > code.language-hidden-data');
+            if (innerCode) {
+                togglePre(innerCode.closest('pre'));
+                return;
+            }
+            sibling = sibling.nextElementSibling;
+        }
+
+        // Fallback: search inside the data-block itself
+        const inside = dataBlock.querySelector('pre > code.language-hidden-data');
+        if (inside) {
+            togglePre(inside.closest('pre'));
+            return;
+        }
+
+        // Nothing found — log for debugging
+        console.debug('No <pre> with code.language-hidden-data found for Source toggle');
     });
 }
 
