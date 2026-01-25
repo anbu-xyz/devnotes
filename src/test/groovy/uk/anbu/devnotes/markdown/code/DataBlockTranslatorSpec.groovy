@@ -131,7 +131,7 @@ options:
         def doc = Jsoup.parse(result.get().literal)
         def rows = doc.select("tbody tr.data-block-data-row")
         rows.size() == 1
-        def statusRow = doc.select("tbody tr.data-block-status-row")
+        def statusRow = doc.select("tfoot tr.data-block-status-row")
         statusRow.size() == 1
         statusRow.first().text().contains("... max limit reached (1 rows)")
     }
@@ -151,7 +151,7 @@ hide-row-count-when-less-than: 1
         def doc = Jsoup.parse(result.get().literal)
         def rows = doc.select("tbody tr.data-block-data-row")
         rows.size() == 3
-        def statusRow = doc.select("tbody tr.data-block-status-row")
+        def statusRow = doc.select("tfoot tr.data-block-status-row")
         statusRow.size() == 1
         statusRow.first().text().contains("Total rows: 3")
     }
