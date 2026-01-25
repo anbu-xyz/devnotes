@@ -34,3 +34,6 @@ build/
 
 ## Jte
 jte-classes/
+
+## ehcache
+ehcache-data/
