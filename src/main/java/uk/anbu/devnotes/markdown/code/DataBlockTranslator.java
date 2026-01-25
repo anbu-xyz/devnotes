@@ -184,6 +184,14 @@ public class DataBlockTranslator {
                                                 )
                                 )
                         )
+                ),
+                tfoot().with(
+                        tr().withClass("data-block-status-row")
+                                .with(
+                                        td().withClass("data-block-status-cell")
+                                                .attr("colspan", String.valueOf(Math.max(1, 2)))
+                                                .withText(String.format("Total: %d", rows.size()))
+                                )
                 )
         );
 
@@ -445,8 +453,9 @@ public class DataBlockTranslator {
             tbodyTag.with(rowTag);
         }
 
+        var tfootTag = tfoot();
         if (maxRowsReached) {
-            tbodyTag.with(tr()
+            tfootTag.with(tr()
                     .withClass("data-block-status-row")
                     .with(
                             td().withClass("data-block-status-cell")
@@ -455,7 +464,7 @@ public class DataBlockTranslator {
                     ));
         } else {
             if (!config.isHideRowCount() && rows.size() >= config.getHideRowCountWhenLessThan()) {
-                tbodyTag.with(tr().withClass("data-block-status-row")
+                tfootTag.with(tr().withClass("data-block-status-row")
                         .with(
                                 td().withClass("data-block-status-cell")
                                         .attr("colspan", String.valueOf(Math.max(1, columns.size())))
@@ -480,7 +489,7 @@ public class DataBlockTranslator {
                                                         li().with(a("Source"))
                                                 )
                                 ),
-                        tableTag.with(theadTag, tbodyTag)
+                        tableTag.with(theadTag, tbodyTag, tfootTag)
                 );
         return toHtmlBlock(wrapper);
     }

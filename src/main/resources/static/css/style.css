@@ -75,6 +75,10 @@ pre:has(> code.language-hidden-data) {
     display: none;
 }
 
+div.modal-dialog div.modal-content pre {
+    display: block !important;
+}
+
 pre:has(> code.language-hidden-groovy) {
     display: none;
 }
@@ -497,3 +501,10 @@ table.sortable .btn-blue-glow i {
     font-size: 1em;
     line-height: 1.5;
 }
+
+/*!* Override: show hidden-data inside modal dialog *!*/
+/*.modal-dialog pre:has(> code.language-hidden-data),*/
+/*.modal-dialog pre > code.language-hidden-data,*/
+/*.modal-dialog code.language-hidden-data {*/
+/*    display: block !important;*/
+/*}*/
