@@ -51,6 +51,12 @@ public class ParameterBlockTranslator {
                 String key = e.getKey();
                 Object value = e.getValue();
                 String valueText = value == null ? "(null)" : value.toString();
+                if (parameterRegistry.get(key) != value) {
+                    value = parameterRegistry.get(key);
+                    String overridesText = String.format(" (overrides default: %s)", valueText);
+                    valueText = value == null ? "(null)" : value.toString();
+                    valueText += overridesText;
+                }
                 tbodyTag.with(tr().with(
                         td().withText(key),
                         td().withText(valueText)
