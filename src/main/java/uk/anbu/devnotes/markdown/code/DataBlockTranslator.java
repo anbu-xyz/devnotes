@@ -126,7 +126,7 @@ public class DataBlockTranslator {
         var columns = readColumnsData(config, rows);
 
         if (columns.size() == 1 && config.isCombineSingleColumn()) {
-            return Optional.of(combineIfSingleColumn(rows, maxRowsReached));
+            return Optional.of(combineIfSingleColumn(rows, maxRowsReached, config.checksum()));
         }
 
         // Check for output-template
@@ -167,8 +167,12 @@ public class DataBlockTranslator {
     }
 
     private void saveNodeToCache(Node node, MarkdownFile markdownFile, YamlCodeblockConfig config) {
-        if (node == null || markdownFile == null || config == null) return;
-        if (!(node instanceof HtmlBlock)) return;
+        if (node == null || markdownFile == null || config == null) {
+            return;
+        }
+        if (!(node instanceof HtmlBlock)) {
+            return;
+        }
         try {
             String checksum = config.checksum();
             String fileNameNoExt = markdownFile.fileName().replaceFirst("[.][^.]+$", "");
@@ -213,14 +217,16 @@ public class DataBlockTranslator {
     }
 
     private static HtmlBlock combineIfSingleColumn(List<LinkedHashMap<String, Object>> rows,
-                                                   boolean maxRowsReached) {
+                                                   boolean maxRowsReached, String checksum) {
         List<String> values = new ArrayList<>();
         String firstColumnName = rows.isEmpty() ? "" : rows.getFirst().keySet().iterator().next();
         for (Map<String, Object> row : rows) {
             values.add(row.get(firstColumnName) == null ? "(null)" : row.get(firstColumnName).toString());
         }
 
-        ContainerTag<?> tbl = table().withClass("data-block-combined").with(
+        ContainerTag<?> tbl = table().withClass("data-block-combined")
+                .attr("data-datablock-id", checksum)
+                .with(
                 tbody().with(
                         tr().with(
                                 th().withClass("column-name").withText(firstColumnName),
@@ -472,7 +478,9 @@ public class DataBlockTranslator {
         if (config.isTranspose()) {
             return transposedViewTable(config, rows, maxRowsReached);
         }
-        var tableTag = table().withClass("data-block-table");
+        var tableTag = table()
+                .attr("data-datablock-id", config.checksum())
+                .withClass("data-block-table");
 
         var columns = rows.getFirst().keySet();
         // thead
@@ -544,7 +552,9 @@ public class DataBlockTranslator {
 
     private static HtmlBlock transposedViewTable(YamlCodeblockConfig config,
                                                 List<LinkedHashMap<String, Object>> rows, boolean maxRowsReached) {
-        var tableTag = table().withClass("data-block-table transpose");
+        var tableTag = table()
+                .attr("data-datablock-id", config.checksum())
+                .withClass("data-block-table transpose");
         var columns = rows.getFirst().keySet();
         for (String col : columns) {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
