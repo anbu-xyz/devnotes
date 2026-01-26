@@ -29,11 +29,6 @@ spring.ssl.bundle.pem.localtls:
     certificate: "tls/localtls.crt"
     private-key: "tls/localtls.key"
 
-spring.cache:
-  type: jcache
-  jcache.provider: org.ehcache.jsr107.EhcacheCachingProvider
-  jcache.config: classpath:ehcache.xml
-
 ---
 spring.config.activate.on-profile: prod
 gg.jte:
