@@ -7,6 +7,16 @@ import lombok.Data;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+
 @Data
 public class YamlCodeblockConfig {
     private String source;
@@ -65,5 +75,42 @@ public class YamlCodeblockConfig {
 
         // default constructor for Jackson when provided an object with properties
         public SqlParameter() {}
+    }
+
+    /**
+     * Compute a deterministic SHA-256 checksum of this config's full contents.
+     * The object is serialized to JSON with stable ordering and inclusion settings
+     * to ensure the same inputs always produce the same checksum.
+     * The returned value is a lowercase hex string safe for use as a filename.
+     */
+    public String checksum() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            // deterministic property ordering
+            mapper.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true);
+            mapper.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true);
+            // include nulls/empties so presence/absence is deterministic
+            mapper.setSerializationInclusion(JsonInclude.Include.ALWAYS);
+            // stable date/time formatting if any java.time types are present
+            mapper.registerModule(new JavaTimeModule());
+            mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+
+            byte[] bytes = mapper.writeValueAsBytes(this);
+
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(bytes);
+            return bytesToHex(digest);
+        } catch (JsonProcessingException | NoSuchAlgorithmException e) {
+            throw new IllegalStateException("Failed to compute checksum", e);
+        }
+    }
+
+    private static String bytesToHex(byte[] bytes) {
+        StringBuilder sb = new StringBuilder(bytes.length * 2);
+        for (byte b : bytes) {
+            sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+            sb.append(Character.forDigit((b & 0xF), 16));
+        }
+        return sb.toString();
     }
 }
