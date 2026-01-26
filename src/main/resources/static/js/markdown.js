@@ -225,49 +225,148 @@ function setupDataBlockSourceToggle() {
     document.body.addEventListener('click', function (e) {
         const link = e.target.closest('.data-block-menu a');
         if (!link) return;
-        if (link.textContent.trim() !== 'Source') return;
+
+        // Prefer data-action attribute for robust behavior
+        const action = link.dataset.action ? link.dataset.action.trim() : (link.textContent ? link.textContent.trim() : '');
+        if (!action) return;
 
         e.preventDefault();
 
         // Find the nearest data-block container
         const dataBlock = link.closest('.data-block');
         const menu = link.closest('.data-block-menu');
-        menu.style.display = 'none'; // Hide menu after click
+        if (menu) menu.style.display = 'none'; // Hide menu after click
         if (!dataBlock) return;
 
-        // Helper to toggle a <pre> element's display
-        const togglePre = (pre) => {
-            if (!pre) return;
-            const style = window.getComputedStyle(pre);
-            pre.style.display = (style.display === 'none' ? 'block' : 'none');
-        };
+        if (action === 'source') {
+            // Helper to toggle a <pre> element's display
+            const togglePre = (pre) => {
+                if (!pre) return;
+                const style = window.getComputedStyle(pre);
+                pre.style.display = (style.display === 'none' ? 'block' : 'none');
+            };
 
-        // Strategy: First look in the immediate following siblings of the data-block
-        let sibling = dataBlock.nextElementSibling;
-        while (sibling) {
-            if (sibling.tagName === 'PRE' && sibling.querySelector('code.language-hidden-data')) {
-                togglePre(sibling);
+            // Strategy: First look in the immediate following siblings of the data-block
+            let sibling = dataBlock.nextElementSibling;
+            while (sibling) {
+                if (sibling.tagName === 'PRE' && sibling.querySelector('code.language-hidden-data')) {
+                    togglePre(sibling);
+                    return;
+                }
+                // Also consider if a descendant contains the hidden pre
+                const innerCode = sibling.querySelector && sibling.querySelector('pre > code.language-hidden-data');
+                if (innerCode) {
+                    togglePre(innerCode.closest('pre'));
+                    return;
+                }
+                sibling = sibling.nextElementSibling;
+            }
+
+            // Fallback: search inside the data-block itself
+            const inside = dataBlock.querySelector('pre > code.language-hidden-data');
+            if (inside) {
+                togglePre(inside.closest('pre'));
                 return;
             }
-            // Also consider if a descendant contains the hidden pre
-            const innerCode = sibling.querySelector && sibling.querySelector('pre > code.language-hidden-data');
-            if (innerCode) {
-                togglePre(innerCode.closest('pre'));
-                return;
-            }
-            sibling = sibling.nextElementSibling;
-        }
 
-        // Fallback: search inside the data-block itself
-        const inside = dataBlock.querySelector('pre > code.language-hidden-data');
-        if (inside) {
-            togglePre(inside.closest('pre'));
+            // Nothing found — log for debugging
+            console.debug('No <pre> with code.language-hidden-data found for Source toggle');
             return;
         }
 
-        // Nothing found — log for debugging
-        console.debug('No <pre> with code.language-hidden-data found for Source toggle');
+        if (action === 'refresh') {
+            // Refresh handler: find table and datablock id
+            const table = dataBlock.querySelector('table[data-datablock-id]');
+            if (!table) {
+                showInlineError(dataBlock, 'Cannot find table to refresh');
+                return;
+            }
+            const datablockId = table.getAttribute('data-datablock-id');
+            const mdEl = document.getElementById('md-file-path');
+            const markdownFile = mdEl ? mdEl.textContent.trim() : '';
+            if (!datablockId || !markdownFile) {
+                showInlineError(dataBlock, 'Missing datablock id or markdown file path');
+                return;
+            }
+
+            // Set busy state and disable the link
+            setDataBlockBusy(dataBlock, true);
+            link.setAttribute('aria-disabled', 'true');
+
+            // perform POST to /datablock/fragment
+            fetch('/datablock/fragment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ markdownFile, datablockId })
+            }).then(async (resp) => {
+                if (!resp.ok) {
+                    const txt = await resp.text().catch(() => resp.statusText);
+                    throw new Error(txt || resp.statusText);
+                }
+                return resp.text();
+            }).then((html) => {
+                // replace the table with returned HTML
+                const container = document.createElement('div');
+                container.innerHTML = html;
+                // prefer to find a table within returned HTML; otherwise replace whole container
+                const newTable = container.querySelector('table[data-datablock-id]') || container.firstElementChild;
+                if (newTable) {
+                    table.replaceWith(newTable);
+                } else {
+                    // fallback: replace the dataBlock's inner table area
+                    const oldTable = dataBlock.querySelector('table');
+                    if (oldTable) oldTable.outerHTML = html;
+                }
+
+                // Dispatch a custom event for any additional initialization
+                document.dispatchEvent(new CustomEvent('data-block:refreshed', { detail: { datablockId } }));
+            }).catch((err) => {
+                console.error('Data block refresh failed', err);
+                showInlineError(dataBlock, 'Refresh failed: ' + (err.message || 'unknown error'));
+            }).finally(() => {
+                setDataBlockBusy(dataBlock, false);
+                link.removeAttribute('aria-disabled');
+            });
+        }
     });
+}
+
+function showInlineError(dataBlock, message) {
+    if (!dataBlock) return;
+    let err = dataBlock.querySelector('.data-block-error');
+    if (!err) {
+        err = document.createElement('div');
+        err.className = 'data-block-error';
+        err.style.color = 'red';
+        err.style.marginTop = '8px';
+        dataBlock.appendChild(err);
+    }
+    err.textContent = message;
+    err.style.display = 'block';
+    // auto-hide after 10 seconds
+    setTimeout(() => { if (err) err.style.display = 'none'; }, 10000);
+}
+
+function setDataBlockBusy(dataBlock, busy) {
+    if (!dataBlock) return;
+    if (busy) {
+        dataBlock.setAttribute('aria-busy', 'true');
+        // add small spinner if not present
+        let spinner = dataBlock.querySelector('.data-block-spinner');
+        if (!spinner) {
+            spinner = document.createElement('span');
+            spinner.className = 'data-block-spinner';
+            spinner.style.marginLeft = '8px';
+            spinner.textContent = '⏳';
+            const controls = dataBlock.querySelector('.data-block-controls');
+            if (controls) controls.appendChild(spinner);
+        }
+    } else {
+        dataBlock.removeAttribute('aria-busy');
+        const spinner = dataBlock.querySelector('.data-block-spinner');
+        if (spinner) spinner.remove();
+    }
 }
 
 //-----------------------------------------------------------------------------

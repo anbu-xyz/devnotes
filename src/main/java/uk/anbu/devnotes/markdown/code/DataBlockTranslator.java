@@ -542,7 +542,8 @@ public class DataBlockTranslator {
                                         ul().withClass("data-block-menu")
                                                 .attr("style", "display:none; position:absolute; right:0; top:28px; background:#fff; border:1px solid #ccc; padding:4px; margin:0; list-style:none;")
                                                 .with(
-                                                        li().with(a("Source"))
+                                                        li().with(a().attr("data-action", "source").withText("Source")),
+                                                        li().with(a().attr("data-action", "refresh").withText("Refresh"))
                                                 )
                                 ),
                         tableTag.with(theadTag, tbodyTag, tfootTag)
@@ -613,5 +614,19 @@ public class DataBlockTranslator {
         var html = new HtmlBlock();
         html.setLiteral(tag.render());
         return html;
+    }
+
+    @SneakyThrows
+    public Optional<Node> renderDataBlockFreshFromYaml(String dataConfig, MarkdownFile markdownFile) {
+        ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
+        try {
+            YamlCodeblockConfig config = yamlMapper.readValue(dataConfig, YamlCodeblockConfig.class);
+            var html = directlyRead(config, markdownFile == null ? "" : markdownFile.fileName());
+            html.ifPresent(node -> saveNodeToCache(node, markdownFile, config));
+            return html;
+        } catch (Exception e) {
+            ContainerTag<?> err = div().withText("Error parsing data block YAML for refresh: " + e.getMessage());
+            return Optional.of(toHtmlBlock(err));
+        }
     }
 }
