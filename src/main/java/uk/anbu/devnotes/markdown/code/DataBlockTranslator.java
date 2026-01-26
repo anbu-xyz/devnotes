@@ -22,6 +22,7 @@ import uk.anbu.devnotes.markdown.code.datablock.YamlCodeblockConfig;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.types.MarkdownFile;
+import uk.anbu.devnotes.util.FileBasedCache;
 
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -60,6 +61,17 @@ public class DataBlockTranslator {
             return Optional.of(toHtmlBlock(err));
         }
 
+        var html = readCached(markdownFile, config);
+        if (html.isPresent()) {
+            return html;
+        }
+
+        html = directlyRead(config, mdName);
+        html.ifPresent(node -> saveNodeToCache(node, markdownFile, config));
+        return html;
+    }
+
+    private Optional<Node> directlyRead(YamlCodeblockConfig config, String mdName) {
         // Resolve datasource
         String source = config.getSource();
         if (source == null || source.isEmpty()) {
@@ -129,7 +141,43 @@ public class DataBlockTranslator {
             return buildFromTemplate(columns, rows, dataSourceName, mdName, templateContent);
         }
 
-        return Optional.of(htmlFallbackTable(config, rows, maxRowsReached));
+        HtmlBlock node = htmlFallbackTable(config, rows, maxRowsReached);
+        return Optional.of(node);
+    }
+
+    private static Optional<Node> readCached(MarkdownFile markdownFile, YamlCodeblockConfig config) {
+        try {
+            if (markdownFile != null) {
+                String checksum = config.checksum();
+                String fileNameNoExt = markdownFile.fileName().replaceFirst("[.][^.]+$", "");
+                String generatedFileName = fileNameNoExt + "." + checksum + ".output";
+                Path outputFile = markdownFile.fullPath().getParent().resolve(generatedFileName);
+                if (outputFile.toFile().exists()) {
+                    // Use FileBasedCache helper to read and log
+                    String cached = FileBasedCache.readFromFile(outputFile, generatedFileName);
+                    var html = new HtmlBlock();
+                    html.setLiteral(cached);
+                    return Optional.of(html);
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error checking data block cache", e);
+        }
+        return Optional.empty();
+    }
+
+    private void saveNodeToCache(Node node, MarkdownFile markdownFile, YamlCodeblockConfig config) {
+        if (node == null || markdownFile == null || config == null) return;
+        if (!(node instanceof HtmlBlock)) return;
+        try {
+            String checksum = config.checksum();
+            String fileNameNoExt = markdownFile.fileName().replaceFirst("[.][^.]+$", "");
+            String generatedFileName = fileNameNoExt + "." + checksum + ".output";
+            Path outputFile = markdownFile.fullPath().getParent().resolve(generatedFileName);
+            FileBasedCache.saveOutput(outputFile, ((HtmlBlock) node).getLiteral());
+        } catch (Exception e) {
+            log.error("Error saving data block cache", e);
+        }
     }
 
     private static Optional<Node> buildFromTemplate(List<String> columns,
