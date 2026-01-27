@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/datablock")
@@ -39,21 +40,35 @@ public class DataBlockRefreshController {
 
     @PostMapping(value = "/fragment", consumes = MediaType.APPLICATION_JSON_VALUE, 
             produces = MediaType.TEXT_HTML_VALUE)
-    public ResponseEntity<String> renderFragment(@RequestBody Map<String, String> body) {
-        String markdownFile = body.get("markdownFile");
-        MarkdownFile mdFile = new MarkdownFile(Path.of(configService.getDocsDirectory()), markdownFile);
-        String datablockId = body.get("datablockId");
-        if (markdownFile == null || markdownFile.isBlank() || datablockId == null || datablockId.isBlank()) {
+    public ResponseEntity<String> renderFragment(@RequestBody Map<String, Object> body) {
+        var markdownFile = Optional.ofNullable(body.get("markdownFile"));
+        var datablockId = Optional.ofNullable(body.get("datablockId"));
+        if (markdownFile.isEmpty() || markdownFile.get().toString().isBlank()
+                || datablockId.isEmpty() || datablockId.get().toString().isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("missing markdownFile or datablockId");
+        }
+        MarkdownFile mdFile = new MarkdownFile(Path.of(configService.getDocsDirectory()),
+                markdownFile.get().toString());
+        Object rawParams = body.get("params");
+        final Map<String, Object> params;
+        if (rawParams == null) {
+            params = Map.of();
+        } else if (rawParams instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> castParams = (Map<String, Object>) rawParams;
+            params = castParams;
+        } else {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("'params' field must be an object/map");
         }
 
         try {
             Path markdownRoot = Paths.get(configService.getDocsDirectory());
-            Path mdPath = markdownRoot.resolve(markdownFile);
+            Path mdPath = markdownRoot.resolve(markdownFile.get().toString());
 
             if (!mdPath.isAbsolute()) {
-                mdPath = Path.of("").toAbsolutePath().resolve(markdownFile).normalize();
+                mdPath = Path.of("").toAbsolutePath().resolve(markdownFile.get().toString()).normalize();
             }
             if (!Files.exists(mdPath) || !Files.isRegularFile(mdPath)) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -68,7 +83,7 @@ public class DataBlockRefreshController {
                 if (node instanceof FencedCodeBlock fcb) {
                     String info = fcb.getInfo();
                     if (info != null && info.trim().equals("data")) {
-                        var textHtml = constructResponse(fcb, datablockId, mdFile);
+                        var textHtml = constructResponse(fcb, datablockId.get().toString(), mdFile, params);
                         if (textHtml != null) {
                             return textHtml;
                         }
@@ -86,7 +101,8 @@ public class DataBlockRefreshController {
 
     private ResponseEntity<String> constructResponse(FencedCodeBlock fcb,
                                                      String datablockId,
-                                                     MarkdownFile mdFile) {
+                                                     MarkdownFile mdFile,
+                                                     Map<String, Object> params) {
         String yaml = fcb.getLiteral();
         try {
             YamlCodeblockConfig config = yamlMapper.readValue(yaml, YamlCodeblockConfig.class);
@@ -96,7 +112,7 @@ public class DataBlockRefreshController {
                 var resolver = (DatasourceConfigResolver) configService::getDataSourceConfig;
                 var registry = new ParameterRegistry();
                 DataBlockTranslator translator = new DataBlockTranslator(resolver, configService, registry);
-                var rendered = translator.renderDataBlockFreshFromYaml(yaml, mdFile);
+                var rendered = translator.renderDataBlockFreshFromYaml(yaml, mdFile, params);
                 if (rendered.isPresent() && rendered.get() instanceof org.commonmark.node.HtmlBlock hb) {
                     return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(hb.getLiteral());
                 } else if (rendered.isPresent()) {

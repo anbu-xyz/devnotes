@@ -77,13 +77,17 @@ public class YamlCodeblockConfig {
         public SqlParameter() {}
     }
 
+    public String checksum() {
+        return checksum(Map.of());
+    }
+
     /**
      * Compute a deterministic SHA-256 checksum of this config's full contents.
      * The object is serialized to JSON with stable ordering and inclusion settings
      * to ensure the same inputs always produce the same checksum.
      * The returned value is a lowercase hex string safe for use as a filename.
      */
-    public String checksum() {
+    public String checksum(Map<String, Object> sharedParams) {
         try {
             ObjectMapper mapper = new ObjectMapper();
             // deterministic property ordering
@@ -96,9 +100,14 @@ public class YamlCodeblockConfig {
             mapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
 
             byte[] bytes = mapper.writeValueAsBytes(this);
+            byte[] sharedBytes = mapper.writeValueAsBytes(sharedParams);
+            // combine both byte arrays for checksum
+            byte[] combined = new byte[bytes.length + sharedBytes.length];
+            System.arraycopy(bytes, 0, combined, 0, bytes.length);
+            System.arraycopy(sharedBytes, 0, combined, bytes.length, sharedBytes.length);
 
             MessageDigest md = MessageDigest.getInstance("SHA-256");
-            byte[] digest = md.digest(bytes);
+            byte[] digest = md.digest(combined);
             return bytesToHex(digest);
         } catch (JsonProcessingException | NoSuchAlgorithmException e) {
             throw new IllegalStateException("Failed to compute checksum", e);

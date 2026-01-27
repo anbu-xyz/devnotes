@@ -282,11 +282,24 @@ function setupDataBlockSourceToggle() {
                 return;
             }
             const datablockId = table.getAttribute('data-datablock-id');
+            const datablockParams = table.getAttribute('data-datablock-params') || '{}';
             const mdEl = document.getElementById('md-file-path');
             const markdownFile = mdEl ? mdEl.textContent.trim() : '';
             if (!datablockId || !markdownFile) {
                 showInlineError(dataBlock, 'Missing datablock id or markdown file path');
                 return;
+            }
+
+            // Validate and parse params safely. If invalid JSON, show an inline error and abort.
+            let paramsObj = {};
+            if (datablockParams && datablockParams.trim() !== '') {
+                try {
+                    paramsObj = JSON.parse(datablockParams);
+                } catch (e) {
+                    console.error('Invalid datablock params JSON', e, datablockParams);
+                    showInlineError(dataBlock, 'Invalid datablock parameters (malformed JSON)');
+                    return;
+                }
             }
 
             // Set busy state and disable the link
@@ -298,7 +311,7 @@ function setupDataBlockSourceToggle() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'same-origin',
-                body: JSON.stringify({ markdownFile, datablockId })
+                body: JSON.stringify({ markdownFile, datablockId, params: paramsObj })
             }).then(async (resp) => {
                 if (!resp.ok) {
                     const txt = await resp.text().catch(() => resp.statusText);
@@ -360,12 +373,16 @@ function setDataBlockBusy(dataBlock, busy) {
             spinner.style.marginLeft = '8px';
             spinner.textContent = '⏳';
             const controls = dataBlock.querySelector('.data-block-controls');
-            if (controls) controls.appendChild(spinner);
+            if (controls) {
+                controls.appendChild(spinner);
+            } else {
+                dataBlock.appendChild(spinner);
+            }
         }
     } else {
         dataBlock.removeAttribute('aria-busy');
-        const spinner = dataBlock.querySelector('.data-block-spinner');
-        if (spinner) spinner.remove();
+        const spinnerEl = dataBlock.querySelector('.data-block-spinner');
+        if (spinnerEl) spinnerEl.remove();
     }
 }
 

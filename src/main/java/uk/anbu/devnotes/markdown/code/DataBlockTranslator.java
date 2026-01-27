@@ -61,17 +61,18 @@ public class DataBlockTranslator {
             return Optional.of(toHtmlBlock(err));
         }
 
-        var html = readCached(markdownFile, config);
+        var sharedParams = parameterRegistry == null ? Map.<String, Object>of() : parameterRegistry.getAll();
+        var html = readCached(markdownFile, config, sharedParams);
         if (html.isPresent()) {
             return html;
         }
 
-        html = directlyRead(config, mdName);
-        html.ifPresent(node -> saveNodeToCache(node, markdownFile, config));
+        html = directlyRead(config, mdName, sharedParams);
+        html.ifPresent(node -> saveNodeToCache(node, markdownFile, config, sharedParams));
         return html;
     }
 
-    private Optional<Node> directlyRead(YamlCodeblockConfig config, String mdName) {
+    private Optional<Node> directlyRead(YamlCodeblockConfig config, String mdName, Map<String, Object> sharedParams) {
         // Resolve datasource
         String source = config.getSource();
         if (source == null || source.isEmpty()) {
@@ -107,7 +108,7 @@ public class DataBlockTranslator {
         boolean maxRowsReached = false;
         List<LinkedHashMap<String, Object>> rows;
         try {
-            rows = buildDataRows(dsConfig, config, limit + 1);
+            rows = buildDataRows(dsConfig, config, limit + 1, sharedParams);
             if (rows.size() > limit) {
                 rows = rows.subList(0, limit);
                 maxRowsReached = true;
@@ -126,7 +127,7 @@ public class DataBlockTranslator {
         var columns = readColumnsData(config, rows);
 
         if (columns.size() == 1 && config.isCombineSingleColumn()) {
-            return Optional.of(combineIfSingleColumn(rows, maxRowsReached, config.checksum()));
+            return Optional.of(combineIfSingleColumn(rows, maxRowsReached, config.checksum(sharedParams)));
         }
 
         // Check for output-template
@@ -141,14 +142,14 @@ public class DataBlockTranslator {
             return buildFromTemplate(columns, rows, dataSourceName, mdName, templateContent);
         }
 
-        HtmlBlock node = htmlFallbackTable(config, rows, maxRowsReached);
+        HtmlBlock node = htmlFallbackTable(config, rows, maxRowsReached, sharedParams);
         return Optional.of(node);
     }
 
-    private static Optional<Node> readCached(MarkdownFile markdownFile, YamlCodeblockConfig config) {
+    private static Optional<Node> readCached(MarkdownFile markdownFile, YamlCodeblockConfig config, Map<String, Object> sharedParams) {
         try {
             if (markdownFile != null) {
-                String checksum = config.checksum();
+                String checksum = config.checksum(sharedParams);
                 String fileNameNoExt = markdownFile.fileName().replaceFirst("[.][^.]+$", "");
                 String generatedFileName = fileNameNoExt + "." + checksum + ".output";
                 Path outputFile = markdownFile.fullPath().getParent().resolve(generatedFileName);
@@ -166,7 +167,8 @@ public class DataBlockTranslator {
         return Optional.empty();
     }
 
-    private void saveNodeToCache(Node node, MarkdownFile markdownFile, YamlCodeblockConfig config) {
+    private void saveNodeToCache(Node node, MarkdownFile markdownFile, YamlCodeblockConfig config,
+                                 Map<String, Object> sharedParams) {
         if (node == null || markdownFile == null || config == null) {
             return;
         }
@@ -174,7 +176,7 @@ public class DataBlockTranslator {
             return;
         }
         try {
-            String checksum = config.checksum();
+            String checksum = config.checksum(sharedParams);
             String fileNameNoExt = markdownFile.fileName().replaceFirst("[.][^.]+$", "");
             String generatedFileName = fileNameNoExt + "." + checksum + ".output";
             Path outputFile = markdownFile.fullPath().getParent().resolve(generatedFileName);
@@ -227,27 +229,27 @@ public class DataBlockTranslator {
         ContainerTag<?> tbl = table().withClass("data-block-combined")
                 .attr("data-datablock-id", checksum)
                 .with(
-                tbody().with(
-                        tr().with(
-                                th().withClass("column-name").withText(firstColumnName),
-                                td().with(
-                                        text(String.join(", ", values)),
-                                        span().withClass("data-block-status-span")
-                                                .withText(
-                                                        maxRowsReached ? String.format(" ... max limit reached (%d)", rows.size()) : ""
-                                                )
+                        tbody().with(
+                                tr().with(
+                                        th().withClass("column-name").withText(firstColumnName),
+                                        td().with(
+                                                text(String.join(", ", values)),
+                                                span().withClass("data-block-status-span")
+                                                        .withText(
+                                                                maxRowsReached ? String.format(" ... max limit reached (%d)", rows.size()) : ""
+                                                        )
+                                        )
                                 )
+                        ),
+                        tfoot().with(
+                                tr().withClass("data-block-status-row")
+                                        .with(
+                                                td().withClass("data-block-status-cell")
+                                                        .attr("colspan", String.valueOf(Math.max(1, 2)))
+                                                        .withText(String.format("Total: %d", rows.size()))
+                                        )
                         )
-                ),
-                tfoot().with(
-                        tr().withClass("data-block-status-row")
-                                .with(
-                                        td().withClass("data-block-status-cell")
-                                                .attr("colspan", String.valueOf(Math.max(1, 2)))
-                                                .withText(String.format("Total: %d", rows.size()))
-                                )
-                )
-        );
+                );
 
         return toHtmlBlock(tbl);
     }
@@ -291,7 +293,8 @@ public class DataBlockTranslator {
     }
 
     private List<LinkedHashMap<String, Object>> buildDataRows(ConfigService.DataSourceConfig dsConfig,
-                                                           YamlCodeblockConfig config, int limit) {
+                                                              YamlCodeblockConfig config, int limit,
+                                                              Map<String, Object> sharedParams) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
         ds.setDriverClassName(dsConfig.driverClassName());
         ds.setUrl(dsConfig.url());
@@ -304,14 +307,14 @@ public class DataBlockTranslator {
         }
         var named = new NamedParameterJdbcTemplate(jdbcTemplate);
 
-        MapSqlParameterSource paramSource = buildParameterSource(config);
+        MapSqlParameterSource paramSource = buildParameterSource(config, sharedParams);
 
         var rows = named.queryForStream(config.getQuery(), paramSource,
                 (rs, rowNum) -> rowAsMap(config, rs));
         return rows.toList();
     }
 
-    private MapSqlParameterSource buildParameterSource(YamlCodeblockConfig config) {
+    private MapSqlParameterSource buildParameterSource(YamlCodeblockConfig config, Map<String, Object> sharedParams) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         // First, add YAML-local parameters (they take precedence)
         if (config != null && config.getParameters() != null && !config.getParameters().isEmpty()) {
@@ -339,8 +342,7 @@ public class DataBlockTranslator {
         }
 
         // Merge shared parameters from the registry
-        var shared = parameterRegistry == null ? Map.<String, Object>of() : parameterRegistry.getAll();
-        for (Map.Entry<String, Object> se : shared.entrySet()) {
+        for (Map.Entry<String, Object> se : sharedParams.entrySet()) {
             String name = se.getKey();
             Object rawValue = se.getValue();
             try {
@@ -474,12 +476,14 @@ public class DataBlockTranslator {
 
     private static HtmlBlock htmlFallbackTable(YamlCodeblockConfig config,
                                                List<LinkedHashMap<String, Object>> rows,
-                                               boolean maxRowsReached) {
+                                               boolean maxRowsReached,
+                                               Map<String, Object> sharedParams) {
         if (config.isTranspose()) {
-            return transposedViewTable(config, rows, maxRowsReached);
+            return transposedViewTable(config, rows, maxRowsReached, sharedParams);
         }
         var tableTag = table()
                 .attr("data-datablock-id", config.checksum())
+                .attr("data-datablock-params", jsonStringify(sharedParams))
                 .withClass("data-block-table");
 
         var columns = rows.getFirst().keySet();
@@ -552,9 +556,12 @@ public class DataBlockTranslator {
     }
 
     private static HtmlBlock transposedViewTable(YamlCodeblockConfig config,
-                                                List<LinkedHashMap<String, Object>> rows, boolean maxRowsReached) {
+                                                 List<LinkedHashMap<String, Object>> rows,
+                                                 boolean maxRowsReached,
+                                                 Map<String, Object> sharedParams) {
         var tableTag = table()
                 .attr("data-datablock-id", config.checksum())
+                .attr("data-datablock-params", jsonStringify(sharedParams))
                 .withClass("data-block-table transpose");
         var columns = rows.getFirst().keySet();
         for (String col : columns) {
@@ -584,6 +591,26 @@ public class DataBlockTranslator {
             }
         }
         return toHtmlBlock(tableTag);
+    }
+
+    private static String jsonStringify(Map<String, Object> sharedParams) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.writeValueAsString(sharedParams);
+        } catch (Exception e) {
+            return "{}";
+        }
+    }
+
+    private static Map<String, Object> jsonStringToMap(String jsonString) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            @SuppressWarnings("unchecked")
+            Map<String, Object> map = mapper.readValue(jsonString, Map.class);
+            return map;
+        } catch (Exception e) {
+            return Collections.emptyMap();
+        }
     }
 
     private static TdTag createTdTag(String col, Map<String, Object> row) {
@@ -617,12 +644,13 @@ public class DataBlockTranslator {
     }
 
     @SneakyThrows
-    public Optional<Node> renderDataBlockFreshFromYaml(String dataConfig, MarkdownFile markdownFile) {
+    public Optional<Node> renderDataBlockFreshFromYaml(String dataConfig, MarkdownFile markdownFile,
+                                                       Map<String, Object> sharedParams) {
         ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
         try {
             YamlCodeblockConfig config = yamlMapper.readValue(dataConfig, YamlCodeblockConfig.class);
-            var html = directlyRead(config, markdownFile == null ? "" : markdownFile.fileName());
-            html.ifPresent(node -> saveNodeToCache(node, markdownFile, config));
+            var html = directlyRead(config, markdownFile == null ? "" : markdownFile.fileName(), sharedParams);
+            html.ifPresent(node -> saveNodeToCache(node, markdownFile, config, sharedParams));
             return html;
         } catch (Exception e) {
             ContainerTag<?> err = div().withText("Error parsing data block YAML for refresh: " + e.getMessage());
