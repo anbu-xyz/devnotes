@@ -192,6 +192,11 @@ public class MarkdownController {
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)
                     .body(content.content());
+        } else if (isMermaid(fileExtension)) {
+            var content = fetchMermaidContent(filename, markdownRoot);
+            return ResponseEntity.ok()
+                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
+                    .body(content.content());
         } else if (isJavascript(fileExtension)) {
             var content = fetchJavascriptContent(filename, markdownRoot);
             return ResponseEntity.ok()
@@ -218,6 +223,10 @@ public class MarkdownController {
 
     private boolean isGroovy(String fileExtension) {
         return "groovy".equals(fileExtension);
+    }
+
+    private boolean isMermaid(String fileExtension) {
+        return "mermaid".equals(fileExtension) || "mmd".equals(fileExtension);
     }
 
     private boolean isYaml(String fileExtension) {
@@ -259,6 +268,18 @@ public class MarkdownController {
         params.put("sqlContent", fileContent);
         params.put("title", filename);
         templateEngine.render("render/sql.jte", params, output);
+
+        return new ContentWithType(output.toString(), "text/html");
+    }
+
+    private ContentWithType fetchMermaidContent(String filename, Path markdownRoot) throws IOException {
+        String fileContent = new String(Files.readAllBytes(markdownRoot.resolve(filename)));
+
+        TemplateOutput output = new StringOutput();
+        var params = new HashMap<String, Object>();
+        params.put("mermaidCodeContent", fileContent);
+        params.put("title", filename);
+        templateEngine.render("render/mermaid.jte", params, output);
 
         return new ContentWithType(output.toString(), "text/html");
     }
