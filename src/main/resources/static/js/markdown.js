@@ -146,6 +146,7 @@ document.body.addEventListener('htmx:afterSwap', evt => {
             createHomeLink("markdownViewer")
             invokePrismHighlighting()
             setupCodeBlockModals()
+            setupDataBlockControls()
             setupDataBlockMenuToggle()
             setupDataBlockSourceToggle()
         },
@@ -214,6 +215,31 @@ function setupCodeBlockModals() {
         if (e.key === 'Escape' && modal.style.display === 'block') {
             modal.style.display = 'none';
         }
+    });
+}
+
+// Dynamically create and attach controls to each .data-block that doesn't already have them
+function setupDataBlockControls() {
+    document.querySelectorAll('.data-block').forEach(block => {
+        if (block.querySelector('.data-block-controls')) return; // already attached
+
+        const btn = document.createElement('button');
+        btn.className = 'data-block-more-btn';
+        btn.type = 'button';
+        btn.textContent = '\u22EE'; // '⋮'
+
+        const menu = document.createElement('ul');
+        menu.className = 'data-block-menu';
+        menu.innerHTML =
+            '<li><a data-action="source">Source</a></li>' +
+            '<li><a data-action="refresh">Refresh</a></li>';
+
+        const controls = document.createElement('div');
+        controls.className = 'data-block-controls';
+        controls.appendChild(btn);
+        controls.appendChild(menu);
+
+        block.insertBefore(controls, block.firstChild);
     });
 }
 
@@ -359,6 +385,7 @@ function setupDataBlockSourceToggle() {
 
                 // Dispatch a custom event for any additional initialization
                 document.dispatchEvent(new CustomEvent('data-block:refreshed', { detail: { datablockId } }));
+                setupDataBlockControls();
             }).catch((err) => {
                 console.error('Data block refresh failed', err);
                 showInlineError(dataBlock, 'Refresh failed: ' + (err.message || 'unknown error'));

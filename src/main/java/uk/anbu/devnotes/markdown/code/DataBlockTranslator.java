@@ -534,20 +534,7 @@ public class DataBlockTranslator {
         }
 
         ContainerTag<?> wrapper = div().withClass("data-block")
-                .with(
-                        div().withClass("data-block-controls")
-                                .with(
-                                        button().withClass("data-block-more-btn")
-                                                .attr("type", "button")
-                                                .withText("⋮"),
-                                        ul().withClass("data-block-menu")
-                                                .with(
-                                                        li().with(a().attr("data-action", "source").withText("Source")),
-                                                        li().with(a().attr("data-action", "refresh").withText("Refresh"))
-                                                )
-                                ),
-                        tableTag.with(theadTag, tbodyTag, tfootTag)
-                );
+                .with(tableTag.with(theadTag, tbodyTag, tfootTag));
         return toHtmlBlock(wrapper);
     }
 
