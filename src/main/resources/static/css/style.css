@@ -38,6 +38,7 @@ p {
 a {
     color: #29b4fd;
     text-decoration: none;
+    cursor: pointer;
 }
 
 a:hover {
@@ -162,11 +163,16 @@ td td, th td, td th, th th {
     position: absolute;
     right: 0;
     top: 28px;
-    background: #fff;
-    border: 1px solid #ccc;
+    background: #121212;
+    border: 1px solid #e0e0e0;
     padding: 4px;
     margin: 0;
     list-style: none;
+}
+
+.data-block-more-btn {
+    background: #0b1220;
+    color: gray;
 }
 
 .data-block-number {
