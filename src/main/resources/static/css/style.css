@@ -146,6 +146,29 @@ td td, th td, td th, th th {
     font-size: 1em;
 }
 
+.data-block {
+    position: relative;
+}
+
+.data-block-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+}
+
+.data-block-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 28px;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 4px;
+    margin: 0;
+    list-style: none;
+}
+
 .data-block-number {
     text-align: right;
 }

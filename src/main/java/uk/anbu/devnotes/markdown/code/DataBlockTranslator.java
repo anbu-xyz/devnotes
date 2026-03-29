@@ -534,16 +534,13 @@ public class DataBlockTranslator {
         }
 
         ContainerTag<?> wrapper = div().withClass("data-block")
-                .attr("style", "position:relative;")
                 .with(
                         div().withClass("data-block-controls")
-                                .attr("style", "position:absolute; top:8px; right:8px; z-index:10;")
                                 .with(
                                         button().withClass("data-block-more-btn")
                                                 .attr("type", "button")
                                                 .withText("⋮"),
                                         ul().withClass("data-block-menu")
-                                                .attr("style", "display:none; position:absolute; right:0; top:28px; background:#fff; border:1px solid #ccc; padding:4px; margin:0; list-style:none;")
                                                 .with(
                                                         li().with(a().attr("data-action", "source").withText("Source")),
                                                         li().with(a().attr("data-action", "refresh").withText("Refresh"))
