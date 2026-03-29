@@ -146,6 +146,7 @@ document.body.addEventListener('htmx:afterSwap', evt => {
             createHomeLink("markdownViewer")
             invokePrismHighlighting()
             setupCodeBlockModals()
+            setupDataBlockMenuToggle()
             setupDataBlockSourceToggle()
         },
         markdownEditor: () => {
@@ -212,6 +213,30 @@ function setupCodeBlockModals() {
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && modal.style.display === 'block') {
             modal.style.display = 'none';
+        }
+    });
+}
+
+// Toggle the ⋮ dropdown menu when the more button is clicked
+function setupDataBlockMenuToggle() {
+    if (window._dataBlockMenuToggleAttached) return;
+    window._dataBlockMenuToggleAttached = true;
+
+    document.body.addEventListener('click', function (e) {
+        const btn = e.target.closest('.data-block-more-btn');
+        if (btn) {
+            const menu = btn.nextElementSibling;
+            if (menu) {
+                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+            }
+            return;
+        }
+
+        // Close any open menu when clicking outside
+        if (!e.target.closest('.data-block-controls')) {
+            document.querySelectorAll('.data-block-menu').forEach(m => {
+                m.style.display = 'none';
+            });
         }
     });
 }

@@ -541,7 +541,6 @@ public class DataBlockTranslator {
                                 .with(
                                         button().withClass("data-block-more-btn")
                                                 .attr("type", "button")
-                                                .attr("onclick", "const m=this.nextElementSibling; m.style.display = m.style.display==='block' ? 'none' : 'block';")
                                                 .withText("⋮"),
                                         ul().withClass("data-block-menu")
                                                 .attr("style", "display:none; position:absolute; right:0; top:28px; background:#fff; border:1px solid #ccc; padding:4px; margin:0; list-style:none;")
