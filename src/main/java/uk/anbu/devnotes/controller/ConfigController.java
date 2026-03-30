@@ -33,6 +33,7 @@ public class ConfigController {
         model.put("sqlMaxRows", configService.getSqlMaxRows());
         model.put("chromeDriverLocation",
             configService.getChromeDriverLocation().orElse("Not set"));
+        model.put("encryptionKeySet", configService.isEncryptionKeySet());
         TemplateOutput output = new StringOutput();
         templateEngine.render("tools/config.jte", model, output);
         return ResponseEntity.status(HttpStatus.OK)

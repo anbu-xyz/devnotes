@@ -253,6 +253,42 @@ datasource2:
   driverClassName: "org.postgresql.Driver"
 ```
 
+#### Encrypting datasource passwords
+
+Passwords in `config/datasource.yaml` can be stored encrypted using **AES-256-GCM**.
+The key is derived from a memorable passphrase you supply via the UI — it is held only in
+JVM memory and is never written to disk.
+
+**Activating encryption:**
+
+1. Start the server and navigate to **`/config/encryption-key`**.
+2. Enter a passphrase of at least 12 characters (e.g. `coffee-builds-faster-now`).
+3. Click **Activate**. The server derives an AES-256 key via PBKDF2WithHmacSHA256
+   (600 000 iterations) and immediately re-encrypts every datasource password.
+
+After activation, passwords in `datasource.yaml` are stored as opaque tokens:
+
+```yaml
+datasource2:
+  url: "jdbc:postgresql://localhost:5432/db2"
+  username: "user2"
+  password: "ENC(abc123…)"
+  driverClassName: "org.postgresql.Driver"
+```
+
+**On every server restart** you must re-enter the passphrase at `/config/encryption-key`
+before datasource connections can be established.  The `/config` page shows an amber
+warning banner when no passphrase is active.
+
+A random PBKDF2 salt is generated on first use and stored (non-secret) in
+`config/encryption.salt` alongside `datasource.yaml`.  Back this file up together
+with `datasource.yaml` — without it the passphrase alone is not enough to decrypt.
+
+> Plain-text passwords in an existing `datasource.yaml` are read as-is if no
+> passphrase has been set, so upgrading an existing installation requires no
+> immediate migration.  They will be encrypted the first time you activate a
+> passphrase.
+
 ### Database Metadata blocks
 
 Database metadata blocks document a single database table — its columns, types, descriptions and

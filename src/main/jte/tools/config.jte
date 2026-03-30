@@ -6,6 +6,7 @@
 @param Map<String, DataSourceConfig> dataSources
 @param Integer sqlMaxRows
 @param String chromeDriverLocation
+@param Boolean encryptionKeySet
 
 <!DOCTYPE html>
 <html>
@@ -17,6 +18,20 @@
 </head>
 <body x-data="{ openSources: {}, deleted: {}, showAddForm: false, newName: '' }">
 <h1>Configuration</h1>
+
+@if(!encryptionKeySet)
+<div class="warning-banner">
+    <i class="fas fa-lock-open"></i>
+    Datasource passwords are stored in plain text.
+    <a href="/config/encryption-key">Activate encryption</a> to protect them.
+</div>
+@else
+<div class="encryption-status encryption-status-active" style="margin-bottom:1rem;">
+    <i class="fas fa-lock"></i> Passwords are encrypted on disk.
+    <a href="/config/encryption-key" style="margin-left:0.5rem;">Change passphrase</a>
+</div>
+@endif
+
 <form action="/config" method="post" class="config-form">
 
     <div class="config-section">

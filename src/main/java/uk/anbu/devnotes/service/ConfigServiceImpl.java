@@ -30,8 +30,11 @@ public class ConfigServiceImpl implements ConfigService {
     private int sqlMaxRows;
     private Map<String, DataSourceConfig> dataSources;
 
-    public ConfigServiceImpl() {
+    private EncryptionService encryptionService;
+
+    public ConfigServiceImpl(EncryptionService encryptionService) {
         this.dataSources = new HashMap<>();
+        this.encryptionService = encryptionService;
     }
 
     @PostConstruct
@@ -53,14 +56,39 @@ public class ConfigServiceImpl implements ConfigService {
                 Map<String, DataSourceConfig> configs = mapper.readValue(dataSourceFile,
                         mapper.getTypeFactory().constructMapType(Map.class, String.class, DataSourceConfig.class));
                 var x = configs.entrySet().stream()
-                        .map(e -> new DataSourceConfig(e.getKey(), e.getValue().url(), e.getValue().username(),
-                                e.getValue().password(), e.getValue().driverClassName()))
-                        .collect(Collectors.toMap(DataSourceConfig::name, e -> e));
+                        .map(e -> {
+                            String rawPassword = e.getValue().password();
+                            String password = decryptPassword(e.getKey(), rawPassword);
+                            return new DataSourceConfig(e.getKey(), e.getValue().url(),
+                                    e.getValue().username(), password, e.getValue().driverClassName());
+                        })
+                        .collect(Collectors.toMap(DataSourceConfig::name, v -> v));
                 this.dataSources.putAll(x);
             } catch (IOException e) {
                 throw new RuntimeException("Failed to load datasource configurations", e);
             }
         }
+    }
+
+    /**
+     * Decrypts a password from disk.  If the value is an {@code ENC(...)} token:
+     * <ul>
+     *   <li>Key is set → decrypt and return plain text.</li>
+     *   <li>Key is not set → warn and return the raw token (DB connect will fail until
+     *       a passphrase is provided at {@code /config/encryption-key}).</li>
+     * </ul>
+     * Plain-text passwords (no prefix) are returned unchanged.
+     */
+    private String decryptPassword(String datasourceName, String rawPassword) {
+        if (encryptionService == null || !EncryptionService.isEncrypted(rawPassword)) {
+            return rawPassword;
+        }
+        if (encryptionService.isKeySet()) {
+            return encryptionService.decrypt(rawPassword);
+        }
+        log.warn("Datasource '{}' has an encrypted password but no passphrase has been provided. "
+                + "Visit /config/encryption-key to activate encryption.", datasourceName);
+        return rawPassword;
     }
 
     public void updateDataSources(Map<String, String> newConfigs) {
@@ -95,6 +123,19 @@ public class ConfigServiceImpl implements ConfigService {
         loadOtherConfigs();
     }
 
+    @Override
+    public void reEncryptAndSave() {
+        this.dataSources.clear();
+        loadDataSourceConfigs();   // decrypts ENC(...) tokens now that key is set
+        saveDataSourceConfigs();   // re-writes with all passwords encrypted
+        log.info("Datasource passwords re-encrypted and saved to disk");
+    }
+
+    @Override
+    public boolean isEncryptionKeySet() {
+        return encryptionService != null && encryptionService.isKeySet();
+    }
+
     private void loadOtherConfigs() {
         File otherConfigsFile = new File(docsDirectory, "config/config.yaml");
         if (otherConfigsFile.exists()) {
@@ -112,6 +153,7 @@ public class ConfigServiceImpl implements ConfigService {
 
     private void saveOtherConfigs() {
         File otherConfigsFile = new File(docsDirectory, "config/config.yaml");
+        otherConfigsFile.getParentFile().mkdirs();
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
             mapper.writeValue(otherConfigsFile, new OtherConfigs(sqlMaxRows, chromeDriverLocation));
@@ -122,12 +164,32 @@ public class ConfigServiceImpl implements ConfigService {
 
     private void saveDataSourceConfigs() {
         File dataSourceFile = new File(docsDirectory, "config/datasource.yaml");
+        dataSourceFile.getParentFile().mkdirs();
         ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
         try {
-            mapper.writeValue(dataSourceFile, dataSources);
+            mapper.writeValue(dataSourceFile, buildEncryptedConfigs());
         } catch (IOException e) {
             throw new RuntimeException("Failed to save datasource configurations", e);
         }
+    }
+
+    /**
+     * Returns a copy of {@code dataSources} where every plain-text password has been
+     * replaced with an {@code ENC(...)} token (when a key is active).  The in-memory
+     * {@code dataSources} map is not mutated — passwords remain plain text there.
+     */
+    private Map<String, DataSourceConfig> buildEncryptedConfigs() {
+        if (encryptionService == null || !encryptionService.isKeySet()) {
+            return dataSources;
+        }
+        return dataSources.entrySet().stream()
+                .map(e -> {
+                    String pwd = e.getValue().password();
+                    String stored = EncryptionService.isEncrypted(pwd) ? pwd : encryptionService.encrypt(pwd);
+                    return new DataSourceConfig(e.getKey(), e.getValue().url(),
+                            e.getValue().username(), stored, e.getValue().driverClassName());
+                })
+                .collect(Collectors.toMap(DataSourceConfig::name, v -> v));
     }
 
     @Override

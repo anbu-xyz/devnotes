@@ -55,7 +55,7 @@ src/
         image/             # Local-image path rewriting
         link/              # Link transformers
       module/              # Business-logic modules (search, SQL executor, Groovy renderer …)
-      service/             # Spring services (config, git, pomodoro, scheduler, datasource)
+      service/             # Spring services (config, git, pomodoro, scheduler, datasource, encryption)
       types/               # Value types (MarkdownFile, CashAmount, …)
       util/                # Helpers (FileUtil, DateTimeUtil, FileBasedCache, JdbcTypeMapper)
       cash/                # Currency / exchange-rate support
@@ -93,6 +93,11 @@ myDatasource:
   password: "pass"
   driverClassName: "org.postgresql.Driver"
 ```
+
+When password encryption is active, the `password` field holds an `ENC(…)` token instead
+of plain text.  A PBKDF2 salt is stored alongside in `<docsDirectory>/config/encryption.salt`.
+The operator supplies the passphrase once at `/config/encryption-key` after each server
+start; the derived AES-256-GCM key is kept only in JVM memory.
 
 ---
 
@@ -271,6 +276,41 @@ Type-string formatting and JDBC-type → Java-type mapping are handled by `JdbcT
 | `util/JdbcTypeMapper.java` | `resolveTypeFieldName`, `formatType`, `toJavaType` static helpers |
 | `src/main/jte/tools/database.jte` | UI form (datasource selector, output name, schema/table pattern filters) |
 
+### Password Encryption (`EncryptionService`)
+
+Datasource passwords are encrypted at rest using **AES-256-GCM**.  The AES key is derived
+from an operator-supplied passphrase via **PBKDF2WithHmacSHA256** (600 000 iterations, 16-byte
+random salt) and held only in JVM memory — it is never persisted.
+
+**Key lifecycle:**
+
+1. On startup `EncryptionService.secretKey` is `null` (key absent).
+2. Operator POSTs a passphrase to `/config/encryption-key`.
+3. `EncryptionService.setPassphrase(passphrase, saltFile)` derives the key, runs a
+   round-trip self-test, and stores the `SecretKey` in a `volatile` field.
+4. `ConfigServiceImpl.reEncryptAndSave()` is called: datasources are reloaded from disk
+   (decrypting any existing `ENC(…)` tokens), then saved back with all passwords encrypted.
+
+**On-disk token format:**
+
+```
+ENC( Base64URL( [12-byte IV] ++ [ciphertext + 16-byte GCM tag] ) )
+```
+
+**Backward compatibility:** plain-text passwords in an existing `datasource.yaml` are
+loaded as-is when no passphrase is set, and are encrypted on the first save after activation.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `service/EncryptionService.java` | AES-256-GCM encrypt/decrypt; PBKDF2 key derivation; salt file management |
+| `controller/EncryptionKeyController.java` | `GET/POST /config/encryption-key` — passphrase form and activation |
+| `jte/tools/encryption-key.jte` | Passphrase entry UI (status banner, confirm input, Alpine.js mismatch guard) |
+| `<docsDirectory>/config/encryption.salt` | PBKDF2 salt (hex, not secret; generated once; must be backed up) |
+
+---
+
 ### Groovy Execution
 
 Scripts run inside a sandboxed `GroovyShell`. Supported output formats (specified in the code-fence
@@ -323,6 +363,11 @@ the commit-status API. No deployment step is included.
 | Change how type strings are formatted (e.g. suppress size) | Edit `JdbcTypeMapper.formatType` and `JdbcTypeMapper.isNoSizeType` |
 | Add support for a new DB product in fetch-metadata | Add a `case` to `JdbcTypeMapper.resolveTypeFieldName` and add the new type field to `DatabaseMetadataConfig.ColumnConfig` |
 | Change fetch-metadata output path or format | `JdbcDatabaseController.saveAllTablesAsMarkdownFile` |
+| Change encryption algorithm | `EncryptionService.ALGORITHM` constant; update `IV_LEN` if switching away from GCM |
+| Change PBKDF2 iteration count | `EncryptionService.KDF_ITERS`; higher = slower brute-force, slower activation |
+| Rotate the passphrase / re-key | Enter new passphrase at `/config/encryption-key`; `reEncryptAndSave()` is called automatically |
+| Disable encryption (revert to plain text) | Do not supply passphrase after restart; `saveDataSourceConfigs()` writes plain text when `isKeySet()` is false |
+| Change minimum passphrase length | `EncryptionService.MIN_PASSPHRASE_LEN` constant |
 
 ---
 
