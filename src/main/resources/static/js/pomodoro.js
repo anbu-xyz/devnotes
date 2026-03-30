@@ -144,12 +144,15 @@ const pomodoro = {
     },
 
     updateButtonText() {
-        const buttonText = {
-            'NOT_STARTED': 'Start',
-            'RUNNING': 'Pause',
-            'PAUSED': 'Resume'
+        const config = {
+            'NOT_STARTED': { text: 'Start',  icon: 'fa-play'  },
+            'RUNNING':     { text: 'Pause',  icon: 'fa-pause' },
+            'PAUSED':      { text: 'Resume', icon: 'fa-play'  }
         }[this.state];
-        document.querySelector('#pauseResumeButton').textContent = buttonText;
+        const textEl = document.querySelector('#pauseResumeText');
+        const iconEl = document.querySelector('#pauseResumeIcon');
+        if (textEl) textEl.textContent = config.text;
+        if (iconEl) iconEl.className = 'fas ' + config.icon;
     },
 
     updateServerState(newState) {

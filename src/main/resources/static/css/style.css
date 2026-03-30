@@ -1,5 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
 
+/* Alpine.js cloak — hide elements until Alpine initialises */
+[x-cloak] {
+    display: none !important;
+}
+
 /* Global settings */
 body {
     font-family: 'Montserrat', sans-serif;
@@ -360,6 +365,8 @@ img {
     border-radius: 3px;
     cursor: pointer;
     transition: background-color 0.3s, color 0.3s;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
 }
 
 .btn-blue-glow:hover {
@@ -424,10 +431,74 @@ img {
     box-shadow: 0 0 0 2px rgba(41, 180, 253, 0.5);
 }
 
-/* Adjust btn-blue-glow for form submit and links */
-.btn-blue-glow {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.8rem;
+.config-readonly {
+    border-color: #555;
+    color: #aaa;
+    font-style: italic;
+    cursor: default;
+}
+
+.config-section {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 1rem 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.datasource-card {
+    border: 1px solid #333;
+    border-radius: 4px;
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+}
+
+.datasource-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background-color: #252535;
+    cursor: pointer;
+    user-select: none;
+}
+
+.datasource-card-header:hover {
+    background-color: #2a2a3f;
+}
+
+.datasource-card-header-open {
+    border-bottom: 1px solid #333;
+}
+
+.datasource-card-name {
+    font-weight: 600;
+    color: #c9d1d9;
+}
+
+.datasource-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.datasource-card-body {
+    padding: 0.75rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 1.5rem;
+}
+
+.tools-list {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-top: 1rem;
 }
 
 .mt-4 {

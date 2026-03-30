@@ -3,36 +3,20 @@
 <head>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <style>
-        [x-cloak] {
-            display: none !important;
-        }
-    </style>
     <title>Tools</title>
 </head>
 <body class="p-8">
 <h1>Tools</h1>
 
-Pomodoro Timer
-<a href="/pomodoro">/pomodoro</a><br>
-
-Awesome bar
-<a href="/awesome-bar">/awesome-bar</a><br>
-
-Base64 Encoder
-<a href="/base64">/base64</a><br>
-
-Database Metadata Fetcher
-<a href="/database">/database</a>
-<br>
-
-Config editor
-<a href="/config">/config</a>
-<br>
-
-Script Scheduler
-<a href="/scheduler">/scheduler</a>
-<br>
+<div class="tools-list">
+    <a href="/pomodoro" class="btn-blue-glow"><i class="fas fa-clock"></i>Pomodoro Timer</a>
+    <a href="/awesome-bar" class="btn-blue-glow"><i class="fas fa-bolt"></i>Awesome Bar</a>
+    <a href="/base64" class="btn-blue-glow"><i class="fas fa-code"></i>Base64 Encoder</a>
+    <a href="/database" class="btn-blue-glow"><i class="fas fa-database"></i>Database Metadata Fetcher</a>
+    <a href="/config" class="btn-blue-glow"><i class="fas fa-cog"></i>Config Editor</a>
+    <a href="/scheduler" class="btn-blue-glow"><i class="fas fa-calendar-alt"></i>Script Scheduler</a>
+    <a href="/" class="btn-blue-glow"><i class="fas fa-home"></i>Home</a>
+</div>
 
 </body>
 </html>
