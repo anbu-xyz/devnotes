@@ -38,6 +38,9 @@ public class YamlCodeblockConfig {
     private Output output;
     private Map<String, SqlParameter> parameters = Map.of();
 
+    @JsonProperty("column-formats")
+    private Map<String, ColumnFormatConfig> columnFormats = Map.of();
+
     @Data
     public static class Output {
         @JsonProperty("template-type")
@@ -75,6 +78,17 @@ public class YamlCodeblockConfig {
 
         // default constructor for Jackson when provided an object with properties
         public SqlParameter() {}
+    }
+
+    @Data
+    public static class ColumnFormatConfig {
+        /**
+         * A {@link java.text.DecimalFormat} pattern used to format numeric column values,
+         * e.g. {@code "#,##0.00"} or {@code "#,##0.0000"}.
+         */
+        @JsonProperty("number-format")
+        private String numberFormat;
+        // Future: dateFormat, stringTransform, …
     }
 
     public String checksum() {

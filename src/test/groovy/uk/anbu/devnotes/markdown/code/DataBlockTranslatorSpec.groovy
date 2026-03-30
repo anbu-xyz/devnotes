@@ -46,6 +46,9 @@ class DataBlockTranslatorSpec extends Specification {
         conn.createStatement().execute("INSERT INTO users (id, name, email, password) VALUES (2, 'Bob', 'bob@example.com', 'hunter2')")
         conn.createStatement().execute("INSERT INTO users (id, name, email, password) VALUES (3, 'Charlie', 'charlie@example.com', 'goodDay3')")
 
+        conn.createStatement().execute("CREATE TABLE prices (id INT PRIMARY KEY, label VARCHAR(100), amount DECIMAL(14,4), rate DOUBLE)")
+        conn.createStatement().execute("INSERT INTO prices (id, label, amount, rate) VALUES (1, 'Widget', 1234567.8900, 0.05678)")
+
         resolver = ({ String name -> new ConfigService.DataSourceConfig(name, url, username, password, driver) } as DatasourceConfigResolver)
         configService = Mock(ConfigService)
         configService.getSqlMaxRows() >> 100
@@ -386,5 +389,74 @@ parameters:
         def rows = doc.select("tbody tr.data-block-data-row")
         rows.size() == 1
         rows[0].select("td")[1].text() == "Charlie"
+    }
+
+    def "column-formats number-format applies custom DecimalFormat pattern to numeric column"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, label, amount, rate FROM prices ORDER BY id
+
+column-formats:
+  AMOUNT:
+    number-format: "#,##0.0000"
+  RATE:
+    number-format: "0.00000"
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "number-format-test.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def cells = doc.select("tbody tr.data-block-data-row td")
+        // AMOUNT = 1234567.8900 formatted as "#,##0.0000"
+        cells[2].text() == "1,234,567.8900"
+        // RATE = 0.05678 formatted as "0.00000"
+        cells[3].text() == "0.05678"
+    }
+
+    def "column without a column-format still uses the default decimal rendering"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, label, amount FROM prices ORDER BY id
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "default-format-test.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def cells = doc.select("tbody tr.data-block-data-row td")
+        // AMOUNT = 1234567.89 rendered with default %,.2f
+        cells[2].text() == "1,234,567.89"
+    }
+
+    def "column-formats number-format is matched case-insensitively"() {
+        given:
+        // YAML key in lowercase, H2 returns column names in uppercase
+        String yaml = '''
+source: datasource1
+query: SELECT id, label, amount FROM prices ORDER BY id
+
+column-formats:
+  amount:
+    number-format: "#,##0.00"
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "case-insensitive-format-test.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def cells = doc.select("tbody tr.data-block-data-row td")
+        cells[2].text() == "1,234,567.89"
     }
 }

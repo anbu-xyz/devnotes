@@ -25,6 +25,7 @@ import uk.anbu.devnotes.types.MarkdownFile;
 import uk.anbu.devnotes.util.FileBasedCache;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Blob;
@@ -508,7 +509,7 @@ public class DataBlockTranslator {
         for (Map<String, Object> row : rows) {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
             for (String col : columns) {
-                rowTag.with(createTdTag(col, row));
+                rowTag.with(createTdTag(col, row, config.getColumnFormats()));
             }
             tbodyTag.with(rowTag);
         }
@@ -551,7 +552,7 @@ public class DataBlockTranslator {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
             rowTag.with(th().withText(col));
             for (Map<String, Object> row : rows) {
-                rowTag.with(createTdTag(col, row));
+                rowTag.with(createTdTag(col, row, config.getColumnFormats()));
             }
             tableTag.with(rowTag);
         }
@@ -596,15 +597,25 @@ public class DataBlockTranslator {
         }
     }
 
-    private static TdTag createTdTag(String col, Map<String, Object> row) {
+    private static TdTag createTdTag(String col, Map<String, Object> row,
+                                      Map<String, YamlCodeblockConfig.ColumnFormatConfig> columnFormats) {
         Object v = row.get(col);
         boolean dataIsNumber = false;
         var dataCellText = v == null ? "(null)" : v.toString();
         if (v instanceof Number) {
             dataIsNumber = true;
-        }
-        if (v instanceof java.math.BigDecimal || v instanceof Double || v instanceof Float) {
-            dataCellText = String.format("%,.2f", ((Number) v).doubleValue());
+            // Look up format config case-insensitively
+            YamlCodeblockConfig.ColumnFormatConfig fmt = findFormatConfig(col, columnFormats);
+            if (fmt != null && fmt.getNumberFormat() != null && !fmt.getNumberFormat().isBlank()) {
+                try {
+                    dataCellText = new DecimalFormat(fmt.getNumberFormat()).format(((Number) v).doubleValue());
+                } catch (Exception e) {
+                    log.warn("Invalid number-format pattern '{}' for column '{}': {}", fmt.getNumberFormat(), col, e.getMessage());
+                    dataCellText = v.toString();
+                }
+            } else if (v instanceof java.math.BigDecimal || v instanceof Double || v instanceof Float) {
+                dataCellText = String.format("%,.2f", ((Number) v).doubleValue());
+            }
         }
         if (v instanceof Blob blob) {
             try {
@@ -618,6 +629,24 @@ public class DataBlockTranslator {
             dataCell.withClass("data-block-number");
         }
         return dataCell;
+    }
+
+    /**
+     * Finds a {@link YamlCodeblockConfig.ColumnFormatConfig} for the given column name,
+     * matching case-insensitively against the keys of the format map.
+     */
+    private static YamlCodeblockConfig.ColumnFormatConfig findFormatConfig(
+            String col, Map<String, YamlCodeblockConfig.ColumnFormatConfig> columnFormats) {
+        if (columnFormats == null || columnFormats.isEmpty()) return null;
+        // Try exact match first, then case-insensitive
+        YamlCodeblockConfig.ColumnFormatConfig exact = columnFormats.get(col);
+        if (exact != null) return exact;
+        for (Map.Entry<String, YamlCodeblockConfig.ColumnFormatConfig> entry : columnFormats.entrySet()) {
+            if (entry.getKey().equalsIgnoreCase(col)) {
+                return entry.getValue();
+            }
+        }
+        return null;
     }
 
     private static HtmlBlock toHtmlBlock(ContainerTag<?> tag) {

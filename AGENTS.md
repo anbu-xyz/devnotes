@@ -126,6 +126,11 @@ parameters:
 options:
   columns: [id, name, email]
   rowLimit: 50
+column-formats:               # optional per-column display formats
+  amount:
+    number-format: "#,##0.00"   # java.text.DecimalFormat pattern
+  rate:
+    number-format: "0.00000"
 output:
   templateType: jte
   template: |
@@ -134,7 +139,29 @@ output:
 ```
 
 Results are cached to `<filename>.<checksum>.output` files alongside the markdown source.
-The checksum covers the query, parameters, and shared parameter registry state.
+The checksum covers the query, parameters, shared parameter registry state, and `column-formats`,
+so any format change automatically invalidates the cache.
+
+### Column Formats (`column-formats`)
+
+`column-formats` is an optional top-level key in a data block that maps column names
+(case-insensitive) to a `ColumnFormatConfig`:
+
+| Sub-key | Type | Description |
+|---|---|---|
+| `number-format` | `java.text.DecimalFormat` pattern | Applied to any `Number` value in that column, e.g. `"#,##0.00"` |
+
+Columns without an entry fall back to the existing defaults (`%,.2f` for float/decimal types,
+plain `toString()` for integers). The design is intentionally open for future format types
+(`date-format`, `string-transform`, …) by adding fields to `ColumnFormatConfig`.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `markdown/code/datablock/YamlCodeblockConfig.ColumnFormatConfig` | POJO holding format fields |
+| `markdown/code/DataBlockTranslator.createTdTag` | Applies formats when rendering each `<td>` |
+| `markdown/code/DataBlockTranslator.findFormatConfig` | Case-insensitive column-name lookup |
 
 ### Parameter Registry
 
@@ -242,6 +269,7 @@ the commit-status API. No deployment step is included.
 | Add a scheduled job | New class in `scheduled/`, configure via Quartz or `@Scheduled` |
 | Add a column field to database-metadata | `DatabaseMetadataConfig.ColumnConfig` + translator `buildHtmlBlock` + `database-metadata-diff.jte` |
 | Change the diff output layout | Edit `src/main/jte/database-metadata-diff.jte` |
+| Add a new column format type (e.g. date-format) | Add field to `YamlCodeblockConfig.ColumnFormatConfig`, then handle it in `DataBlockTranslator.createTdTag` |
 
 ---
 

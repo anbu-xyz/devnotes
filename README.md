@@ -206,6 +206,35 @@ query: SELECT * FROM users
 ```
 ````
 
+#### Column formatting
+
+Use `column-formats` to control how individual columns are displayed. Each entry maps a column name
+(matched case-insensitively against the JDBC result-set label) to a format config.
+
+**Number formatting** uses [`java.text.DecimalFormat`](https://docs.oracle.com/en/java/docs/api/java.base/java/text/DecimalFormat.html)
+pattern strings:
+
+````
+```data
+source: datasource1
+query: SELECT name, amount, rate FROM trades
+
+column-formats:
+  amount:
+    number-format: "#,##0.00"      # e.g.  1,234,567.89
+  rate:
+    number-format: "0.00000"       # e.g.  0.05678
+```
+````
+
+Columns without a `column-formats` entry fall back to the built-in defaults:
+- `BigDecimal`, `Double`, `Float` → `%,.2f` (two decimal places with thousands separator)
+- Integer/long types → plain `toString()`
+
+| Key | Type | Description |
+|---|---|---|
+| `column-formats.<col>.number-format` | `DecimalFormat` pattern | Format applied to any `Number` value in that column |
+
 #### Database Connection Details
 
 The datasource details are defined in a yaml file under '/config/datasource.yaml'.
