@@ -1,5 +1,6 @@
 package uk.anbu.devnotes.markdown.code.databasemetadata;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
@@ -7,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class DatabaseMetadataConfig {
 
     private TableInfo table;
@@ -27,13 +29,16 @@ public class DatabaseMetadataConfig {
         @JsonProperty("h2-type")
         private String h2Type;
 
+        @JsonProperty("db-type")
+        private String dbType;
+
         @JsonProperty("java-type")
         private String javaType;
 
         private String description;
 
         /** Allowed values and their meanings, e.g. { "PRP": "Perpetual bond" } */
-        private Map<String, String> values = new LinkedHashMap<>();
+        private Map<String, String> values;
     }
 }
 

@@ -57,7 +57,7 @@ src/
       module/              # Business-logic modules (search, SQL executor, Groovy renderer …)
       service/             # Spring services (config, git, pomodoro, scheduler, datasource)
       types/               # Value types (MarkdownFile, CashAmount, …)
-      util/                # Helpers (FileUtil, DateTimeUtil, FileBasedCache)
+      util/                # Helpers (FileUtil, DateTimeUtil, FileBasedCache, JdbcTypeMapper)
       cash/                # Currency / exchange-rate support
       scheduled/           # Quartz-scheduled jobs
     jte/                   # jte view templates (fragments + full pages; `database-metadata-diff.jte` for diff results)
@@ -194,11 +194,21 @@ columns:
     values:
       PRP: Perpetual bond
       EQU: Equity
+  # db-type is used for databases other than H2 / Oracle (e.g. PostgreSQL, MySQL)
+  last_updated:
+    db-type: timestamptz
+    java-type: java.sql.Timestamp
+    description: Last update time
 ```
 
+The three type fields (`oracle-type`, `h2-type`, `db-type`) are mutually exclusive — only the one
+matching the live DB is populated; the others are omitted (Jackson `@JsonInclude(NON_NULL)`).
+
 **Rendering** (`DatabaseMetadataBlockTranslator`): Parses the YAML into a `DatabaseMetadataConfig`
-POJO and builds a j2html card (title bar + `<table class="db-meta-table">`). When
-`table.datasource` is present, an HTMX `<form>` with a "Check against DB ▶" button is appended.
+POJO and builds a j2html card (title bar + `<table class="db-meta-table">`). The rendered columns
+table has seven columns: **Column / Oracle Type / H2 Type / DB Type / Java Type / Description /
+Values**. When `table.datasource` is present, an HTMX `<form>` with a "Check against DB ▶"
+button is appended.
 
 **Diff endpoint** (`DatabaseMetadataController`, `POST /database-metadata/check`): Accepts
 `datasource` + `yamlContent` form params. Opens a JDBC connection via `DriverManagerDataSource`,
@@ -217,10 +227,49 @@ HTMX `hx-swap="innerHTML"`.
 
 | File | Role |
 |---|---|
-| `markdown/code/databasemetadata/DatabaseMetadataConfig.java` | Jackson POJO (`@Data`, `@JsonProperty` for hyphenated keys) |
-| `markdown/code/DatabaseMetadataBlockTranslator.java` | Translates YAML fence → `HtmlBlock` |
+| `markdown/code/databasemetadata/DatabaseMetadataConfig.java` | Jackson POJO (`@Data`, `@JsonInclude(NON_NULL)`, `@JsonProperty` for hyphenated keys including `db-type`) |
+| `markdown/code/DatabaseMetadataBlockTranslator.java` | Translates YAML fence → `HtmlBlock` (7-column table) |
 | `controller/DatabaseMetadataController.java` | `POST /database-metadata/check` diff endpoint |
 | `src/main/jte/database-metadata-diff.jte` | jte fragment template for the diff result |
+
+### Fetch Metadata Tool (`JdbcDatabaseController`)
+
+`GET /database` serves the fetch-metadata UI page. `POST /database/fetch-metadata` connects to a
+configured datasource, introspects all matching tables via JDBC `DatabaseMetaData`, and writes a
+single Markdown file containing one fenced `` ```database-metadata `` block per table.
+
+**Request parameters:**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `configName` | yes | Datasource key from `config/datasource.yaml` |
+| `targetName` | yes | Output filename stem — file is saved as `<docsDirectory>/database/<targetName>.md` |
+| `schemaPattern` | no | JDBC schema pattern (e.g. `PUBLIC`); defaults to all schemas |
+| `tablePattern` | no | JDBC table-name pattern (e.g. `ORD%`); defaults to `%` |
+
+**Output:** One `` ```database-metadata `` block per table, sorted alphabetically, separated by a
+blank line, in the file `<docsDirectory>/database/<targetName>.md`. All column names are
+lowercased. The type field populated depends on the DB product:
+
+| DB product | Type field written |
+|---|---|
+| H2 | `h2-type` |
+| Oracle | `oracle-type` |
+| Any other | `db-type` |
+
+Type-string formatting and JDBC-type → Java-type mapping are handled by `JdbcTypeMapper`:
+- Integer/boolean families: no size suffix (e.g. `INTEGER`, `BOOLEAN`)
+- Decimal types: `TYPE(size,digits)` when `DECIMAL_DIGITS > 0`
+- Other types: `TYPE(size)`
+- H2 2.x `CLOB` is reported as `CHARACTER LARGE OBJECT` → `java.lang.String`
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `controller/JdbcDatabaseController.java` | `GET /database` page + `POST /database/fetch-metadata` endpoint |
+| `util/JdbcTypeMapper.java` | `resolveTypeFieldName`, `formatType`, `toJavaType` static helpers |
+| `src/main/jte/tools/database.jte` | UI form (datasource selector, output name, schema/table pattern filters) |
 
 ### Groovy Execution
 
@@ -270,6 +319,10 @@ the commit-status API. No deployment step is included.
 | Add a column field to database-metadata | `DatabaseMetadataConfig.ColumnConfig` + translator `buildHtmlBlock` + `database-metadata-diff.jte` |
 | Change the diff output layout | Edit `src/main/jte/database-metadata-diff.jte` |
 | Add a new column format type (e.g. date-format) | Add field to `YamlCodeblockConfig.ColumnFormatConfig`, then handle it in `DataBlockTranslator.createTdTag` |
+| Change JDBC type → Java type mapping | Edit `JdbcTypeMapper.toJavaType` |
+| Change how type strings are formatted (e.g. suppress size) | Edit `JdbcTypeMapper.formatType` and `JdbcTypeMapper.isNoSizeType` |
+| Add support for a new DB product in fetch-metadata | Add a `case` to `JdbcTypeMapper.resolveTypeFieldName` and add the new type field to `DatabaseMetadataConfig.ColumnConfig` |
+| Change fetch-metadata output path or format | `JdbcDatabaseController.saveAllTablesAsMarkdownFile` |
 
 ---
 

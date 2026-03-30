@@ -45,6 +45,7 @@ public class DatabaseMetadataBlockTranslator {
                 .with(th().withText("Column"))
                 .with(th().withText("Oracle Type"))
                 .with(th().withText("H2 Type"))
+                .with(th().withText("DB Type"))
                 .with(th().withText("Java Type"))
                 .with(th().withText("Description"))
                 .with(th().withText("Values"));
@@ -64,6 +65,7 @@ public class DatabaseMetadataBlockTranslator {
                     .with(td().withClass("db-meta-col-name").withText(colName))
                     .with(td().withText(col.getOracleType() != null ? col.getOracleType() : ""))
                     .with(td().withText(col.getH2Type() != null ? col.getH2Type() : ""))
+                    .with(td().withText(col.getDbType() != null ? col.getDbType() : ""))
                     .with(td().withText(col.getJavaType() != null ? col.getJavaType() : ""))
                     .with(td().withText(col.getDescription() != null ? col.getDescription() : ""))
                     .with(valuesCell)

@@ -84,9 +84,9 @@ columns:
         // Description is shown
         doc.select(".db-meta-table-desc").text().contains("Store instruments")
 
-        // Header row has 6 columns
+        // Header row has 7 columns (DB Type added after H2 Type)
         def headerCells = doc.select("thead th").collect { it.text() }
-        headerCells == ["Column", "Oracle Type", "H2 Type", "Java Type", "Description", "Values"]
+        headerCells == ["Column", "Oracle Type", "H2 Type", "DB Type", "Java Type", "Description", "Values"]
 
         // One data row per column in the YAML (3 columns)
         def dataRows = doc.select("tbody tr")
@@ -134,13 +134,14 @@ columns:
         def rows = doc.select("tbody tr")
         rows.size() == 1
 
-        // h2-type, java-type and description cells should be empty strings
+        // h2-type, db-type, java-type and description cells should be empty strings
         def cells = rows.first().select("td").collect { it.text() }
         cells[0] == "col1"       // column name
         cells[1] == "number(10)" // oracle-type
         cells[2] == ""           // h2-type (missing)
-        cells[3] == ""           // java-type (missing)
-        cells[4] == ""           // description (missing)
+        cells[3] == ""           // db-type (missing)
+        cells[4] == ""           // java-type (missing)
+        cells[5] == ""           // description (missing)
     }
 
     def "datasource key present adds HTMX check form"() {

@@ -287,7 +287,7 @@ columns:
 ````
 
 The fence renders as a styled documentation card with a title bar and a columns table (Column /
-Oracle Type / H2 Type / Java Type / Description / Values).
+Oracle Type / H2 Type / DB Type / Java Type / Description / Values).
 
 #### Checking documentation against a live database
 
@@ -312,9 +312,42 @@ Clicking it sends the YAML to `POST /database-metadata/check`, which:
 | `table.datasource` | no | Datasource key; enables the diff button |
 | `columns.<name>.oracle-type` | no | Oracle DDL type, e.g. `varchar2(200)` |
 | `columns.<name>.h2-type` | no | H2 DDL type, e.g. `varchar(200)` |
+| `columns.<name>.db-type` | no | DDL type for all other databases (PostgreSQL, MySQL, …) |
 | `columns.<name>.java-type` | no | Fully-qualified Java class |
 | `columns.<name>.description` | no | Human-readable column description |
 | `columns.<name>.values` | no | Map of allowed values to their meanings |
+
+The three type fields (`oracle-type`, `h2-type`, `db-type`) are mutually exclusive — only the one
+matching the target database is populated; the others are omitted.
+
+#### Fetching metadata from a live database
+
+The **Database Metadata Fetcher** tool at `/database` generates a ready-to-use Markdown file from
+a live JDBC datasource. Navigate to `/database`, select a datasource, enter an output name, and
+optionally scope the export with schema/table patterns.
+
+`POST /database/fetch-metadata` parameters:
+
+| Parameter | Required | Description |
+|---|---|---|
+| `configName` | yes | Datasource key from `config/datasource.yaml` |
+| `targetName` | yes | Output filename stem — written to `<docsDirectory>/database/<targetName>.md` |
+| `schemaPattern` | no | JDBC schema pattern (e.g. `PUBLIC`); defaults to all schemas |
+| `tablePattern` | no | JDBC table-name pattern (e.g. `ORD%`); defaults to `%` |
+
+The output file contains one `` ```database-metadata `` block per table, sorted alphabetically
+and separated by a blank line. Column names are lowercased. The type field written depends on the
+database product:
+
+| DB product | Type field written |
+|---|---|
+| H2 | `h2-type` |
+| Oracle | `oracle-type` |
+| Any other (PostgreSQL, MySQL, …) | `db-type` |
+
+After generation, open the file in your wiki, fill in the `description` placeholders, and add
+`values` maps for enum-like columns. The `table.datasource` key is pre-populated so the
+**Check against DB ▶** button works immediately.
 
 ### Constructing dynamic URLs
 

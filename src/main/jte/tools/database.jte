@@ -21,8 +21,17 @@
         </select>
     </div>
     <div class="form-group">
-        <label for="targetName">Target File Name (without .yaml):</label>
-        <input type="text" id="targetName" name="targetName" class="config-input" required>
+        <label for="targetName">Output File Name:</label>
+        <input type="text" id="targetName" name="targetName" class="config-input"
+               placeholder="e.g. mydb  →  database/mydb.md" required>
+    </div>
+    <div class="form-group">
+        <label for="schemaPattern">Schema Pattern <span class="text-muted">(optional)</span>:</label>
+        <input type="text" id="schemaPattern" name="schemaPattern" class="config-input" placeholder="%">
+    </div>
+    <div class="form-group">
+        <label for="tablePattern">Table Pattern <span class="text-muted">(optional)</span>:</label>
+        <input type="text" id="tablePattern" name="tablePattern" class="config-input" placeholder="%">
     </div>
     <button type="submit" class="btn-blue-glow">
         <i class="fas fa-database"></i>Fetch Metadata
