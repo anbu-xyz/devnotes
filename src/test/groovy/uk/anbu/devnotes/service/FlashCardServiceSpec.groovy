@@ -407,5 +407,172 @@ class FlashCardServiceSpec extends Specification {
         expect:
         service.renderMarkdown("   ") == ""
     }
+
+    // =========================================================================
+    // computeStats — reviewedToday
+    // =========================================================================
+
+    def "computeStats reviewedToday counts only cards whose lastReviewed is today"() {
+        given:
+        def nowStr       = LocalDateTime.now(UTC).toString()
+        def yesterdayStr = LocalDateTime.now(UTC).minusDays(1).toString()
+
+        writeCard("topic/card-today.yaml", """\
+question: "Q1"
+answer: "A1"
+lastReviewed: "${nowStr}"
+reviewCount: 1
+correctCount: 1
+""")
+        writeCard("topic/card-yesterday.yaml", """\
+question: "Q2"
+answer: "A2"
+lastReviewed: "${yesterdayStr}"
+reviewCount: 1
+correctCount: 1
+""")
+        writeCard("topic/card-never.yaml", "question: \"Q3\"\nanswer: \"A3\"\n")
+
+        when:
+        def stats = service.computeStats()
+
+        then:
+        stats.size() == 1
+        stats[0].reviewedToday == 1
+    }
+
+    def "computeStats reviewedToday is zero when no cards were reviewed today"() {
+        given:
+        def yesterdayStr = LocalDateTime.now(UTC).minusDays(1).toString()
+        writeCard("topic/old.yaml", """\
+question: "Q"
+answer: "A"
+lastReviewed: "${yesterdayStr}"
+reviewCount: 1
+correctCount: 1
+""")
+
+        when:
+        def stats = service.computeStats()
+
+        then:
+        stats[0].reviewedToday == 0
+    }
+
+    // =========================================================================
+    // computeStats — streak
+    // =========================================================================
+
+    def "computeStats streak counts all consecutive correct cards ordered newest-first"() {
+        given: "three cards, all last-reviewed correctly (reviewCount > 0)"
+        def t1 = LocalDateTime.now(UTC).minusHours(1).toString()
+        def t2 = LocalDateTime.now(UTC).minusHours(2).toString()
+        def t3 = LocalDateTime.now(UTC).minusHours(3).toString()
+
+        writeCard("topic/card1.yaml", """\
+question: "Q1"
+answer: "A1"
+lastReviewed: "${t1}"
+reviewCount: 2
+correctCount: 2
+""")
+        writeCard("topic/card2.yaml", """\
+question: "Q2"
+answer: "A2"
+lastReviewed: "${t2}"
+reviewCount: 3
+correctCount: 3
+""")
+        writeCard("topic/card3.yaml", """\
+question: "Q3"
+answer: "A3"
+lastReviewed: "${t3}"
+reviewCount: 1
+correctCount: 1
+""")
+
+        when:
+        def stats = service.computeStats()
+
+        then:
+        stats[0].currentStreak == 3
+    }
+
+    def "computeStats streak breaks when a card has reviewCount=0 (failed last review)"() {
+        given: "card1 newest (correct), card2 middle (failed, reviewCount reset to 0), card3 oldest (correct)"
+        def t1 = LocalDateTime.now(UTC).minusHours(1).toString()
+        def t2 = LocalDateTime.now(UTC).minusHours(2).toString()
+        def t3 = LocalDateTime.now(UTC).minusHours(3).toString()
+
+        writeCard("topic/card1.yaml", """\
+question: "Q1"
+answer: "A1"
+lastReviewed: "${t1}"
+reviewCount: 1
+correctCount: 3
+""")
+        writeCard("topic/card2.yaml", """\
+question: "Q2"
+answer: "A2"
+lastReviewed: "${t2}"
+reviewCount: 0
+correctCount: 2
+incorrectCount: 1
+""")
+        writeCard("topic/card3.yaml", """\
+question: "Q3"
+answer: "A3"
+lastReviewed: "${t3}"
+reviewCount: 2
+correctCount: 2
+""")
+
+        when:
+        def stats = service.computeStats()
+
+        then:
+        stats[0].currentStreak == 1  // only card1; card2 breaks the streak
+    }
+
+    def "computeStats streak is zero when no cards have been reviewed"() {
+        given:
+        writeCard("topic/unreviewed.yaml", "question: \"Q\"\nanswer: \"A\"\n")
+
+        when:
+        def stats = service.computeStats()
+
+        then:
+        stats[0].currentStreak == 0
+    }
+
+    def "computeStats streak excludes cards from a different topic"() {
+        given: "two topics each with one correct card"
+        def t1 = LocalDateTime.now(UTC).minusHours(1).toString()
+        def t2 = LocalDateTime.now(UTC).minusHours(2).toString()
+
+        writeCard("java/card.yaml", """\
+question: "Q1"
+answer: "A1"
+lastReviewed: "${t1}"
+reviewCount: 1
+correctCount: 1
+""")
+        writeCard("python/card.yaml", """\
+question: "Q2"
+answer: "A2"
+lastReviewed: "${t2}"
+reviewCount: 1
+correctCount: 1
+""")
+
+        when:
+        def stats = service.computeStats()
+        def javaStats  = stats.find { it.topic == "java" }
+        def pythonStats = stats.find { it.topic == "python" }
+
+        then: "each topic's streak is computed independently from its own cards"
+        javaStats.currentStreak  == 1
+        pythonStats.currentStreak == 1
+    }
 }
 
