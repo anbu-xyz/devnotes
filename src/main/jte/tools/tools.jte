@@ -15,8 +15,9 @@
     <a href="/database" class="btn-blue-glow"><i class="fas fa-database"></i>Database Metadata Fetcher</a>
     <a href="/config" class="btn-blue-glow"><i class="fas fa-cog"></i>Config Editor</a>
     <a href="/scheduler" class="btn-blue-glow"><i class="fas fa-calendar-alt"></i>Script Scheduler</a>
-    <a href="/" class="btn-blue-glow"><i class="fas fa-home"></i>Home</a>
 </div>
+<hr>
+<a href="/" class="btn-blue-glow"><i class="fas fa-home"></i>Home</a>
 
 </body>
 </html>

@@ -64,6 +64,7 @@ body {
     border: 1px solid #29b4fd;
     border-radius: 5px;
     width: 80%;
+    height: fit-content;
     max-width: 500px;
     text-align: center;
 }
