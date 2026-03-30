@@ -4,7 +4,8 @@
 
 **devnotes** is a personal knowledge-base tool for developers in corporate environments. It serves
 markdown files as a web application and extends standard markdown with executable code blocks
-(Groovy, SQL, data blocks, PlantUML, Mermaid), Git integration, and a Pomodoro timer.
+(Groovy, SQL, data blocks, PlantUML, Mermaid), Git integration, a Pomodoro timer, and a
+spaced-repetition flash-card system.
 
 - **Language / Runtime:** Java 21, Spring Boot 3.x
 - **Build tool:** Maven (`mvn`)
@@ -56,11 +57,14 @@ src/
         link/              # Link transformers
       module/              # Business-logic modules (search, SQL executor, Groovy renderer …)
       service/             # Spring services (config, git, pomodoro, scheduler, datasource, encryption)
-      types/               # Value types (MarkdownFile, CashAmount, …)
+                           #   FlashCardService.java  — load/save/query cards; delegates SM-2 to Sm2Algorithm
+                           #   Sm2Algorithm.java      — pure stateless SM-2 computation (no I/O, no Spring)
+      types/               # Value types (MarkdownFile, CashAmount, FlashCard, FlashCardStats, …)
       util/                # Helpers (FileUtil, DateTimeUtil, FileBasedCache, JdbcTypeMapper)
       cash/                # Currency / exchange-rate support
       scheduled/           # Quartz-scheduled jobs
     jte/                   # jte view templates (fragments + full pages; `database-metadata-diff.jte` for diff results)
+      flashcards/          # Flash-card UI templates (summary, review, new-card, edit-card)
     resources/
       application.yaml     # Default config (profiles: prod / dev)
       static/              # CSS, JS, images served statically
@@ -309,6 +313,81 @@ loaded as-is when no passphrase is set, and are encrypted on the first save afte
 | `jte/tools/encryption-key.jte` | Passphrase entry UI (status banner, confirm input, Alpine.js mismatch guard) |
 | `<docsDirectory>/config/encryption.salt` | PBKDF2 salt (hex, not secret; generated once; must be backed up) |
 
+### Flash Cards (`FlashCardService` / `Sm2Algorithm`)
+
+Cards are stored as individual YAML files under `<docsDirectory>/config/flashcards/`.  The
+directory hierarchy is the topic tree: a card at `java/streams/lambda-basics.yaml` belongs to
+topic `java/streams`.
+
+**Card YAML fields:**
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `question` | `String` | — | Raw CommonMark markdown text |
+| `answer` | `String` | — | Raw CommonMark markdown text |
+| `lastReviewed` | `LocalDateTime` (ISO-8601) | `null` | Timestamp of most recent review |
+| `nextReview` | `LocalDateTime` (ISO-8601) | `null` | Scheduled next review; `null` = due immediately |
+| `reviewCount` | `int` | `0` | Consecutive correct reviews (reset to 0 on failure) |
+| `correctCount` | `int` | `0` | Cumulative correct reviews |
+| `incorrectCount` | `int` | `0` | Cumulative incorrect reviews |
+| `easeFactor` | `double` | `2.5` | SM-2 ease factor; floor 1.3 |
+| `interval` | `int` | `1` | Days until next review |
+
+`relativePath` and `topic` are populated after loading and annotated `@JsonIgnore` — they are
+never written to the YAML file.
+
+**SM-2 scheduling (`Sm2Algorithm.apply`):**
+
+- Quality ≥ 3 (correct): interval advances (`1 → 6 → round(interval × EF)`), EF adjusted, `reviewCount++`, `correctCount++`.
+- Quality < 3 (failed): interval resets to 1, `reviewCount` resets to 0, `incorrectCount++`.  EF is unchanged on failure.
+- `lastReviewed` ← `now(UTC)`; `nextReview` ← `now + interval days`.
+
+**Quality rating labels** shown to the user:
+
+| Rating | Label | Meaning |
+|---|---|---|
+| 0 | Blackout | Complete blank |
+| 1 | Wrong | Incorrect, remembered after seeing answer |
+| 2 | Forgot | Incorrect but easy when shown |
+| 3 | Hard | Correct with significant difficulty |
+| 4 | Good | Correct after hesitation |
+| 5 | Easy | Perfect, no hesitation |
+
+**REST API (`FlashCardController`):**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/flashcards` | Summary page: global stats + per-topic table |
+| GET | `/flashcards/review[?topic=…]` | Next due card (Alpine.js show/hide answer; keys 0–5 to rate) |
+| POST | `/flashcards/review` | Apply SM-2, save card, redirect to next review |
+| GET | `/flashcards/new[?topic=…]` | Blank new-card form |
+| POST | `/flashcards/new` | Create card YAML, redirect to summary |
+| GET | `/flashcards/edit/{encodedPath}` | Pre-filled edit form |
+| POST | `/flashcards/edit/{encodedPath}` | Save updated question/answer, preserve SM-2 metadata |
+
+`encodedPath` = Base64-URL (no padding) of the card's relative path.  Filename generation for
+new cards slugifies the first 40 chars of the question; duplicates get `-2`, `-3`, … suffixes.
+
+**Stats aggregation (`FlashCardService.computeStats`):**
+
+- `reviewedToday`: cards whose `lastReviewed.toLocalDate().equals(LocalDate.now(UTC))`.
+- `currentStreak`: cards sorted by `lastReviewed` descending; count of the leading consecutive
+  run where `reviewCount > 0` (i.e. last review was correct). Computed independently per topic.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `types/FlashCard.java` | `@Data` POJO; all YAML fields + `@JsonIgnore` `relativePath`/`topic` |
+| `types/FlashCardStats.java` | Java record: per-topic aggregate (total, dueNow, reviewedToday, accuracyPercent, currentStreak) |
+| `service/Sm2Algorithm.java` | Pure stateless SM-2; single public method `FlashCard apply(FlashCard, int)` |
+| `service/FlashCardService.java` | All card I/O, query, stats, markdown rendering, path encoding |
+| `controller/FlashCardController.java` | 7 HTTP endpoints; renders jte templates |
+| `jte/flashcards/summary.jte` | Stats overview + topic tree table |
+| `jte/flashcards/review.jte` | Flip-card UI (Alpine.js show/hide; keyboard shortcuts 0–5) |
+| `jte/flashcards/new-card.jte` | New card form with topic datalist autocomplete |
+| `jte/flashcards/edit-card.jte` | Edit form; preserves SM-2 metadata |
+
 ---
 
 ### Groovy Execution
@@ -368,6 +447,12 @@ the commit-status API. No deployment step is included.
 | Rotate the passphrase / re-key | Enter new passphrase at `/config/encryption-key`; `reEncryptAndSave()` is called automatically |
 | Disable encryption (revert to plain text) | Do not supply passphrase after restart; `saveDataSourceConfigs()` writes plain text when `isKeySet()` is false |
 | Change minimum passphrase length | `EncryptionService.MIN_PASSPHRASE_LEN` constant |
+| Add a field to flash cards | Add to `FlashCard.java`; update `Sm2Algorithm` if it affects scheduling; update `edit-card.jte` if it should be user-editable |
+| Change the SM-2 scheduling formula | Edit `Sm2Algorithm.apply`; update `Sm2AlgorithmSpec` regression tests |
+| Change how flash card stats are computed | Edit `FlashCardService.buildStats` / `computeStreak`; add or update `FlashCardServiceSpec` tests |
+| Add a new flash card endpoint | Add handler to `FlashCardController`; add a jte template if needed |
+| Change flash card storage location | Edit `FlashCardService.flashcardsRoot()` |
+| Change flash card filename generation | Edit `FlashCardController.slugify` |
 
 ---
 

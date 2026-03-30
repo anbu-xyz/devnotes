@@ -24,6 +24,7 @@ By a corporate environment, I mean:
    - CSV tables
    - HTML
    - Text
+* Spaced-repetition flash cards for active recall of notes
 
 ### Groovy Scripting
 
@@ -450,6 +451,77 @@ Javascript script tags can be embedded in markdown files using the following syn
 
 If the filename starts with dot (e.g. `./script.js`) the file will be searched in the 
 same directory as the markdown file.
+
+### Flash Cards
+
+Flash cards let you turn any piece of knowledge into an active-recall exercise using the
+**SM-2 spaced-repetition algorithm**.  Cards are stored as plain YAML files under
+`<docsDirectory>/config/flashcards/`, so they are tracked in Git alongside your notes.
+
+Navigate to **`/flashcards`** to see the summary dashboard.
+
+#### Card storage
+
+Each card is a YAML file.  The file's path within `config/flashcards/` defines its **topic**:
+a card at `java/streams/lambda-basics.yaml` belongs to topic `java/streams`.
+
+```yaml
+question: |
+  What is the type of a lambda that takes **two ints** and returns a `boolean`?
+answer: |
+  `BiPredicate<Integer, Integer>` — or any custom `@FunctionalInterface`.
+
+  - Use `Predicate<T>` for one argument
+  - Use `BiPredicate<T,U>` for two arguments
+lastReviewed: "2026-03-28T14:05:00"
+nextReview:   "2026-04-03T14:05:00"
+reviewCount:   5
+correctCount:  4
+incorrectCount: 1
+easeFactor:    2.36
+interval:      6
+```
+
+Both `question` and `answer` are rendered as **CommonMark markdown** at review time, so code
+fences, bold/italic, bullet lists, and inline code all work.  New cards created through the UI
+need no pre-existing SM-2 fields — all scheduling fields default to their initial values.
+
+#### Reviewing cards
+
+Start a review session at `GET /flashcards/review` (all topics) or
+`GET /flashcards/review?topic=java/streams` (single topic).
+
+- The **question** is shown immediately.
+- Click **Show Answer** (or press **Space**) to reveal the answer.
+- Rate your recall with one of six buttons or press the matching key **0–5**:
+
+| Key | Label    | Meaning                              |
+|-----|----------|--------------------------------------|
+| 0   | Blackout | Complete blank — no memory at all    |
+| 1   | Wrong    | Incorrect, remembered after seeing the answer |
+| 2   | Forgot   | Incorrect but easy when shown        |
+| 3   | Hard     | Correct with significant difficulty  |
+| 4   | Good     | Correct after hesitation             |
+| 5   | Easy     | Perfect, no hesitation               |
+
+After rating, the SM-2 algorithm updates the card's ease factor and schedules the next review,
+then the next due card is shown automatically.
+
+#### Managing cards
+
+| Action | URL |
+|--------|-----|
+| Summary / stats dashboard | `GET /flashcards` |
+| Start review (all topics) | `GET /flashcards/review` |
+| Start review (one topic)  | `GET /flashcards/review?topic=<topic>` |
+| Create a new card         | `GET /flashcards/new` |
+| Edit an existing card     | `GET /flashcards/edit/<encodedPath>` (link on review page) |
+
+#### No migration required
+
+Dropping plain YAML files (with only `question` and `answer`) into the `config/flashcards/`
+directory is enough to create new cards.  Missing SM-2 fields default to
+`easeFactor=2.5`, `interval=1`, and all counts to `0`.
 
 ## Building and Running
 
