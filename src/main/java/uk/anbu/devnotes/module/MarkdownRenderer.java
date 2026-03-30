@@ -15,6 +15,7 @@ import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.HtmlRenderer;
 import uk.anbu.devnotes.markdown.check.SymbolTransformer;
 import uk.anbu.devnotes.markdown.code.CodeBlockTransformer;
+import uk.anbu.devnotes.markdown.code.DatabaseMetadataBlockTranslator;
 import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 import uk.anbu.devnotes.markdown.image.LocalImageTransformer;
 import uk.anbu.devnotes.markdown.link.LocalLinkTransformer;
@@ -37,6 +38,7 @@ public class MarkdownRenderer {
     private final DatasourceConfigResolver dataSourceConfigResolver;
     private final SqlExecutor sqlExecutor;
     private final ConfigService configService;
+    private final DatabaseMetadataBlockTranslator databaseMetadataBlockTranslator;
 
     public String convertMarkdown(Markdown markdown, MarkdownFile markdownFile, Map<String, String> queryParams) {
         String markdownText = markdown.text();
@@ -61,6 +63,7 @@ public class MarkdownRenderer {
                 .dataSourceConfigResolver(dataSourceConfigResolver)
                 .configService(configService)
                 .parameterRegistry(parameterRegistry)
+                .databaseMetadataBlockTranslator(databaseMetadataBlockTranslator)
                 .build()
                 .transform(document);
         LocalLinkTransformer.transform(document);

@@ -35,6 +35,7 @@ public class CodeBlockTransformer {
     private final DatasourceConfigResolver dataSourceConfigResolver;
     private final ConfigService configService;
     private final ParameterRegistry parameterRegistry;
+    private final DatabaseMetadataBlockTranslator databaseMetadataBlockTranslator;
 
     public void transform(Node current) {
         // If there is a next sibling, process it
@@ -76,6 +77,8 @@ public class CodeBlockTransformer {
             renderMermaidBlock(codeBlock);
         } else if (codeType.matches("^plantuml\\(([^)]*)\\)$") || codeType.matches("^plantuml$")) {
             renderPlantUmlResult(codeBlock);
+        } else if (codeType.equals("database-metadata")) {
+            renderDatabaseMetadataBlock(codeBlock);
         } else {
             log.debug("unhandled code type: {}, delegating to default handler", codeType);
         }
@@ -95,6 +98,20 @@ public class CodeBlockTransformer {
             log.error("Error rendering Data result", e);
             Node newNodeToInsert = new Text("Error rendering SQL result: " + e.getMessage());
             codeBlock.insertBefore(newNodeToInsert);
+        }
+    }
+
+    private void renderDatabaseMetadataBlock(FencedCodeBlock codeBlock) {
+        String yaml = codeBlock.getLiteral();
+        try {
+            var translator = databaseMetadataBlockTranslator != null
+                    ? databaseMetadataBlockTranslator
+                    : new DatabaseMetadataBlockTranslator();
+            translator.translate(yaml).ifPresent(codeBlock::insertBefore);
+            codeBlock.setInfo("hidden-database-metadata");
+        } catch (Exception e) {
+            log.error("Error rendering database-metadata block", e);
+            codeBlock.insertBefore(new Text("Error rendering database-metadata block: " + e.getMessage()));
         }
     }
 

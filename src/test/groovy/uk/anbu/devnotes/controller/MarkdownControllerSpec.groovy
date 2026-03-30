@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus
 import spock.lang.Specification
 import uk.anbu.devnotes.module.GroovyRenderer
 import uk.anbu.devnotes.module.MarkdownRenderer
+import uk.anbu.devnotes.markdown.code.DatabaseMetadataBlockTranslator
 import uk.anbu.devnotes.module.sql.SqlExecutor
 import uk.anbu.devnotes.service.ConfigService
 
@@ -32,7 +33,7 @@ class MarkdownControllerSpec extends Specification {
         sqlExecutor.convertToHtmlTable(_ as SqlExecutor.HtmlTableRequest) >> "html-table"
         groovyRenderer = new GroovyRenderer((r) -> Optional.empty())
         dataSourceConfigResolver = x -> new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "testUser", "testPass", "org.test.Driver")
-        markdownRenderer = new MarkdownRenderer(groovyRenderer, dataSourceConfigResolver, sqlExecutor, configService)
+        markdownRenderer = new MarkdownRenderer(groovyRenderer, dataSourceConfigResolver, sqlExecutor, configService, new DatabaseMetadataBlockTranslator())
         var codeResolver = new DirectoryCodeResolver(Paths.get("src/main/jte"))
         templateEngine = TemplateEngine.create(codeResolver, Paths.get("src/main/jte"), ContentType.Html)
         configService = Mock(ConfigService)

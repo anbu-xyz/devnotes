@@ -49,7 +49,9 @@ src/
     java/uk/anbu/devnotes/
       controller/          # Spring MVC controllers (one per feature area)
       markdown/            # Markdown AST visitors / transformers
-        code/              # Code-block translators (Groovy, SQL, data, Mermaid, parameter)
+        code/              # Code-block translators (Groovy, SQL, data, Mermaid, parameter, database-metadata)
+          datablock/       # YamlCodeblockConfig POJO + ParameterRegistry
+          databasemetadata/ # DatabaseMetadataConfig POJO
         image/             # Local-image path rewriting
         link/              # Link transformers
       module/              # Business-logic modules (search, SQL executor, Groovy renderer …)
@@ -58,7 +60,7 @@ src/
       util/                # Helpers (FileUtil, DateTimeUtil, FileBasedCache)
       cash/                # Currency / exchange-rate support
       scheduled/           # Quartz-scheduled jobs
-    jte/                   # jte view templates
+    jte/                   # jte view templates (fragments + full pages; `database-metadata-diff.jte` for diff results)
     resources/
       application.yaml     # Default config (profiles: prod / dev)
       static/              # CSS, JS, images served statically
@@ -107,6 +109,7 @@ myDatasource:
    - `` ```mermaid `` → `MermaidBlockTranslator`
    - `` ```plantuml `` → `PlantumlController` (rendered server-side to PNG via URL)
    - `` ```parameter `` → `ParameterBlockTranslator` (populates a shared `ParameterRegistry`)
+   - `` ```database-metadata `` → `DatabaseMetadataBlockTranslator` (YAML schema doc → HTML card; optional live DB diff via HTMX)
 3. The modified AST is rendered back to HTML and injected into the jte page template.
 
 ### Data Blocks (`DataBlockTranslator`)
@@ -139,6 +142,58 @@ The checksum covers the query, parameters, and shared parameter registry state.
 request-scoped `ParameterRegistry`. These shared parameters are automatically merged into every
 subsequent `DataBlockTranslator` execution on the same page (shared params **override** YAML-local
 params).
+
+### Database Metadata Blocks (`DatabaseMetadataBlockTranslator`)
+
+Database metadata blocks use a YAML mini-language inside a `` ```database-metadata `` fence to
+document a single DB table inline in a wiki page:
+
+```yaml
+table:
+  name: instrument
+  description: Store instruments used in trading.
+  datasource: myDatasource      # optional — enables the "Check against DB" button
+columns:
+  name:
+    oracle-type: varchar2(200)
+    h2-type: varchar(200)
+    java-type: java.lang.String
+    description: Instrument name
+  type:
+    oracle-type: varchar2(20)
+    h2-type: varchar(20)
+    java-type: java.lang.String
+    description: Instrument type
+    values:
+      PRP: Perpetual bond
+      EQU: Equity
+```
+
+**Rendering** (`DatabaseMetadataBlockTranslator`): Parses the YAML into a `DatabaseMetadataConfig`
+POJO and builds a j2html card (title bar + `<table class="db-meta-table">`). When
+`table.datasource` is present, an HTMX `<form>` with a "Check against DB ▶" button is appended.
+
+**Diff endpoint** (`DatabaseMetadataController`, `POST /database-metadata/check`): Accepts
+`datasource` + `yamlContent` form params. Opens a JDBC connection via `DriverManagerDataSource`,
+calls `DatabaseMetaData.getColumns()`, then computes three sets:
+
+| Set | Meaning |
+|---|---|
+| **Matched** | Columns in both the wiki and the live DB |
+| **Undocumented** | Live DB columns absent from the wiki |
+| **Ghost** | Wiki columns absent from the live DB |
+
+The response is rendered by `database-metadata-diff.jte` and swapped into the target `<div>` via
+HTMX `hx-swap="innerHTML"`.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `markdown/code/databasemetadata/DatabaseMetadataConfig.java` | Jackson POJO (`@Data`, `@JsonProperty` for hyphenated keys) |
+| `markdown/code/DatabaseMetadataBlockTranslator.java` | Translates YAML fence → `HtmlBlock` |
+| `controller/DatabaseMetadataController.java` | `POST /database-metadata/check` diff endpoint |
+| `src/main/jte/database-metadata-diff.jte` | jte fragment template for the diff result |
 
 ### Groovy Execution
 
@@ -185,6 +240,8 @@ the commit-status API. No deployment step is included.
 | Add a new jte view template | `src/main/jte/` (dev profile) or `src/main/resources/templates/` |
 | Change cache key logic | `YamlCodeblockConfig.checksum()` in `markdown/code/datablock/` |
 | Add a scheduled job | New class in `scheduled/`, configure via Quartz or `@Scheduled` |
+| Add a column field to database-metadata | `DatabaseMetadataConfig.ColumnConfig` + translator `buildHtmlBlock` + `database-metadata-diff.jte` |
+| Change the diff output layout | Edit `src/main/jte/database-metadata-diff.jte` |
 
 ---
 

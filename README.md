@@ -224,9 +224,73 @@ datasource2:
   driverClassName: "org.postgresql.Driver"
 ```
 
+### Database Metadata blocks
+
+Database metadata blocks document a single database table — its columns, types, descriptions and
+allowed values — directly inside a markdown file.
+
+````
+```database-metadata
+table:
+  name: instrument
+  description: Store instruments used in trading.
+  datasource: myDatasource        # optional — enables "Check against DB"
+columns:
+  name:
+    oracle-type: varchar2(200)
+    h2-type: varchar(200)
+    java-type: java.lang.String
+    description: Instrument name
+  type:
+    oracle-type: varchar2(20)
+    h2-type: varchar(20)
+    java-type: java.lang.String
+    description: Instrument type
+    values:
+      PRP: Perpetual bond
+      EQU: Equity
+  created_at:
+    oracle-type: date
+    h2-type: timestamp
+    java-type: java.time.LocalDateTime
+    description: Record creation timestamp
+```
+````
+
+The fence renders as a styled documentation card with a title bar and a columns table (Column /
+Oracle Type / H2 Type / Java Type / Description / Values).
+
+#### Checking documentation against a live database
+
+When the optional `table.datasource` key is set to a datasource name defined in
+`config/datasource.yaml`, a **Check against DB ▶** button is appended to the card.
+Clicking it sends the YAML to `POST /database-metadata/check`, which:
+
+1. Opens a JDBC connection to the named datasource.
+2. Calls `DatabaseMetaData.getColumns()` to discover the live schema.
+3. Compares documented columns against live columns (case-insensitive).
+4. Returns an inline diff fragment showing:
+   - ✅ Columns that match
+   - ⚠️ DB columns not yet documented in the wiki
+   - 🚫 Documented columns no longer present in the DB
+
+#### Column field reference
+
+| Field | Required | Description |
+|---|---|---|
+| `table.name` | yes | Exact DB table name |
+| `table.description` | no | Human-readable table description |
+| `table.datasource` | no | Datasource key; enables the diff button |
+| `columns.<name>.oracle-type` | no | Oracle DDL type, e.g. `varchar2(200)` |
+| `columns.<name>.h2-type` | no | H2 DDL type, e.g. `varchar(200)` |
+| `columns.<name>.java-type` | no | Fully-qualified Java class |
+| `columns.<name>.description` | no | Human-readable column description |
+| `columns.<name>.values` | no | Map of allowed values to their meanings |
+
 ### Constructing dynamic URLs
 
 To construct a dynamic URL, you can use the following code:
+
 
 ```html
 Source: <input type="text" id="source" name="source"><br>
