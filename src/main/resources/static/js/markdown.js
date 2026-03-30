@@ -149,6 +149,7 @@ document.body.addEventListener('htmx:afterSwap', evt => {
             setupDataBlockControls()
             setupDataBlockMenuToggle()
             setupDataBlockSourceToggle()
+            setupDataBlockErrorRetry()
         },
         markdownEditor: () => {
             attachEasyMdeOn('easyMdeEditor')
@@ -394,6 +395,65 @@ function setupDataBlockSourceToggle() {
                 link.removeAttribute('aria-disabled');
             });
         }
+    });
+}
+
+function setupDataBlockErrorRetry() {
+    if (window._dataBlockErrorRetryAttached) return;
+    window._dataBlockErrorRetryAttached = true;
+
+    document.body.addEventListener('click', function (e) {
+        const btn = e.target.closest('.data-block-retry-btn');
+        if (!btn) return;
+
+        const dataBlock = btn.closest('.data-block');
+        if (!dataBlock) return;
+
+        const datablockId = dataBlock.getAttribute('data-datablock-id');
+        const datablockParams = dataBlock.getAttribute('data-datablock-params') || '{}';
+        const mdEl = document.getElementById('md-file-path');
+        const markdownFile = mdEl ? mdEl.textContent.trim() : '';
+
+        if (!datablockId || !markdownFile) {
+            console.error('Missing datablockId or markdownFile for retry');
+            return;
+        }
+
+        let paramsObj = {};
+        try {
+            paramsObj = JSON.parse(datablockParams);
+        } catch (ex) {
+            console.error('Invalid datablock params JSON', ex);
+        }
+
+        btn.disabled = true;
+        btn.textContent = '⏳';
+
+        fetch('/datablock/fragment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ markdownFile, datablockId, params: paramsObj })
+        }).then(async (resp) => {
+            if (!resp.ok) {
+                const txt = await resp.text().catch(() => resp.statusText);
+                throw new Error(txt || resp.statusText);
+            }
+            return resp.text();
+        }).then((html) => {
+            const container = document.createElement('div');
+            container.innerHTML = html;
+            const newBlock = container.querySelector('.data-block') || container.firstElementChild;
+            if (newBlock) {
+                dataBlock.replaceWith(newBlock);
+                setupDataBlockControls();
+                setupDataBlockErrorRetry();
+            }
+        }).catch((err) => {
+            btn.disabled = false;
+            btn.textContent = '\u21BB Retry';
+            console.error('Data block retry failed', err);
+        });
     });
 }
 

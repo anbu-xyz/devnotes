@@ -46,7 +46,7 @@ public class DataBlockRefreshController {
         if (markdownFile.isEmpty() || markdownFile.get().toString().isBlank()
                 || datablockId.isEmpty() || datablockId.get().toString().isBlank()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("missing markdownFile or datablockId");
+                    .body("missing markdownFile or datablockId in input");
         }
         MarkdownFile mdFile = new MarkdownFile(Path.of(configService.getDocsDirectory()),
                 markdownFile.get().toString());
@@ -83,7 +83,7 @@ public class DataBlockRefreshController {
                 if (node instanceof FencedCodeBlock fcb) {
                     String info = fcb.getInfo();
                     if (info != null && info.trim().equals("data")) {
-                        var textHtml = constructResponse(fcb, datablockId.get().toString(), mdFile, params);
+                        var textHtml = constructResponseOfDatablock(fcb, datablockId.get().toString(), mdFile, params);
                         if (textHtml != null) {
                             return textHtml;
                         }
@@ -99,14 +99,16 @@ public class DataBlockRefreshController {
         }
     }
 
-    private ResponseEntity<String> constructResponse(FencedCodeBlock fcb,
-                                                     String datablockId,
-                                                     MarkdownFile mdFile,
-                                                     Map<String, Object> params) {
+    private ResponseEntity<String> constructResponseOfDatablock(FencedCodeBlock fcb,
+                                                                String datablockId,
+                                                                MarkdownFile mdFile,
+                                                                Map<String, Object> params) {
         String yaml = fcb.getLiteral();
         try {
             YamlCodeblockConfig config = yamlMapper.readValue(yaml, YamlCodeblockConfig.class);
-            String checksum = config.checksum();
+            String checksum = config.checksum(params);
+            log.debug("Checking datablock with checksum {} against requested {}", checksum,
+                datablockId);
             if (datablockId.equals(checksum)) {
                 // Found matching block; render fresh (bypass cache)
                 var resolver = (DatasourceConfigResolver) configService::getDataSourceConfig;

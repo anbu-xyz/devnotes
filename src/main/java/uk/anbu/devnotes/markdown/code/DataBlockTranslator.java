@@ -119,9 +119,19 @@ public class DataBlockTranslator {
                 return Optional.empty();
             }
         } catch (Exception e) {
-            ContainerTag<?> err = div().withText("Error executing query against datasource '" + dataSourceName
-                    + "' (" + mdName + "): " + e.getMessage());
-            return Optional.of(toHtmlBlock(err));
+            String errorMessage = "Error executing query against datasource '" + dataSourceName
+                + "' (" + mdName + "): " + e.getMessage();
+            ContainerTag<?> err = div().withClass("data-block-sql-error")
+                .with(
+                    span().withText(errorMessage),
+                    button().withType("button").withClass("data-block-retry-btn").withText("\u21BB Retry")
+                );
+            String checksum = config.checksum(sharedParams);
+            ContainerTag<?> wrapper = div().withClass("data-block")
+                .attr("data-datablock-id", checksum)
+                .attr("data-datablock-params", jsonStringify(sharedParams))
+                .with(err);
+            return Optional.of(toHtmlBlock(wrapper));
         }
 
         // If columns not provided, infer from first row
@@ -483,7 +493,7 @@ public class DataBlockTranslator {
             return transposedViewTable(config, rows, maxRowsReached, sharedParams);
         }
         var tableTag = table()
-                .attr("data-datablock-id", config.checksum())
+                .attr("data-datablock-id", config.checksum(sharedParams))
                 .attr("data-datablock-params", jsonStringify(sharedParams))
                 .withClass("data-block-table");
 
@@ -544,9 +554,9 @@ public class DataBlockTranslator {
                                                  boolean maxRowsReached,
                                                  Map<String, Object> sharedParams) {
         var tableTag = table()
-                .attr("data-datablock-id", config.checksum())
+                .attr("data-datablock-id", config.checksum(sharedParams))
                 .attr("data-datablock-params", jsonStringify(sharedParams))
-                .withClass("data-block-table transpose");
+                .withClasses("data-block-table", "transpose");
         var columns = rows.getFirst().keySet();
         for (String col : columns) {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
@@ -574,7 +584,9 @@ public class DataBlockTranslator {
                         ));
             }
         }
-        return toHtmlBlock(tableTag);
+        var dataBlock = div().withClass("data-block")
+            .with(tableTag);
+        return toHtmlBlock(dataBlock);
     }
 
     private static String jsonStringify(Map<String, Object> sharedParams) {

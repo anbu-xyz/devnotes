@@ -203,6 +203,39 @@ td td, th td, td th, th th {
     font-size: larger;
 }
 
+.data-block-sql-error {
+    color: #e57373;
+    background-color: #1e1a1a;
+    border-left: 3px solid #c62828;
+    padding: 8px 12px;
+    margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: 2px;
+}
+
+.data-block-retry-btn {
+    background: #1e2a3a;
+    color: #90caf9;
+    border: 1px solid #90caf9;
+    border-radius: 4px;
+    padding: 3px 10px;
+    cursor: pointer;
+    font-size: 0.88em;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.data-block-retry-btn:hover {
+    background: #2a3a4a;
+}
+
+.data-block-retry-btn:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
 th, td.column-name {
     background-color: #333;
 }
