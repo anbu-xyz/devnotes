@@ -782,6 +782,21 @@ table.sortable .btn-blue-glow i {
     color: #d29922;
 }
 
+/* Inline warning shown in markdown when a datasource password is encrypted but no key is set */
+.enc-key-needed {
+    background-color: rgba(210, 153, 34, 0.12);
+    border: 1px solid #d29922;
+    border-radius: 4px;
+    color: #d29922;
+    padding: 0.6rem 0.9rem;
+    margin: 0.5rem 0;
+    font-size: 0.85rem;
+}
+.enc-key-needed a {
+    color: #d29922;
+    text-decoration: underline;
+}
+
 /* Encryption key page helpers */
 .encryption-hint {
     color: #a0a0a0;

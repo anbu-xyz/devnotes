@@ -29,36 +29,47 @@ public class EncryptionKeyController {
 
     /** Renders the passphrase-entry form. */
     @GetMapping("/config/encryption-key")
-    public ResponseEntity<String> encryptionKeyPage() {
-        return renderPage(null);
+    public ResponseEntity<String> encryptionKeyPage(
+            @RequestParam(required = false) String returnTo) {
+        return renderPage(null, returnTo);
     }
 
     /**
      * Accepts the user's passphrase, derives the AES-256 key via PBKDF2, re-encrypts all
-     * datasource passwords, saves config, then redirects to {@code /config}.
+     * datasource passwords, saves config, then redirects to {@code returnTo} (if safe) or
+     * {@code /config}.
      * On validation failure the form is re-rendered with an error message.
      */
     @PostMapping("/config/encryption-key")
-    public ResponseEntity<String> setEncryptionKey(@RequestParam String passphrase) {
+    public ResponseEntity<String> setEncryptionKey(
+            @RequestParam String passphrase,
+            @RequestParam(required = false) String returnTo) {
         Path saltFile = Path.of(configService.getDocsDirectory(), "config", "encryption.salt");
         try {
             encryptionService.setPassphrase(passphrase, saltFile);
             configService.reEncryptAndSave();
+            String redirect = isSafeReturnTo(returnTo) ? returnTo : "/config";
             return ResponseEntity.status(HttpStatus.FOUND)
-                .header(HttpHeaders.LOCATION, "/config")
+                .header(HttpHeaders.LOCATION, redirect)
                 .build();
         } catch (IllegalArgumentException e) {
-            return renderPage(e.getMessage());
+            return renderPage(e.getMessage(), returnTo);
         } catch (Exception e) {
             log.error("Failed to activate encryption passphrase", e);
-            return renderPage("Failed to activate passphrase: " + e.getMessage());
+            return renderPage("Failed to activate passphrase: " + e.getMessage(), returnTo);
         }
     }
 
-    private ResponseEntity<String> renderPage(String errorMessage) {
+    /** Accepts only safe same-origin relative paths — prevents open-redirect abuse. */
+    private static boolean isSafeReturnTo(String returnTo) {
+        return returnTo != null && returnTo.startsWith("/") && !returnTo.contains("://");
+    }
+
+    private ResponseEntity<String> renderPage(String errorMessage, String returnTo) {
         var model = new HashMap<String, Object>();
         model.put("keySet", encryptionService.isKeySet());
         model.put("errorMessage", errorMessage);
+        model.put("returnTo", returnTo != null ? returnTo : "");
         TemplateOutput output = new StringOutput();
         templateEngine.render("tools/encryption-key.jte", model, output);
         return ResponseEntity.status(HttpStatus.OK).body(output.toString());

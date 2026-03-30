@@ -11,6 +11,7 @@ import uk.anbu.devnotes.module.GroovyRenderer;
 import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
+import uk.anbu.devnotes.service.EncryptionService;
 import uk.anbu.devnotes.types.MarkdownFile;
 import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 
@@ -182,6 +183,19 @@ public class CodeBlockTransformer {
         var dataSourceConfig = dataSourceConfigResolver.resolve(configMap.get("datasource"));
         if (dataSourceConfig == null) {
             newNodeToInsert = new Text("Error: DataSource '" + configMap.get("datasource") + "' not defined in config.");
+        } else if (EncryptionService.isEncrypted(dataSourceConfig.password())
+                && configService != null && !configService.isEncryptionKeySet()) {
+            String dsName = configMap.get("datasource");
+            String returnUrl = markdownFile != null
+                    ? "/markdown?filename=" + URLEncoder.encode(markdownFile.fileName(), StandardCharsets.UTF_8)
+                    : null;
+            String href = "/config/encryption-key"
+                    + (returnUrl != null ? "?returnTo=" + URLEncoder.encode(returnUrl, StandardCharsets.UTF_8) : "");
+            HtmlBlock warning = new HtmlBlock();
+            warning.setLiteral("<div class=\"enc-key-needed\"><i class=\"fas fa-lock\"></i>"
+                    + " Datasource '" + dsName + "' has an encrypted password. "
+                    + "<a href=\"" + href + "\">Enter encryption key</a></div>\n");
+            newNodeToInsert = warning;
         } else {
             try {
                 newNodeToInsert = processSqlCodeBlock(sql, dataSourceConfig, markdownFile, maxRows);

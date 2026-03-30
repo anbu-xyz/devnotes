@@ -21,10 +21,13 @@ import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 import uk.anbu.devnotes.markdown.code.datablock.YamlCodeblockConfig;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
+import uk.anbu.devnotes.service.EncryptionService;
 import uk.anbu.devnotes.types.MarkdownFile;
 import uk.anbu.devnotes.util.FileBasedCache;
 
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -66,6 +69,22 @@ public class DataBlockTranslator {
         var html = readCached(markdownFile, config, sharedParams);
         if (html.isPresent()) {
             return html;
+        }
+
+        // Guard: if datasource has an encrypted password but no key is loaded, show warning
+        String source = config.getSource();
+        if (source != null && !source.isEmpty()) {
+            String dataSourceName = source.contains("/") ? source.substring(source.lastIndexOf('/') + 1) : source;
+            if (dataSourceConfigResolver != null) {
+                ConfigService.DataSourceConfig ds = dataSourceConfigResolver.resolve(dataSourceName);
+                if (ds != null && EncryptionService.isEncrypted(ds.password())
+                        && !configService.isEncryptionKeySet()) {
+                    String returnUrl = markdownFile != null
+                            ? "/markdown?filename=" + URLEncoder.encode(markdownFile.fileName(), StandardCharsets.UTF_8)
+                            : null;
+                    return Optional.of(buildEncKeyNeededBlock(dataSourceName, returnUrl));
+                }
+            }
         }
 
         html = directlyRead(config, mdName, sharedParams);
@@ -665,6 +684,20 @@ public class DataBlockTranslator {
         var html = new HtmlBlock();
         html.setLiteral(tag.render());
         return html;
+    }
+
+    private static HtmlBlock buildEncKeyNeededBlock(String dsName, String returnUrl) {
+        String href = "/config/encryption-key"
+                + (returnUrl != null && !returnUrl.isBlank()
+                   ? "?returnTo=" + URLEncoder.encode(returnUrl, StandardCharsets.UTF_8)
+                   : "");
+        ContainerTag<?> warning = div().withClass("enc-key-needed")
+                .with(
+                        i().withClass("fas fa-lock"),
+                        text(" Datasource '" + dsName + "' has an encrypted password. "),
+                        a("Enter encryption key").withHref(href)
+                );
+        return toHtmlBlock(warning);
     }
 
     @SneakyThrows

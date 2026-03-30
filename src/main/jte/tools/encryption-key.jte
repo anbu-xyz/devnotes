@@ -1,5 +1,6 @@
 @param boolean keySet
 @param String errorMessage
+@param String returnTo
 
 <!DOCTYPE html>
 <html>
@@ -28,8 +29,13 @@
     </div>
 @endif
 
-<form action="/config/encryption-key" method="post" class="config-form"
+<form action="/config/encryption-key"
+      method="post" class="config-form"
       x-data="{ passphrase: '', confirm: '', get mismatch() { return confirm.length > 0 && passphrase !== confirm } }">
+
+    @if(returnTo != null && !returnTo.isEmpty())
+        <input type="hidden" name="returnTo" value="${returnTo}">
+    @endif
 
     <div class="config-section">
         <h2>${keySet ? "Change Passphrase" : "Activate Encryption"}</h2>

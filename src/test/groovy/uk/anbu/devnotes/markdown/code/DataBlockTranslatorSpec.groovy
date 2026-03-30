@@ -459,4 +459,28 @@ column-formats:
         def cells = doc.select("tbody tr.data-block-data-row td")
         cells[2].text() == "1,234,567.89"
     }
+
+    def "returns enc-key-needed warning when datasource password is encrypted and key is not set"() {
+        given:
+        def mockConfigService = Mock(ConfigService)
+        mockConfigService.isEncryptionKeySet() >> false
+        mockConfigService.getSqlMaxRows() >> 100
+        def ds = new ConfigService.DataSourceConfig("myDs", "jdbc:h2:mem:", "sa", "ENC(abc123==)", "org.h2.Driver")
+        def encResolver = { String name -> ds } as DatasourceConfigResolver
+        def encTranslator = new DataBlockTranslator(encResolver, mockConfigService, null)
+        def yaml = '''
+source: myDs
+query: SELECT 1
+'''
+
+        when:
+        def result = encTranslator.renderDataBlock(yaml, null)
+
+        then:
+        result.isPresent()
+        result.get() instanceof org.commonmark.node.HtmlBlock
+        (result.get() as org.commonmark.node.HtmlBlock).literal.contains("enc-key-needed")
+        (result.get() as org.commonmark.node.HtmlBlock).literal.contains("/config/encryption-key")
+        (result.get() as org.commonmark.node.HtmlBlock).literal.contains("myDs")
+    }
 }

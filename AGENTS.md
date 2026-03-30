@@ -304,14 +304,39 @@ ENC( Base64URL( [12-byte IV] ++ [ciphertext + 16-byte GCM tag] ) )
 **Backward compatibility:** plain-text passwords in an existing `datasource.yaml` are
 loaded as-is when no passphrase is set, and are encrypted on the first save after activation.
 
+**Inline warning when key is absent (`enc-key-needed`):**
+
+When a markdown page contains a `data` or `sql(...)` block that references a datasource whose
+password is stored as `ENC(…)` but no passphrase has been entered yet, the render pipeline
+detects this early and emits an amber warning `<div class="enc-key-needed">` in place of the
+query result.  Detection test (used in `DataBlockTranslator` and `CodeBlockTransformer`):
+
+```java
+EncryptionService.isEncrypted(ds.password()) && !configService.isEncryptionKeySet()
+```
+
+The warning contains a direct link to `/config/encryption-key?returnTo=<current-page-url>`.
+After the passphrase is accepted the controller redirects back to the original page.
+
+`EncryptionKeyController` accepts an optional `returnTo` query/body parameter on both GET and
+POST.  `isSafeReturnTo()` validates it (must start with `/`, must not contain `://`) before
+using it as the redirect target.  `returnTo` is passed to `encryption-key.jte` via the model
+and embedded as a hidden `<input>` in the form — **not** in the `action` URL — to avoid Spring
+receiving the parameter twice (once from the URL query-string and once from the POST body) and
+joining the values with a comma.
+
+The `POST /datablock/fragment` refresh path (`DataBlockRefreshController`) applies the same guard
+and returns `200 text/html` with the warning HTML so HTMX can swap it in.
+
 **Key files:**
 
 | File | Role |
 |---|---|
 | `service/EncryptionService.java` | AES-256-GCM encrypt/decrypt; PBKDF2 key derivation; salt file management |
-| `controller/EncryptionKeyController.java` | `GET/POST /config/encryption-key` — passphrase form and activation |
-| `jte/tools/encryption-key.jte` | Passphrase entry UI (status banner, confirm input, Alpine.js mismatch guard) |
+| `controller/EncryptionKeyController.java` | `GET/POST /config/encryption-key` — passphrase form and activation; `returnTo` redirect support |
+| `jte/tools/encryption-key.jte` | Passphrase entry UI (status banner, confirm input, Alpine.js mismatch guard; hidden `returnTo` input) |
 | `<docsDirectory>/config/encryption.salt` | PBKDF2 salt (hex, not secret; generated once; must be backed up) |
+| `static/css/style.css` | `.enc-key-needed` amber warning class |
 
 ### Flash Cards (`FlashCardService` / `Sm2Algorithm`)
 
@@ -447,6 +472,8 @@ the commit-status API. No deployment step is included.
 | Rotate the passphrase / re-key | Enter new passphrase at `/config/encryption-key`; `reEncryptAndSave()` is called automatically |
 | Disable encryption (revert to plain text) | Do not supply passphrase after restart; `saveDataSourceConfigs()` writes plain text when `isKeySet()` is false |
 | Change minimum passphrase length | `EncryptionService.MIN_PASSPHRASE_LEN` constant |
+| Change the encrypted-password inline warning style | Edit `.enc-key-needed` in `static/css/style.css` |
+| Change where the user lands after entering passphrase | Modify `isSafeReturnTo()` in `EncryptionKeyController` or the `returnUrl` built in `DataBlockTranslator.buildEncKeyNeededBlock()` |
 | Add a field to flash cards | Add to `FlashCard.java`; update `Sm2Algorithm` if it affects scheduling; update `edit-card.jte` if it should be user-editable |
 | Change the SM-2 scheduling formula | Edit `Sm2Algorithm.apply`; update `Sm2AlgorithmSpec` regression tests |
 | Change how flash card stats are computed | Edit `FlashCardService.buildStats` / `computeStreak`; add or update `FlashCardServiceSpec` tests |
