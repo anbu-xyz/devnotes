@@ -4,12 +4,14 @@ import org.commonmark.node.Node
 import spock.lang.Specification
 import spock.lang.TempDir
 import spock.lang.Shared
+import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry
+import uk.anbu.devnotes.markdown.code.datablock.YamlCodeblockConfig
 import uk.anbu.devnotes.service.ConfigService
 import uk.anbu.devnotes.service.DatasourceConfigResolver
-import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry
 import uk.anbu.devnotes.types.MarkdownFile
 import org.jsoup.Jsoup
 
+import java.nio.file.Files
 import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
@@ -48,6 +50,10 @@ class DataBlockTranslatorSpec extends Specification {
 
         conn.createStatement().execute("CREATE TABLE prices (id INT PRIMARY KEY, label VARCHAR(100), amount DECIMAL(14,4), rate DOUBLE)")
         conn.createStatement().execute("INSERT INTO prices (id, label, amount, rate) VALUES (1, 'Widget', 1234567.8900, 0.05678)")
+
+        conn.createStatement().execute("CREATE TABLE events (id INT PRIMARY KEY, label VARCHAR(100), event_date DATE, event_ts TIMESTAMP, amount BIGINT, score DOUBLE, active BOOLEAN)")
+        conn.createStatement().execute("INSERT INTO events VALUES (1, 'Alpha', DATE '2025-03-01', TIMESTAMP '2025-03-01 09:00:00', 1000, 3.14, true)")
+        conn.createStatement().execute("INSERT INTO events VALUES (2, 'Beta',  DATE '2025-06-15', TIMESTAMP '2025-06-15 18:30:00', 2000, 2.71, false)")
 
         resolver = ({ String name -> new ConfigService.DataSourceConfig(name, url, username, password, driver) } as DatasourceConfigResolver)
         configService = Mock(ConfigService)
@@ -482,5 +488,526 @@ query: SELECT 1
         (result.get() as org.commonmark.node.HtmlBlock).literal.contains("enc-key-needed")
         (result.get() as org.commonmark.node.HtmlBlock).literal.contains("/config/encryption-key")
         (result.get() as org.commonmark.node.HtmlBlock).literal.contains("myDs")
+    }
+
+    // =========================================================================
+    // Error paths
+    // =========================================================================
+
+    def "malformed YAML input returns error block"() {
+        given:
+        String yaml = "this: {is: :bad: yaml"
+
+        when:
+        def result = translator.renderDataBlock(yaml, null)
+
+        then:
+        result.isPresent()
+        result.get().literal.contains("Error parsing data block YAML")
+    }
+
+    def "missing source returns error block"() {
+        given:
+        String yaml = "query: SELECT 1"
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, null)
+
+        then:
+        result.isPresent()
+        result.get().literal.contains("source")
+    }
+
+    def "unknown datasource returns error block"() {
+        given:
+        String yaml = '''
+source: nonExistentDs
+query: SELECT 1
+'''
+        def nullResolver = { String name -> null } as DatasourceConfigResolver
+        def t = new DataBlockTranslator(nullResolver, configService, new ParameterRegistry(), null)
+
+        when:
+        def result = t.renderDataBlock(yaml, null)
+
+        then:
+        result.isPresent()
+        result.get().literal.contains("nonExistentDs")
+        result.get().literal.contains("not configured")
+    }
+
+    def "missing query returns error block"() {
+        given:
+        String yaml = "source: datasource1"
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, null)
+
+        then:
+        result.isPresent()
+        result.get().literal.contains("query")
+    }
+
+    def "SQL execution error returns error block with retry button"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT * FROM nonexistent_table_xyz
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, null)
+
+        then:
+        result.isPresent()
+        result.get().literal.contains("data-block-sql-error")
+        result.get().literal.contains("Retry")
+        result.get().literal.contains("nonexistent_table_xyz")
+    }
+
+    // =========================================================================
+    // combine-single-column
+    // =========================================================================
+
+    def "single-column result is combined into one cell by default"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT name FROM users ORDER BY id
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "single-col.md"))
+
+        then:
+        result.isPresent()
+        def literal = result.get().literal
+        literal.contains("data-block-combined")
+        literal.contains("Alice")
+        literal.contains("Bob")
+        literal.contains("Charlie")
+    }
+
+    def "combine-single-column false renders a normal table for a single column"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT name FROM users ORDER BY id
+combine-single-column: false
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "single-col-false.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        doc.select("tbody tr.data-block-data-row").size() == 3
+        !result.get().literal.contains("data-block-combined")
+    }
+
+    // =========================================================================
+    // source with "/" path prefix
+    // =========================================================================
+
+    def "source with path prefix extracts the datasource name correctly"() {
+        given:
+        String yaml = '''
+source: database/datasource1
+query: SELECT id, name FROM users ORDER BY id
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "path-source.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        doc.select("tbody tr.data-block-data-row").size() == 3
+    }
+
+    // =========================================================================
+    // hide-row-count: true
+    // =========================================================================
+
+    def "hide-row-count true suppresses row count even when threshold is exceeded"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT * FROM users
+hide-row-count: true
+hide-row-count-when-less-than: 1
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "hide-count.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        doc.select("tfoot tr.data-block-status-row").size() == 0
+    }
+
+    // =========================================================================
+    // transposed view with max-rows reached
+    // =========================================================================
+
+    def "transposed view shows max-limit footer when row limit is reached"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name FROM users ORDER BY id
+transpose: true
+options:
+  row-limit: 2
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "transposed-limit.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def statusRow = doc.select("tr.data-block-status-row")
+        statusRow.size() == 1
+        statusRow.first().text().contains("max limit reached")
+    }
+
+    // =========================================================================
+    // Cache hit
+    // =========================================================================
+
+    def "pre-existing cache file is returned without re-executing the query"() {
+        given:
+        def markdownFile = new MarkdownFile(tempDir, "cache-hit-test.md")
+        String yaml = '''
+source: datasource1
+query: SELECT id FROM users WHERE id = 1
+'''
+        // Render once to populate the cache
+        translator.renderDataBlock(yaml, markdownFile)
+
+        // Overwrite the .output file with custom HTML
+        String customHtml = "<div class='from-cache'>CACHED_CONTENT</div>"
+        def cacheFile = Files.list(tempDir)
+                .filter { it.toString().endsWith(".output") }
+                .findFirst()
+                .get()
+        Files.writeString(cacheFile, customHtml)
+
+        when:
+        def result = translator.renderDataBlock(yaml, markdownFile)
+
+        then:
+        result.isPresent()
+        result.get().literal == customHtml
+    }
+
+    // =========================================================================
+    // renderDataBlockFreshFromYaml
+    // =========================================================================
+
+    def "renderDataBlockFreshFromYaml renders query result"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, name FROM users WHERE id = 1
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlockFreshFromYaml(yaml, null, [:])
+
+        then:
+        result.isPresent()
+        result.get().literal.contains("Alice")
+    }
+
+    def "renderDataBlockFreshFromYaml with bad YAML returns error block"() {
+        given:
+        String yaml = "this: {is: :bad"
+
+        when:
+        def result = translator.renderDataBlockFreshFromYaml(yaml, null, [:])
+
+        then:
+        result.isPresent()
+        result.get().literal.contains("Error parsing data block YAML for refresh")
+    }
+
+    // =========================================================================
+    // executeQueryForExport
+    // =========================================================================
+
+    def "executeQueryForExport streams all rows without row limit"() {
+        given:
+        def config = new YamlCodeblockConfig()
+        config.source = "datasource1"
+        config.query = "SELECT id, name FROM users ORDER BY id"
+
+        when:
+        registry.clear()
+        def names = translator.executeQueryForExport(config, [:]) { rs ->
+            def list = []
+            while (rs.next()) { list << rs.getString("name") }
+            list
+        }
+
+        then:
+        names == ["Alice", "Bob", "Charlie"]
+    }
+
+    def "executeQueryForExport throws IllegalArgumentException for missing source"() {
+        given:
+        def config = new YamlCodeblockConfig()
+
+        when:
+        translator.executeQueryForExport(config, [:]) { rs -> null }
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    def "executeQueryForExport throws IllegalArgumentException for unknown datasource"() {
+        given:
+        def config = new YamlCodeblockConfig()
+        config.source = "unknown_ds"
+        def t = new DataBlockTranslator({ String name -> null } as DatasourceConfigResolver,
+                configService, new ParameterRegistry(), null)
+
+        when:
+        t.executeQueryForExport(config, [:]) { rs -> null }
+
+        then:
+        thrown(IllegalArgumentException)
+    }
+
+    // =========================================================================
+    // Parameter type coercions
+    // =========================================================================
+
+    def "long parameter type filters correctly"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, label FROM events WHERE amount = :val
+parameters:
+  val:
+    type: long
+    value: 1000
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "long-param.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Alpha"
+    }
+
+    def "double parameter type filters correctly"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, label FROM events WHERE score > :val
+parameters:
+  val:
+    type: double
+    value: 3.0
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "double-param.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Alpha"
+    }
+
+    def "decimal parameter type filters correctly"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, label FROM events WHERE amount >= :val
+parameters:
+  val:
+    type: decimal
+    value: 2000
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "decimal-param.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Beta"
+    }
+
+    def "boolean parameter type filters correctly"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, label FROM events WHERE active = :flag
+parameters:
+  flag:
+    type: boolean
+    value: true
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "bool-param.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Alpha"
+    }
+
+    def "date parameter type filters correctly"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, label FROM events WHERE event_date = :dt
+parameters:
+  dt:
+    type: date
+    value: "2025-03-01"
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "date-param.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Alpha"
+    }
+
+    def "timestamp parameter type (LocalDateTime format) filters correctly"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, label FROM events WHERE event_ts = :ts
+parameters:
+  ts:
+    type: timestamp
+    value: "2025-06-15T18:30:00"
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "ts-param.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Beta"
+    }
+
+    def "timestamp parameter type (LocalDate-as-midnight format) filters correctly"() {
+        given:
+        // event_ts for id=1 is '2025-03-01 09:00:00'; midnight won't match it,
+        // so we use a range query: event_ts >= :ts AND event_ts < :ts2
+        String yaml = '''
+source: datasource1
+query: SELECT id, label FROM events WHERE event_ts >= :ts AND event_ts < :ts2
+parameters:
+  ts:
+    type: timestamp
+    value: "2025-03-01"
+  ts2:
+    type: timestamp
+    value: "2025-03-02"
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "ts-date-param.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Alpha"
+    }
+
+    def "string parameter type filters correctly"() {
+        given:
+        String yaml = '''
+source: datasource1
+query: SELECT id, label FROM events WHERE label = :lbl
+parameters:
+  lbl:
+    type: string
+    value: "Beta"
+'''
+
+        when:
+        registry.clear()
+        def result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "string-param.md"))
+
+        then:
+        result.isPresent()
+        def doc = Jsoup.parse(result.get().literal)
+        def rows = doc.select("tbody tr.data-block-data-row")
+        rows.size() == 1
+        rows[0].select("td")[1].text() == "Beta"
+    }
+
+    // =========================================================================
+    // enc-key-needed returnTo URL includes markdown file path
+    // =========================================================================
+
+    def "enc-key-needed block includes returnTo URL encoding the markdown filename"() {
+        given:
+        def mockConfigService = Mock(ConfigService)
+        mockConfigService.isEncryptionKeySet() >> false
+        mockConfigService.getSqlMaxRows() >> 100
+        def ds = new ConfigService.DataSourceConfig("secured", "jdbc:h2:mem:", "sa", "ENC(xyz==)", "org.h2.Driver")
+        def encResolver = { String name -> ds } as DatasourceConfigResolver
+        def encTranslator = new DataBlockTranslator(encResolver, mockConfigService, null, null)
+        String yaml = '''
+source: secured
+query: SELECT 1
+'''
+
+        when:
+        def result = encTranslator.renderDataBlock(yaml, new MarkdownFile(tempDir, "my-notes.md"))
+
+        then:
+        result.isPresent()
+        def literal = result.get().literal
+        literal.contains("enc-key-needed")
+        literal.contains("returnTo=")
+        literal.contains("my-notes.md")
     }
 }
