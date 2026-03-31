@@ -147,22 +147,10 @@ public class DataBlockTranslator {
             }
             cleanNullColumns(rows);
             if (rows.isEmpty() || rows.getFirst().isEmpty()) {
-                return Optional.empty();
+                return Optional.of(toHtmlBlock(span()));
             }
         } catch (Exception e) {
-            String errorMessage = "Error executing query against datasource '" + dataSourceName
-                + "' (" + mdName + "): " + e.getMessage();
-            ContainerTag<?> err = div().withClass("data-block-sql-error")
-                .with(
-                    span().withText(errorMessage),
-                    button().withType("button").withClass("data-block-retry-btn").withText("\u21BB Retry")
-                );
-            String checksum = config.checksum(sharedParams);
-            ContainerTag<?> wrapper = div().withClass("data-block")
-                .attr("data-datablock-id", checksum)
-                .attr("data-datablock-params", jsonStringify(sharedParams))
-                .with(err);
-            return Optional.of(toHtmlBlock(wrapper));
+            return errorBlock(config, mdName, sharedParams, e.getMessage(), dataSourceName);
         }
 
         // If columns not provided, infer from first row
@@ -184,8 +172,28 @@ public class DataBlockTranslator {
             return buildFromTemplate(columns, rows, dataSourceName, mdName, templateContent);
         }
 
-        HtmlBlock node = htmlFallbackTable(config, rows, maxRowsReached, sharedParams, exchangeRateService);
+        HtmlBlock node = htmlFallbackTable(config, rows, maxRowsReached, sharedParams);
         return Optional.of(node);
+    }
+
+    private static Optional<Node> errorBlock(YamlCodeblockConfig config, String mdName,
+                                                   Map<String, Object> sharedParams, String errMessage,
+                                                   String dataSourceName) {
+        String errorMessage = "Error executing query against datasource '" + dataSourceName
+            + "' (" + mdName + "): " + errMessage;
+        ContainerTag<?> err = div().withClass("data-block-sql-error")
+            .with(
+                span().withText(errorMessage),
+                button().withType("button")
+                    .withClass("data-block-retry-btn")
+                    .withText("\u21BB Retry")
+            );
+        String checksum = config.checksum(sharedParams);
+        ContainerTag<?> wrapper = div().withClass("data-block")
+            .attr("data-datablock-id", checksum)
+            .attr("data-datablock-params", jsonStringify(sharedParams))
+            .with(err);
+        return Optional.of(toHtmlBlock(wrapper));
     }
 
     private static Optional<Node> readCached(MarkdownFile markdownFile, YamlCodeblockConfig config, Map<String, Object> sharedParams) {
@@ -519,10 +527,9 @@ public class DataBlockTranslator {
     private static HtmlBlock htmlFallbackTable(YamlCodeblockConfig config,
                                                List<LinkedHashMap<String, Object>> rows,
                                                boolean maxRowsReached,
-                                               Map<String, Object> sharedParams,
-                                               ExchangeRateService exchangeRateService) {
+                                               Map<String, Object> sharedParams) {
         if (config.isTranspose()) {
-            return transposedViewTable(config, rows, maxRowsReached, sharedParams, exchangeRateService);
+            return transposedViewTable(config, rows, maxRowsReached, sharedParams);
         }
         var tableTag = table()
                 .attr("data-datablock-id", config.checksum(sharedParams))
@@ -551,7 +558,7 @@ public class DataBlockTranslator {
         for (Map<String, Object> row : rows) {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
             for (String col : columns) {
-                rowTag.with(createTdTag(col, row, config.getColumnFormats(), exchangeRateService));
+                rowTag.with(createTdTag(col, row, config.getColumnFormats()));
             }
             tbodyTag.with(rowTag);
         }
@@ -584,8 +591,7 @@ public class DataBlockTranslator {
     private static HtmlBlock transposedViewTable(YamlCodeblockConfig config,
                                                  List<LinkedHashMap<String, Object>> rows,
                                                  boolean maxRowsReached,
-                                                 Map<String, Object> sharedParams,
-                                                 ExchangeRateService exchangeRateService) {
+                                                 Map<String, Object> sharedParams) {
         var tableTag = table()
                 .attr("data-datablock-id", config.checksum(sharedParams))
                 .attr("data-datablock-params", jsonStringify(sharedParams))
@@ -595,7 +601,7 @@ public class DataBlockTranslator {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
             rowTag.with(th().withText(col));
             for (Map<String, Object> row : rows) {
-                rowTag.with(createTdTag(col, row, config.getColumnFormats(), exchangeRateService));
+                rowTag.with(createTdTag(col, row, config.getColumnFormats()));
             }
             tableTag.with(rowTag);
         }
@@ -631,20 +637,8 @@ public class DataBlockTranslator {
         }
     }
 
-    private static Map<String, Object> jsonStringToMap(String jsonString) {
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            @SuppressWarnings("unchecked")
-            Map<String, Object> map = mapper.readValue(jsonString, Map.class);
-            return map;
-        } catch (Exception e) {
-            return Collections.emptyMap();
-        }
-    }
-
     private static TdTag createTdTag(String col, Map<String, Object> row,
-                                      Map<String, YamlCodeblockConfig.ColumnFormatConfig> columnFormats,
-                                      ExchangeRateService exchangeRateService) {
+                                      Map<String, YamlCodeblockConfig.ColumnFormatConfig> columnFormats) {
         Object v = row.get(col);
 
         // Currency-symbol column conversion
