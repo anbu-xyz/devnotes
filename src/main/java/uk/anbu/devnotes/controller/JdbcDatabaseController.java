@@ -76,54 +76,92 @@ public class JdbcDatabaseController {
             String schemaPattern,
             String tablePattern) throws SQLException {
 
-        Map<String, DatabaseMetadataConfig> result = new LinkedHashMap<>();
-        String effectiveTablePattern = tablePattern != null ? tablePattern : "%";
+        var effectiveTablePattern = tablePattern != null && !tablePattern.isBlank() ? tablePattern : "%";
 
-        try (Connection conn = DriverManager.getConnection(dbConfig.url(), dbConfig.username(), dbConfig.password())) {
-            DatabaseMetaData dbMetaData = conn.getMetaData();
-            String dbProductName = dbMetaData.getDatabaseProductName();
-            String typeFieldName = JdbcTypeMapper.resolveTypeFieldName(dbProductName);
+        try (var conn = DriverManager.getConnection(dbConfig.url(), dbConfig.username(), dbConfig.password())) {
+            var dbMetaData    = conn.getMetaData();
+            var dbProductName = dbMetaData.getDatabaseProductName();
+            var typeFieldName = JdbcTypeMapper.resolveTypeFieldName(dbProductName);
+            return fetchAllTables(dbMetaData, configName, schemaPattern, effectiveTablePattern,
+                dbProductName, typeFieldName);
+        }
+    }
 
-            try (ResultSet rs = dbMetaData.getTables(null, schemaPattern, effectiveTablePattern, new String[]{"TABLE"})) {
-                while (rs.next()) {
-                    String tableName = rs.getString("TABLE_NAME");
-                    String schema    = rs.getString("TABLE_SCHEM");
+    private Map<String, DatabaseMetadataConfig> fetchAllTables(
+            DatabaseMetaData dbMetaData,
+            String configName,
+            String schemaPattern,
+            String tablePattern,
+            String dbProductName,
+            String typeFieldName) throws SQLException {
 
-                    DatabaseMetadataConfig config = new DatabaseMetadataConfig();
-                    DatabaseMetadataConfig.TableInfo tableInfo = new DatabaseMetadataConfig.TableInfo();
-                    tableInfo.setName(tableName.toLowerCase());
-                    tableInfo.setDatasource(configName);
-                    config.setTable(tableInfo);
-
-                    Map<String, DatabaseMetadataConfig.ColumnConfig> columns = new LinkedHashMap<>();
-                    try (ResultSet columnRs = dbMetaData.getColumns(null, schema, tableName, "%")) {
-                        while (columnRs.next()) {
-                            String columnName = columnRs.getString("COLUMN_NAME").toLowerCase();
-                            String typeName   = columnRs.getString("TYPE_NAME");
-                            int    size       = columnRs.getInt("COLUMN_SIZE");
-                            int    digits     = columnRs.getInt("DECIMAL_DIGITS");
-
-                            DatabaseMetadataConfig.ColumnConfig colConfig = new DatabaseMetadataConfig.ColumnConfig();
-                            String typeStr = JdbcTypeMapper.formatType(dbProductName, typeName, size, digits);
-
-                            switch (typeFieldName) {
-                                case "h2-type"     -> colConfig.setH2Type(typeStr);
-                                case "oracle-type" -> colConfig.setOracleType(typeStr);
-                                default            -> colConfig.setDbType(typeStr);
-                            }
-
-                            colConfig.setJavaType(JdbcTypeMapper.toJavaType(typeName));
-                            columns.put(columnName, colConfig);
-                        }
-                    }
-
-                    config.setColumns(columns);
-                    result.put(tableName.toLowerCase(), config);
-                }
+        var result = new LinkedHashMap<String, DatabaseMetadataConfig>();
+        try (var rs = dbMetaData.getTables(null, schemaPattern, tablePattern, new String[]{"TABLE"})) {
+            while (rs.next()) {
+                var tableName = rs.getString("TABLE_NAME"); // preserve original case for subsequent JDBC calls
+                var schema    = rs.getString("TABLE_SCHEM");
+                result.put(tableName.toLowerCase(), buildTableConfig(dbMetaData, schema, tableName, configName, dbProductName, typeFieldName));
             }
         }
-
         return result;
+    }
+
+    private DatabaseMetadataConfig buildTableConfig(
+            DatabaseMetaData dbMetaData,
+            String schema,
+            String tableName,
+            String configName,
+            String dbProductName,
+            String typeFieldName) throws SQLException {
+
+        var config = new DatabaseMetadataConfig();
+        config.setTable(buildTableInfo(tableName.toLowerCase(), configName));
+        config.setColumns(fetchColumns(dbMetaData, schema, tableName, dbProductName, typeFieldName));
+        return config;
+    }
+
+    private DatabaseMetadataConfig.TableInfo buildTableInfo(String tableName, String configName) {
+        var tableInfo = new DatabaseMetadataConfig.TableInfo();
+        tableInfo.setName(tableName);
+        tableInfo.setDatasource(configName);
+        return tableInfo;
+    }
+
+    private Map<String, DatabaseMetadataConfig.ColumnConfig> fetchColumns(
+            DatabaseMetaData dbMetaData,
+            String schema,
+            String tableName,
+            String dbProductName,
+            String typeFieldName) throws SQLException {
+
+        var columns = new LinkedHashMap<String, DatabaseMetadataConfig.ColumnConfig>();
+        try (var columnRs = dbMetaData.getColumns(null, schema, tableName, "%")) {
+            while (columnRs.next()) {
+                var columnName = columnRs.getString("COLUMN_NAME").toLowerCase();
+                columns.put(columnName, buildColumnConfig(columnRs, dbProductName, typeFieldName));
+            }
+        }
+        return columns;
+    }
+
+    private DatabaseMetadataConfig.ColumnConfig buildColumnConfig(
+            ResultSet columnRs,
+            String dbProductName,
+            String typeFieldName) throws SQLException {
+
+        var typeName  = columnRs.getString("TYPE_NAME");
+        var size      = columnRs.getInt("COLUMN_SIZE");
+        var digits    = columnRs.getInt("DECIMAL_DIGITS");
+        var typeStr   = JdbcTypeMapper.formatType(dbProductName, typeName, size, digits);
+
+        var colConfig = new DatabaseMetadataConfig.ColumnConfig();
+        switch (typeFieldName) {
+            case "h2-type"     -> colConfig.setH2Type(typeStr);
+            case "oracle-type" -> colConfig.setOracleType(typeStr);
+            default            -> colConfig.setDbType(typeStr);
+        }
+        colConfig.setJavaType(JdbcTypeMapper.toJavaType(typeName));
+        return colConfig;
     }
 
     private String saveAllTablesAsMarkdownFile(Map<String, DatabaseMetadataConfig> tables,
