@@ -574,5 +574,128 @@ correctCount: 1
         javaStats.currentStreak  == 1
         pythonStats.currentStreak == 1
     }
+
+    // =========================================================================
+    // pickRandomCards
+    // =========================================================================
+
+    def "pickRandomCards returns empty list when n=0"() {
+        given:
+        writeCard("java/card.yaml", minimalCard())
+
+        expect:
+        service.pickRandomCards(null, 0).isEmpty()
+    }
+
+    def "pickRandomCards returns empty list when n is negative"() {
+        given:
+        writeCard("java/card.yaml", minimalCard())
+
+        expect:
+        service.pickRandomCards(null, -1).isEmpty()
+    }
+
+    def "pickRandomCards returns all cards when n exceeds total"() {
+        given:
+        writeCard("a.yaml", minimalCard("Q1", "A1"))
+        writeCard("b.yaml", minimalCard("Q2", "A2"))
+
+        when:
+        def result = service.pickRandomCards(null, 100)
+
+        then:
+        result.size() == 2
+    }
+
+    def "pickRandomCards returns exactly n cards when more cards exist"() {
+        given:
+        (1..8).each { i -> writeCard("card${i}.yaml", minimalCard("Q${i}", "A${i}")) }
+
+        when:
+        def result = service.pickRandomCards(null, 3)
+
+        then:
+        result.size() == 3
+    }
+
+    def "pickRandomCards places due cards before future cards"() {
+        given:
+        def future = LocalDateTime.now(UTC).plusDays(7).toString()
+        writeCard("future.yaml",  "question: \"F\"\nanswer: \"A\"\nnextReview: \"${future}\"\n")
+        writeCard("due-null.yaml", minimalCard("DueNull", "A"))
+
+        when:
+        def result = service.pickRandomCards(null, 2)
+
+        then:
+        result.size() == 2
+        result[0].relativePath == "due-null.yaml"
+        result[1].relativePath == "future.yaml"
+    }
+
+    def "pickRandomCards orders future cards by nextReview ascending"() {
+        given:
+        def soon   = LocalDateTime.now(UTC).plusDays(1).toString()
+        def later  = LocalDateTime.now(UTC).plusDays(5).toString()
+        def latest = LocalDateTime.now(UTC).plusDays(10).toString()
+        writeCard("latest.yaml", "question: \"Q\"\nanswer: \"A\"\nnextReview: \"${latest}\"\n")
+        writeCard("soon.yaml",   "question: \"Q\"\nanswer: \"A\"\nnextReview: \"${soon}\"\n")
+        writeCard("later.yaml",  "question: \"Q\"\nanswer: \"A\"\nnextReview: \"${later}\"\n")
+
+        when:
+        def result = service.pickRandomCards(null, 3)
+
+        then:
+        result*.relativePath == ["soon.yaml", "later.yaml", "latest.yaml"]
+    }
+
+    def "pickRandomCards respects topic filter"() {
+        given:
+        def future = LocalDateTime.now(UTC).plusDays(7).toString()
+        writeCard("java/card.yaml",   minimalCard("Java Q", "A"))
+        writeCard("python/card.yaml", minimalCard("Python Q", "A"))
+
+        when:
+        def result = service.pickRandomCards("java", 10)
+
+        then:
+        result.size() == 1
+        result[0].topic == "java"
+    }
+
+    def "pickRandomCards includes sub-topics when filtering by parent"() {
+        given:
+        writeCard("java/streams/card.yaml",          minimalCard("Q1", "A"))
+        writeCard("java/streams/advanced/card.yaml", minimalCard("Q2", "A"))
+        writeCard("python/card.yaml",                minimalCard("Q3", "A"))
+
+        when:
+        def result = service.pickRandomCards("java/streams", 10)
+
+        then:
+        result.size() == 2
+        result.every { it.topic.startsWith("java/streams") }
+    }
+
+    def "pickRandomCards with no cards returns empty list"() {
+        expect:
+        service.pickRandomCards(null, 5).isEmpty()
+    }
+
+    def "pickRandomCards due cards are all present when n equals due count"() {
+        given:
+        def past = LocalDateTime.now(UTC).minusDays(1).toString()
+        writeCard("due1.yaml", "question: \"Q\"\nanswer: \"A\"\nnextReview: \"${past}\"\n")
+        writeCard("due2.yaml", "question: \"Q\"\nanswer: \"A\"\nnextReview: \"${past}\"\n")
+        def future = LocalDateTime.now(UTC).plusDays(3).toString()
+        writeCard("future.yaml", "question: \"Q\"\nanswer: \"A\"\nnextReview: \"${future}\"\n")
+
+        when:
+        def result = service.pickRandomCards(null, 2)
+
+        then:
+        result.size() == 2
+        result.every { it.getNextReview() == null || !it.getNextReview().isAfter(LocalDateTime.now(UTC)) }
+    }
 }
 

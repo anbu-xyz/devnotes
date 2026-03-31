@@ -6,9 +6,9 @@ import gg.jte.resolve.DirectoryCodeResolver
 import org.jsoup.Jsoup
 import spock.lang.Specification
 import spock.lang.TempDir
+import org.springframework.mock.web.MockHttpSession
 import uk.anbu.devnotes.service.ConfigService
 import uk.anbu.devnotes.service.FlashCardService
-import uk.anbu.devnotes.types.FlashCard
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -430,6 +430,205 @@ interval: 6
         "C++ and @annotations!"       | "c-and-annotations.yaml"
         ""                            | "card.yaml"
         "a" * 50                      | "a" * 40 + ".yaml"
+    }
+
+    // =========================================================================
+    // GET /flashcards/review/random — start session
+    // =========================================================================
+
+    def "GET /flashcards/review/random?n=N redirects to /flashcards/review/random and stores queue in session"() {
+        given:
+        writeCard("java/card1.yaml", minimalYaml("Q1", "A1"))
+        writeCard("java/card2.yaml", minimalYaml("Q2", "A2"))
+        def session = new MockHttpSession()
+
+        when:
+        def response = controller.randomReviewGet(2, "", session)
+
+        then:
+        response.statusCode.value() == 302
+        response.headers.getFirst("Location") == "/flashcards/review/random"
+        (session.getAttribute("FC_RANDOM_QUEUE") as List).size() == 2
+        session.getAttribute("FC_RANDOM_TOTAL") == 2
+    }
+
+    def "GET /flashcards/review/random without n shows first card from session queue"() {
+        given:
+        writeCard("java/card.yaml", minimalYaml("What is encapsulation?", "Hiding internal state"))
+        def session = new MockHttpSession()
+        // Start the session first
+        controller.randomReviewGet(1, "", session)
+
+        when:
+        def response = controller.randomReviewGet(null, "", session)
+
+        then:
+        response.statusCode.value() == 200
+        response.body.contains("What is encapsulation?")
+        response.body.contains("Random Review")
+    }
+
+    def "GET /flashcards/review/random without session shows session-complete page"() {
+        given:
+        def session = new MockHttpSession()
+
+        when:
+        def response = controller.randomReviewGet(null, "", session)
+
+        then:
+        response.statusCode.value() == 200
+        response.body.contains("Session complete")
+    }
+
+    def "GET /flashcards/review/random with empty queue shows session-complete page"() {
+        given:
+        def session = new MockHttpSession()
+        session.setAttribute("FC_RANDOM_QUEUE", new ArrayList<String>())
+        session.setAttribute("FC_RANDOM_TOTAL", 3)
+
+        when:
+        def response = controller.randomReviewGet(null, "", session)
+
+        then:
+        response.statusCode.value() == 200
+        response.body.contains("Session complete")
+        response.body.contains("3")   // session total shown
+    }
+
+    def "GET /flashcards/review/random?n limits to n cards even when more exist"() {
+        given:
+        (1..10).each { i -> writeCard("card${i}.yaml", minimalYaml("Q${i}", "A${i}")) }
+        def session = new MockHttpSession()
+
+        when:
+        controller.randomReviewGet(4, "", session)
+
+        then:
+        (session.getAttribute("FC_RANDOM_QUEUE") as List).size() == 4
+        session.getAttribute("FC_RANDOM_TOTAL") == 4
+    }
+
+    def "GET /flashcards/review/random?n=5 with topic filter stores only matching cards"() {
+        given:
+        writeCard("java/card.yaml",   minimalYaml("Java Q", "Java A"))
+        writeCard("python/card.yaml", minimalYaml("Python Q", "Python A"))
+        def session = new MockHttpSession()
+
+        when:
+        controller.randomReviewGet(10, "java", session)
+
+        then:
+        def queue = session.getAttribute("FC_RANDOM_QUEUE") as List<String>
+        queue.size() == 1
+        queue[0].startsWith("java/")
+    }
+
+    def "GET /flashcards/review/random shows progress counter"() {
+        given:
+        writeCard("a.yaml", minimalYaml("Q1", "A1"))
+        writeCard("b.yaml", minimalYaml("Q2", "A2"))
+        writeCard("c.yaml", minimalYaml("Q3", "A3"))
+        def session = new MockHttpSession()
+        controller.randomReviewGet(3, "", session)
+
+        when:
+        def response = controller.randomReviewGet(null, "", session)
+
+        then:
+        response.statusCode.value() == 200
+        // Card 1 of 3
+        response.body.contains("1")
+        response.body.contains("3")
+    }
+
+    // =========================================================================
+    // POST /flashcards/review/random — submit rating
+    // =========================================================================
+
+    def "POST /flashcards/review/random with valid quality returns 302 redirect"() {
+        given:
+        writeCard("java/card.yaml", minimalYaml("Q?", "A."))
+        def session = new MockHttpSession()
+        controller.randomReviewGet(1, "", session)
+
+        when:
+        def response = controller.randomReviewPost("java/card.yaml", 4, session)
+
+        then:
+        response.statusCode.value() == 302
+        response.headers.getFirst("Location") == "/flashcards/review/random"
+    }
+
+    def "POST /flashcards/review/random with invalid quality returns 400"() {
+        given:
+        def session = new MockHttpSession()
+
+        when:
+        def response = controller.randomReviewPost("any/path.yaml", 6, session)
+
+        then:
+        response.statusCode.value() == 400
+    }
+
+    def "POST /flashcards/review/random removes card from session queue"() {
+        given:
+        writeCard("java/card1.yaml", minimalYaml("Q1", "A1"))
+        writeCard("java/card2.yaml", minimalYaml("Q2", "A2"))
+        def session = new MockHttpSession()
+        controller.randomReviewGet(2, "", session)
+
+        when:
+        // Get first card from queue
+        def getResponse = controller.randomReviewGet(null, "", session)
+        def queue = session.getAttribute("FC_RANDOM_QUEUE") as List<String>
+        def firstPath = queue[0]
+        controller.randomReviewPost(firstPath, 4, session)
+
+        then:
+        (session.getAttribute("FC_RANDOM_QUEUE") as List).size() == 1
+    }
+
+    def "POST /flashcards/review/random applies SM-2 and persists changes"() {
+        given:
+        writeCard("test/card.yaml", minimalYaml("Q?", "A."))
+        def session = new MockHttpSession()
+        controller.randomReviewGet(1, "", session)
+
+        when:
+        controller.randomReviewPost("test/card.yaml", 5, session)
+        def card = service.loadCard("test/card.yaml").get()
+
+        then:
+        card.reviewCount == 1
+        card.correctCount == 1
+        card.lastReviewed != null
+    }
+
+    def "full random session cycle ends with session-complete page"() {
+        given:
+        writeCard("cycle/card1.yaml", minimalYaml("CQ1", "CA1"))
+        writeCard("cycle/card2.yaml", minimalYaml("CQ2", "CA2"))
+        def session = new MockHttpSession()
+
+        when: "start a session with 2 cards"
+        controller.randomReviewGet(2, "cycle", session)
+
+        and: "review first card"
+        def r1 = controller.randomReviewGet(null, "", session)
+        def queue = session.getAttribute("FC_RANDOM_QUEUE") as List<String>
+        controller.randomReviewPost(queue[0], 4, session)
+
+        and: "review second card"
+        def r2 = controller.randomReviewGet(null, "", session)
+        def queue2 = session.getAttribute("FC_RANDOM_QUEUE") as List<String>
+        controller.randomReviewPost(queue2[0], 3, session)
+
+        and: "get the final page"
+        def finalResponse = controller.randomReviewGet(null, "", session)
+
+        then:
+        finalResponse.statusCode.value() == 200
+        finalResponse.body.contains("Session complete")
     }
 }
 

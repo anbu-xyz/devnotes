@@ -89,6 +89,37 @@ public class FlashCardService {
     // Queries
     // -------------------------------------------------------------------------
 
+    /**
+     * Picks up to {@code n} cards for a quick "random" review session.
+     * Due cards (nextReview null or past) are always included first (shuffled for variety).
+     * Future cards fill any remaining slots, ordered soonest-due first.
+     */
+    public List<FlashCard> pickRandomCards(String topicFilter, int n) {
+        if (n <= 0) return Collections.emptyList();
+        LocalDateTime now = LocalDateTime.now(UTC);
+
+        List<FlashCard> all = loadAllCards().stream()
+                .filter(card -> matchesTopic(card, topicFilter))
+                .collect(Collectors.toList());
+
+        List<FlashCard> due = new ArrayList<>(all.stream()
+                .filter(c -> c.getNextReview() == null || !c.getNextReview().isAfter(now))
+                .collect(Collectors.toList()));
+
+        List<FlashCard> future = all.stream()
+                .filter(c -> c.getNextReview() != null && c.getNextReview().isAfter(now))
+                .sorted(Comparator.comparing(FlashCard::getNextReview))
+                .collect(Collectors.toList());
+
+        // Shuffle due cards so each session feels fresh
+        Collections.shuffle(due);
+
+        List<FlashCard> result = new ArrayList<>();
+        result.addAll(due);
+        result.addAll(future);
+        return result.stream().limit(n).collect(Collectors.toList());
+    }
+
     public List<FlashCard> dueCards(String topicFilter) {
         LocalDateTime now = LocalDateTime.now(UTC);
         Comparator<FlashCard> byDueDate = (a, b) -> {

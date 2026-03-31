@@ -5,6 +5,7 @@ import gg.jte.TemplateOutput;
 import gg.jte.output.StringOutput;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,6 +23,7 @@ import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +39,9 @@ public class FlashCardController {
 
     private static final DateTimeFormatter DISPLAY_FMT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+
+    private static final String SESSION_RANDOM_QUEUE = "FC_RANDOM_QUEUE";
+    private static final String SESSION_RANDOM_TOTAL = "FC_RANDOM_TOTAL";
 
     private final FlashCardService service;
     private final TemplateEngine templateEngine;
@@ -137,6 +142,93 @@ public class FlashCardController {
 
         String location = "/flashcards/review" + (topic.isBlank() ? "" : "?topic=" + topic);
         return redirect(location);
+    }
+
+    // -------------------------------------------------------------------------
+    // GET /flashcards/review/random — start or continue a random-N session
+    // -------------------------------------------------------------------------
+
+    @GetMapping("/flashcards/review/random")
+    public ResponseEntity<String> randomReviewGet(
+            @RequestParam(required = false) Integer n,
+            @RequestParam(required = false, defaultValue = "") String topic,
+            HttpSession session) {
+
+        if (n != null) {
+            // Start a fresh session: pick cards and store the queue
+            List<FlashCard> picked = service.pickRandomCards(topic, n);
+            List<String> queue = new ArrayList<>(picked.stream()
+                    .map(FlashCard::getRelativePath)
+                    .toList());
+            session.setAttribute(SESSION_RANDOM_QUEUE, queue);
+            session.setAttribute(SESSION_RANDOM_TOTAL, queue.size());
+            return redirect("/flashcards/review/random");
+        }
+
+        @SuppressWarnings("unchecked")
+        List<String> queue = (List<String>) session.getAttribute(SESSION_RANDOM_QUEUE);
+        Object totalObj = session.getAttribute(SESSION_RANDOM_TOTAL);
+        int total = totalObj instanceof Integer t ? t : 0;
+
+        var params = new HashMap<String, Object>();
+        params.put("sessionTotal", total);
+
+        if (queue == null || queue.isEmpty()) {
+            params.put("card", null);
+            params.put("questionHtml", null);
+            params.put("answerHtml", null);
+            params.put("encodedPath", null);
+            params.put("remaining", 0);
+            return render("flashcards/review-random.jte", params);
+        }
+
+        // Skip deleted cards gracefully
+        while (!queue.isEmpty()) {
+            String nextPath = queue.get(0);
+            Optional<FlashCard> cardOpt = service.loadCard(nextPath);
+            if (cardOpt.isPresent()) {
+                FlashCard card = cardOpt.get();
+                params.put("card", card);
+                params.put("questionHtml", service.renderMarkdown(card.getQuestion()));
+                params.put("answerHtml", service.renderMarkdown(card.getAnswer()));
+                params.put("encodedPath", service.encodePath(card.getRelativePath()));
+                params.put("remaining", queue.size() - 1);
+                return render("flashcards/review-random.jte", params);
+            }
+            queue.remove(0);
+        }
+
+        // All remaining cards were missing
+        params.put("card", null);
+        params.put("questionHtml", null);
+        params.put("answerHtml", null);
+        params.put("encodedPath", null);
+        params.put("remaining", 0);
+        return render("flashcards/review-random.jte", params);
+    }
+
+    // -------------------------------------------------------------------------
+    // POST /flashcards/review/random — submit rating for a random-session card
+    // -------------------------------------------------------------------------
+
+    @PostMapping("/flashcards/review/random")
+    public ResponseEntity<String> randomReviewPost(
+            @RequestParam String relativePath,
+            @RequestParam int quality,
+            HttpSession session) {
+
+        if (quality < 0 || quality > 5) {
+            return ResponseEntity.badRequest()
+                    .body("Quality must be between 0 and 5, got: " + quality);
+        }
+        service.loadCard(relativePath).ifPresent(card -> service.applyReview(card, quality));
+
+        @SuppressWarnings("unchecked")
+        List<String> queue = (List<String>) session.getAttribute(SESSION_RANDOM_QUEUE);
+        if (queue != null && !queue.isEmpty()) {
+            queue.remove(0);
+        }
+        return redirect("/flashcards/review/random");
     }
 
     // -------------------------------------------------------------------------

@@ -47,6 +47,13 @@
     <a href="/flashcards/new" class="btn-blue-glow">
         <i class="fas fa-plus"></i>Add New Card
     </a>
+    <form method="get" action="/flashcards/review/random" class="fc-random-form">
+        <input type="number" name="n" value="10" min="1" max="9999"
+               class="fc-random-input" title="Number of cards to review">
+        <button type="submit" class="btn-blue-glow">
+            <i class="fas fa-random"></i>Random Review
+        </button>
+    </form>
 </div>
 
 <%-- Topic tree table --%>
@@ -81,6 +88,14 @@
                         <a href="/flashcards/new?topic=${stats.topic()}" class="btn-blue-glow">
                             <i class="fas fa-plus"></i>Add
                         </a>
+                        <form method="get" action="/flashcards/review/random" class="fc-random-form" style="display:inline-flex;">
+                            <input type="hidden" name="topic" value="${stats.topic()}">
+                            <input type="number" name="n" value="5" min="1" max="9999"
+                                   class="fc-random-input" title="Number of cards to review">
+                            <button type="submit" class="btn-blue-glow" title="Random review for this topic">
+                                <i class="fas fa-random"></i>
+                            </button>
+                        </form>
                     </td>
                 </tr>
             @endfor
@@ -119,6 +134,22 @@
     margin-top: 0.2rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
+}
+.fc-random-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0;
+}
+.fc-random-input {
+    width: 4rem;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid #444;
+    border-radius: 4px;
+    background: #1a1a1a;
+    color: #e0e0e0;
+    font-size: 0.85rem;
+    text-align: center;
 }
 </style>
 </body>
