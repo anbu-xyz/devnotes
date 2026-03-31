@@ -19,10 +19,7 @@ import static j2html.TagCreator.*;
 
 @Slf4j
 public class TodoBlockTranslator {
-
-    /** Warning sign prepended to whichever numeric cell drives the row colour. */
-    private static final String WARN = "\u26A0 ";
-
+    
     public Optional<HtmlBlock> translate(String yaml) {
         try {
             var mapper = new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
@@ -41,45 +38,38 @@ public class TodoBlockTranslator {
     }
 
     private HtmlBlock buildHtmlBlock(TodoConfig config) {
-        ContainerTag<?> thead = thead().with(
-            tr()
-                .with(th().withText("Summary"))
-                .with(th().withText("Open (days)"))
-                .with(th().withText("Due in"))
-                .with(th().withText("Description"))
-        );
-
-        ContainerTag<?> tbody = tbody();
+        ContainerTag<?> wrapper = div().withClass("todo-block");
         List<TodoConfig.TodoItem> items = config.getItems() != null ? config.getItems() : List.of();
         for (var item : items) {
-            var thresholds  = config.getThresholds() != null ? config.getThresholds() : new TodoConfig.ThresholdConfig();
-            String ageClass    = computeAgeClass(thresholds.getAge(), item);
-            String dueInClass  = computeDueInClass(thresholds.getDueIn(), item);
-            String rowClass    = higherCriticality(ageClass, dueInClass);
-            int    ageCrit     = criticality(ageClass);
-            int    dueInCrit   = criticality(dueInClass);
+            var thresholds = config.getThresholds() != null ? config.getThresholds() : new TodoConfig.ThresholdConfig();
+            String ageClass   = computeAgeClass(thresholds.getAge(), item);
+            String dueInClass = computeDueInClass(thresholds.getDueIn(), item);
+            String rowClass   = higherCriticality(ageClass, dueInClass);
 
-            String openDays = computeOpenDays(item);
-            String dueIn    = computeDueIn(item);
+            ContainerTag<?> itemDiv = div().withClass("todo-item " + rowClass);
+            itemDiv.with(h3().withClass("todo-summary").withText(item.getSummary() != null ? item.getSummary() : ""));
+
+            boolean showOpenDays = !ageClass.equals("todo-green");
+            boolean showDueIn    = item.getDue() != null;
+
+            if (showOpenDays || showDueIn) {
+                ContainerTag<?> metaDiv = div().withClass("todo-meta");
+                if (showOpenDays) {
+                    metaDiv.with(small().withText("Open: " + computeOpenDays(item) + " days"));
+                }
+                if (showDueIn) {
+                    metaDiv.with(small().withText("Due in: " + computeDueIn(item) + " days"));
+                }
+                itemDiv.with(metaDiv);
+            }
+
             String descHtml = renderDescriptionMarkdown(item.getDescription());
+            if (!descHtml.isBlank()) {
+                itemDiv.with(div().withClass("todo-description").with(rawHtml(descHtml)));
+            }
 
-            String ageCell    = (ageCrit > 0 && ageCrit >= dueInCrit ? WARN : "") + openDays;
-            String dueInCell  = (dueInCrit > 0 && dueInCrit >= ageCrit ? WARN : "") + dueIn;
-
-            tbody.with(
-                tr().withClass(rowClass)
-                    .with(td().withText(item.getSummary() != null ? item.getSummary() : ""))
-                    .with(td().withClass("todo-days").withText(ageCell))
-                    .with(td().withClass("todo-days").withText(dueInCell))
-                    .with(td().with(rawHtml(descHtml)))
-            );
+            wrapper.with(itemDiv);
         }
-
-        ContainerTag<?> table = table().withClass("todo-table")
-                .with(thead)
-                .with(tbody);
-
-        ContainerTag<?> wrapper = div().withClass("todo-block").with(table);
 
         var block = new HtmlBlock();
         block.setLiteral(wrapper.render());

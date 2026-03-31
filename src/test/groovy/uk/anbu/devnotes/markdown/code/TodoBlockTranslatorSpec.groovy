@@ -41,10 +41,10 @@ items:
     }
 
     // =========================================================================
-    // 1. Column structure
+    // 1. Card structure
     // =========================================================================
 
-    def "full item renders four header columns: Summary, Open (days), Due in, Description"() {
+    def "full item renders summary as h3 with todo-summary class"() {
         given:
         def yaml = yamlWithItem()
 
@@ -53,15 +53,12 @@ items:
 
         then:
         result.isPresent()
-        def headers = Jsoup.parse(result.get().literal).select("thead th")
-        headers.size() == 4
-        headers[0].text() == "Summary"
-        headers[1].text() == "Open (days)"
-        headers[2].text() == "Due in"
-        headers[3].text() == "Description"
+        def h3 = Jsoup.parse(result.get().literal).select("h3.todo-summary")
+        h3.size() == 1
+        h3[0].text() == "Fix login bug"
     }
 
-    def "full item produces exactly one data row"() {
+    def "full item produces exactly one todo-item card"() {
         given:
         def yaml = yamlWithItem()
 
@@ -69,14 +66,14 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr").size() == 1
+        Jsoup.parse(result.get().literal).select(".todo-item").size() == 1
     }
 
     // =========================================================================
-    // 2. Open (days) column
+    // 2. Open (days) meta text
     // =========================================================================
 
-    def "open days column shows correct day count for item created today"() {
+    def "open days text is hidden when item age is green (created today)"() {
         given:
         def yaml = """\
 items:
@@ -87,11 +84,10 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
-        cells[1].text() == "0"
+        !Jsoup.parse(result.get().literal).select(".todo-meta").text().contains("Open:")
     }
 
-    def "open days column shows correct day count for item created five days ago"() {
+    def "open days text is hidden when item age is green (created five days ago)"() {
         given:
         def yaml = """\
 items:
@@ -102,11 +98,10 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
-        cells[1].text() == "5"
+        !Jsoup.parse(result.get().literal).select(".todo-meta").text().contains("Open:")
     }
 
-    def "open days column shows em-dash when created date is absent"() {
+    def "open days text is hidden when created date is absent"() {
         given:
         def yaml = """\
 items:
@@ -116,15 +111,28 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
-        cells[1].text() == "\u2014"
+        !Jsoup.parse(result.get().literal).select(".todo-meta").text().contains("Open:")
+    }
+
+    def "open days text shows correct day count when age is amber"() {
+        given:
+        def yaml = """\
+items:
+  - summary: Getting old
+    created: ${LocalDate.now().minusDays(8)}
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        Jsoup.parse(result.get().literal).select(".todo-meta small").any { it.text().contains("Open: 8 days") }
     }
 
     // =========================================================================
-    // 3. Due in column
+    // 3. Due in meta text
     // =========================================================================
 
-    def "due in column shows positive days when due date is in the future"() {
+    def "due in text shows positive days when due date is in the future"() {
         given:
         def yaml = """\
 items:
@@ -136,12 +144,10 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        // created today → age green; due in 10 days → due-in red → due-in cell carries ⚠
-        def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
-        cells[2].text() == "\u26A0 10"
+        Jsoup.parse(result.get().literal).select(".todo-meta small").any { it.text().contains("Due in: 10 days") }
     }
 
-    def "due in column shows negative days when item is past due"() {
+    def "due in text shows negative days when item is past due"() {
         given:
         def yaml = """\
 items:
@@ -153,12 +159,10 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        // age amber (10 days), due-in overdue (-3 days) → due-in wins → ⚠ in Due in cell
-        def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
-        cells[2].text() == "\u26A0 -3"
+        Jsoup.parse(result.get().literal).select(".todo-meta small").any { it.text().contains("Due in: -3 days") }
     }
 
-    def "due in column shows em-dash when due date is absent"() {
+    def "due in text is hidden when due date is absent"() {
         given:
         def yaml = """\
 items:
@@ -169,8 +173,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
-        cells[2].text() == "\u2014"
+        !Jsoup.parse(result.get().literal).select(".todo-meta").text().contains("Due in:")
     }
 
     // =========================================================================
@@ -188,7 +191,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-green")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-green")
     }
 
     def "item 8 days old (no due) gets todo-amber class from age"() {
@@ -202,7 +205,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-amber")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-amber")
     }
 
     def "item 15 days old (no due) gets todo-red class from age"() {
@@ -216,7 +219,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-red")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-red")
     }
 
     def "item 31 days old (no due) gets todo-overdue class from age"() {
@@ -230,7 +233,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-overdue")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-overdue")
     }
 
     // =========================================================================
@@ -249,7 +252,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-green")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-green")
     }
 
     def "item due in 16 days (created today) gets todo-amber class from due-in"() {
@@ -264,7 +267,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-amber")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-amber")
     }
 
     def "item due in 9 days (created today) gets todo-red class from due-in"() {
@@ -279,7 +282,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-red")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-red")
     }
 
     def "item with past due date (created today) gets todo-overdue class from due-in"() {
@@ -294,7 +297,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-overdue")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-overdue")
     }
 
     // =========================================================================
@@ -315,7 +318,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-overdue")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-overdue")
     }
 
     def "when age gives overdue and due-in gives amber, row class is todo-overdue"() {
@@ -332,7 +335,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-overdue")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-overdue")
     }
 
     def "when age gives red and due-in gives amber, row class is todo-red"() {
@@ -349,7 +352,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-red")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-red")
     }
 
     // =========================================================================
@@ -380,7 +383,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-amber")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-amber")
     }
 
     def "tighter due-in threshold escalates colour when age would give green"() {
@@ -406,7 +409,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-overdue")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-overdue")
     }
 
     // =========================================================================
@@ -425,7 +428,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-green")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-green")
     }
 
     def "item without created date defaults to green for age dimension"() {
@@ -440,7 +443,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-green")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-green")
     }
 
     def "item without due date defaults to green for due-in dimension"() {
@@ -455,7 +458,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-green")
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-green")
     }
 
     // =========================================================================
@@ -475,7 +478,9 @@ items:
 
         then:
         result.isPresent()
-        Jsoup.parse(result.get().literal).select("table").size() == 1
+        def doc = Jsoup.parse(result.get().literal)
+        doc.select(".todo-error").size() == 0
+        doc.select(".todo-item").size() == 1
     }
 
     // =========================================================================
@@ -494,9 +499,9 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        def descCell = Jsoup.parse(result.get().literal).select("tbody tr td")[3]
-        descCell.select("strong").size() == 1
-        descCell.select("strong")[0].text() == "ticket"
+        def descDiv = Jsoup.parse(result.get().literal).select(".todo-description")
+        descDiv.select("strong").size() == 1
+        descDiv.select("strong")[0].text() == "ticket"
     }
 
     // =========================================================================
@@ -514,14 +519,14 @@ items:
         result.isPresent()
         def doc = Jsoup.parse(result.get().literal)
         doc.select(".todo-error").size() == 1
-        doc.select("table").size() == 0
+        doc.select(".todo-item").size() == 0
     }
 
     // =========================================================================
     // 12. Empty / multiple items
     // =========================================================================
 
-    def "absent items list renders an empty table body without error"() {
+    def "absent items list renders an empty block without error"() {
         given:
         def yaml = """\
 thresholds:
@@ -534,11 +539,11 @@ thresholds:
         then:
         result.isPresent()
         def doc = Jsoup.parse(result.get().literal)
-        doc.select("table").size() == 1
-        doc.select("tbody tr").size() == 0
+        doc.select(".todo-block").size() == 1
+        doc.select(".todo-item").size() == 0
     }
 
-    def "multiple items all appear as rows in the table"() {
+    def "multiple items all appear as cards in the block"() {
         given:
         def yaml = """\
 items:
@@ -553,7 +558,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        Jsoup.parse(result.get().literal).select("tbody tr").size() == 3
+        Jsoup.parse(result.get().literal).select(".todo-item").size() == 3
     }
 
     // =========================================================================
@@ -675,12 +680,12 @@ items:
     }
 
     // =========================================================================
-    // 15. Warning icon
+    // 15. Open days and due-in visibility
     // =========================================================================
 
-    def "warning icon appears in Open (days) cell when age has higher criticality than due-in"() {
+    def "open days text is shown when age is non-green and no due date"() {
         given:
-        // created 20 days ago → age red (crit 2); no due → due-in green (crit 0)
+        // created 20 days ago → age red (between amber=14 and red=30); no due
         def yaml = """\
 items:
   - summary: Age-driven
@@ -690,14 +695,14 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
-        cells[1].text().startsWith("\u26A0")
-        !cells[2].text().startsWith("\u26A0")
+        def metaText = Jsoup.parse(result.get().literal).select(".todo-meta").text()
+        metaText.contains("Open:")
+        !metaText.contains("Due in:")
     }
 
-    def "warning icon appears in Due in cell when due-in has higher criticality than age"() {
+    def "open days text is hidden when age is green even with non-green due-in"() {
         given:
-        // created today → age green (crit 0); due in 9 days → due-in red (crit 2)
+        // created today → age green; due in 9 days → due-in red
         def yaml = """\
 items:
   - summary: Due-in-driven
@@ -708,17 +713,17 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
-        !cells[1].text().startsWith("\u26A0")
-        cells[2].text().startsWith("\u26A0")
+        def metaText = Jsoup.parse(result.get().literal).select(".todo-meta").text()
+        !metaText.contains("Open:")
+        metaText.contains("Due in:")
     }
 
-    def "warning icon appears in both cells when age and due-in share the highest criticality"() {
+    def "both open days and due in are shown when both age and due-in are non-green"() {
         given:
-        // created 20 days ago → age red (crit 2); due in 9 days → due-in red (crit 2)
+        // created 20 days ago → age red; due in 9 days → due-in red
         def yaml = """\
 items:
-  - summary: Equal criticality
+  - summary: Both non-green
     created: ${LocalDate.now().minusDays(20)}
     due: ${LocalDate.now().plusDays(9)}
 """
@@ -726,14 +731,29 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
-        cells[1].text().startsWith("\u26A0")
-        cells[2].text().startsWith("\u26A0")
+        def metaText = Jsoup.parse(result.get().literal).select(".todo-meta").text()
+        metaText.contains("Open:")
+        metaText.contains("Due in:")
     }
 
-    def "no warning icon appears when both dimensions are green"() {
+    def "no meta element appears when age is green and no due date is set"() {
         given:
-        // created today → age green; due in 35 days → due-in green
+        // created today → age green (open days hidden); no due date → due-in hidden
+        def yaml = """\
+items:
+  - summary: All good
+    created: ${LocalDate.now()}
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        Jsoup.parse(result.get().literal).select(".todo-meta").size() == 0
+    }
+
+    def "due in text is shown even when due-in class is green (due date present but far away)"() {
+        given:
+        // created today → age green; due in 35 days → due-in class green, but date IS set → show
         def yaml = """\
 items:
   - summary: All good
@@ -744,9 +764,9 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
-        !cells[1].text().startsWith("\u26A0")
-        !cells[2].text().startsWith("\u26A0")
+        def metaText = Jsoup.parse(result.get().literal).select(".todo-meta").text()
+        !metaText.contains("Open:")
+        metaText.contains("Due in: 35 days")
     }
 }
 

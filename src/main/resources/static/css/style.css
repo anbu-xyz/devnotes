@@ -900,23 +900,38 @@ table.sortable .btn-blue-glow i {
     overflow-x: auto;
 }
 
-.todo-table {
-    width: 100%;
-    border-collapse: collapse;
+.todo-item {
+    border-radius: 4px;
+    padding: 0.4em 0.8em;
+    margin-bottom: 0.5em;
 }
 
-.todo-table th {
-    text-align: left;
-    color: #7ec8e3;
-    border-bottom: 1px solid #444;
-    padding: 4px 8px;
-    white-space: nowrap;
+.todo-item:last-child {
+    margin-bottom: 0;
 }
 
-.todo-table td {
-    padding: 4px 8px;
-    border-bottom: 1px solid #2a2a2a;
-    vertical-align: top;
+.todo-summary {
+    margin: 0 0 0.2em 0;
+    font-size: 1.05em;
+}
+
+.todo-meta {
+    display: flex;
+    gap: 1.2em;
+    margin-bottom: 0.25em;
+}
+
+.todo-meta small {
+    font-size: 0.8em;
+    opacity: 0.8;
+}
+
+.todo-description {
+    font-size: 0.95em;
+}
+
+.todo-description p:last-child {
+    margin-bottom: 0;
 }
 
 .todo-green   { background-color: rgba(63,  185,  80, 0.12); }
@@ -927,9 +942,6 @@ table.sortable .btn-blue-glow i {
     font-weight: bold;
 }
 
-.todo-days {
-    white-space: nowrap;
-}
 
 .todo-error {
     color: #f85149;
