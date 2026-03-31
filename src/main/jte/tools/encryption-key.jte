@@ -17,67 +17,69 @@
     <div class="encryption-status encryption-status-active">
         <i class="fas fa-lock"></i> Encryption passphrase is active. Datasource passwords are encrypted on disk.
     </div>
-@else
-    <div class="encryption-status encryption-status-inactive">
-        <i class="fas fa-lock-open"></i> No passphrase is set. Datasource passwords are stored in plain text.
-    </div>
-@endif
 
-@if(errorMessage != null)
-    <div class="encryption-error">
-        <i class="fas fa-exclamation-triangle"></i> ${errorMessage}
-    </div>
-@endif
-
-<form action="/config/encryption-key"
-      method="post" class="config-form"
-      x-data="{ passphrase: '', confirm: '', get mismatch() { return confirm.length > 0 && passphrase !== confirm } }">
-
-    @if(returnTo != null && !returnTo.isEmpty())
-        <input type="hidden" name="returnTo" value="${returnTo}">
-    @endif
-
-    <div class="config-section">
-        <h2>${keySet ? "Change Passphrase" : "Activate Encryption"}</h2>
-
-        <p class="encryption-hint">
-            Choose a memorable phrase of at least 12 characters —
-            for example: <em>coffee-builds-faster-now</em> or <em>deploy on Fridays never</em>.
-            The passphrase is <strong>never stored</strong>; you must re-enter it every time
-            the server restarts.
-        </p>
-
-        <div class="form-group">
-            <label for="passphrase">Passphrase:</label>
-            <input type="password" id="passphrase" name="passphrase"
-                   x-model="passphrase"
-                   placeholder="at least 12 characters"
-                   class="config-input" autocomplete="new-password">
-        </div>
-
-        <div class="form-group">
-            <label for="confirm">Confirm passphrase:</label>
-            <input type="password" id="confirm"
-                   x-model="confirm"
-                   placeholder="repeat passphrase"
-                   class="config-input" autocomplete="new-password"
-                   :class="mismatch ? 'config-input-error' : ''">
-            <span class="encryption-mismatch" x-show="mismatch" x-cloak>
-                <i class="fas fa-exclamation-circle"></i> Passphrases do not match
-            </span>
-        </div>
-    </div>
-
-    <div class="form-actions">
-        <button type="submit" class="btn-blue-glow" :disabled="mismatch || passphrase.length < 12">
-            <i class="fas fa-key"></i>Activate
-        </button>
+    <div class="form-actions" style="margin-top:1.5rem;">
+        @if(returnTo != null && !returnTo.isEmpty())
+            <a href="${returnTo}" class="btn-blue-glow">
+                <i class="fas fa-arrow-right"></i>Return to page
+            </a>
+        @endif
+        <a href="/config/encryption-key/change" class="btn-blue-glow">
+            <i class="fas fa-key"></i>Change Passphrase
+        </a>
         <a href="/config" class="btn-blue-glow">
             <i class="fas fa-arrow-left"></i>Back to Config
         </a>
     </div>
+@else
+    <div class="encryption-status encryption-status-inactive">
+        <i class="fas fa-lock-open"></i> No passphrase is set. Datasource passwords are stored in plain text.
+    </div>
 
-</form>
+    @if(errorMessage != null)
+        <div class="encryption-error">
+            <i class="fas fa-exclamation-triangle"></i> ${errorMessage}
+        </div>
+    @endif
+
+    <form action="/config/encryption-key"
+          method="post" class="config-form"
+          x-data="{ passphrase: '', confirm: '' }">
+
+        @if(returnTo != null && !returnTo.isEmpty())
+            <input type="hidden" name="returnTo" value="${returnTo}">
+        @endif
+
+        <div class="config-section">
+            <h2>Activate Encryption</h2>
+
+            <p class="encryption-hint">
+                Choose a memorable phrase of at least 12 characters —
+                for example: <em>coffee-builds-faster-now</em> or <em>deploy on Fridays never</em>.
+                The passphrase is <strong>never stored</strong>; you must re-enter it every time
+                the server restarts.
+            </p>
+
+            <div class="form-group">
+                <label for="passphrase">Passphrase:</label>
+                <input type="password" id="passphrase" name="passphrase"
+                       x-model="passphrase"
+                       placeholder="at least 12 characters"
+                       class="config-input" autocomplete="new-password">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-blue-glow" :disabled="passphrase.length < 12">
+                <i class="fas fa-key"></i>Activate
+            </button>
+            <a href="/config" class="btn-blue-glow">
+                <i class="fas fa-arrow-left"></i>Back to Config
+            </a>
+        </div>
+
+    </form>
+@endif
 </body>
 </html>
 

@@ -28,7 +28,7 @@
 @else
 <div class="encryption-status encryption-status-active" style="margin-bottom:1rem;">
     <i class="fas fa-lock"></i> Passwords are encrypted on disk.
-    <a href="/config/encryption-key" style="margin-left:0.5rem;">Change passphrase</a>
+    <a href="/config/encryption-key/change" style="margin-left:0.5rem;">Change passphrase</a>
 </div>
 @endif
 

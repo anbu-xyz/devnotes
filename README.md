@@ -390,6 +390,8 @@ JVM memory and is never written to disk.
 2. Enter a passphrase of at least 12 characters (e.g. `coffee-builds-faster-now`).
 3. Click **Activate**. The server derives an AES-256 key via PBKDF2WithHmacSHA256
    (600 000 iterations) and immediately re-encrypts every datasource password.
+4. On success the page shows an "active" status banner with a **Change Passphrase** button and
+   a **Back to Config** button.
 
 After activation, passwords in `datasource.yaml` are stored as opaque tokens:
 
@@ -404,6 +406,13 @@ datasource2:
 **On every server restart** you must re-enter the passphrase at `/config/encryption-key`
 before datasource connections can be established.  The `/config` page shows an amber
 warning banner when no passphrase is active.
+
+**Changing the passphrase:**
+
+Navigate to **`/config/encryption-key/change`** (or click the **Change Passphrase** button
+shown on `/config/encryption-key` after the key is active, or the link on the `/config` page).
+Enter and confirm the new passphrase and click **Change Passphrase**.  All datasource passwords
+are immediately re-encrypted with the new key.
 
 A random PBKDF2 salt is generated on first use and stored (non-secret) in
 `config/encryption.salt` alongside `datasource.yaml`.  Back this file up together

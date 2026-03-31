@@ -455,11 +455,14 @@ random salt) and held only in JVM memory — it is never persisted.
 **Key lifecycle:**
 
 1. On startup `EncryptionService.secretKey` is `null` (key absent).
-2. Operator POSTs a passphrase to `/config/encryption-key`.
+2. Operator POSTs a passphrase to `POST /config/encryption-key`.
 3. `EncryptionService.setPassphrase(passphrase, saltFile)` derives the key, runs a
    round-trip self-test, and stores the `SecretKey` in a `volatile` field.
 4. `ConfigServiceImpl.reEncryptAndSave()` is called: datasources are reloaded from disk
    (decrypting any existing `ENC(…)` tokens), then saved back with all passwords encrypted.
+5. On success the controller redirects back to `GET /config/encryption-key` (or `returnTo` if
+   supplied), which now renders the "key active" status with **Change Passphrase** and
+   **Back to Config** buttons — no activation form is shown.
 
 **On-disk token format:**
 
@@ -491,6 +494,16 @@ and embedded as a hidden `<input>` in the form — **not** in the `action` URL �
 receiving the parameter twice (once from the URL query-string and once from the POST body) and
 joining the values with a comma.
 
+`GET /config/encryption-key` serves two states based on `EncryptionService.isKeySet()`:
+
+- **Key not set** — renders the activation form only (title: "Activate Encryption").
+- **Key set** — renders an "active" status banner with three buttons: *Return to page* (only
+  when `returnTo` is present), *Change Passphrase* (→ `/config/encryption-key/change`), and
+  *Back to Config*.  No form is shown.
+
+`GET/POST /config/encryption-key/change` is a dedicated page for replacing an active
+passphrase.  On success it always redirects back to `GET /config/encryption-key`.
+
 The `POST /datablock/fragment` refresh path (`DataBlockRefreshController`) applies the same guard
 and returns `200 text/html` with the warning HTML so HTMX can swap it in.
 
@@ -499,8 +512,9 @@ and returns `200 text/html` with the warning HTML so HTMX can swap it in.
 | File | Role |
 |---|---|
 | `service/EncryptionService.java` | AES-256-GCM encrypt/decrypt; PBKDF2 key derivation; salt file management |
-| `controller/EncryptionKeyController.java` | `GET/POST /config/encryption-key` — passphrase form and activation; `returnTo` redirect support |
-| `jte/tools/encryption-key.jte` | Passphrase entry UI (status banner, confirm input, Alpine.js mismatch guard; hidden `returnTo` input) |
+| `controller/EncryptionKeyController.java` | `GET/POST /config/encryption-key` — activation form (key absent) or status+buttons (key active); `GET/POST /config/encryption-key/change` — change-passphrase form; `returnTo` redirect support |
+| `jte/tools/encryption-key.jte` | Activation UI when key absent (status banner, confirm input, Alpine.js mismatch guard, hidden `returnTo` input); or status banner + action buttons when key is active |
+| `jte/tools/encryption-key-change.jte` | Change-passphrase form (confirm input, Alpine.js mismatch guard; always POSTs to `/config/encryption-key/change`) |
 | `<docsDirectory>/config/encryption.salt` | PBKDF2 salt (hex, not secret; generated once; must be backed up) |
 | `static/css/style.css` | `.enc-key-needed` amber warning class |
 
@@ -813,11 +827,11 @@ the commit-status API. No deployment step is included.
 | Change fetch-metadata output path or format | `JdbcDatabaseController.saveAllTablesAsMarkdownFile` |
 | Change encryption algorithm | `EncryptionService.ALGORITHM` constant; update `IV_LEN` if switching away from GCM |
 | Change PBKDF2 iteration count | `EncryptionService.KDF_ITERS`; higher = slower brute-force, slower activation |
-| Rotate the passphrase / re-key | Enter new passphrase at `/config/encryption-key`; `reEncryptAndSave()` is called automatically |
+| Rotate the passphrase / re-key | Navigate to `/config/encryption-key/change` (or use the **Change Passphrase** button on `/config/encryption-key`); `reEncryptAndSave()` is called automatically |
 | Disable encryption (revert to plain text) | Do not supply passphrase after restart; `saveDataSourceConfigs()` writes plain text when `isKeySet()` is false |
 | Change minimum passphrase length | `EncryptionService.MIN_PASSPHRASE_LEN` constant |
 | Change the encrypted-password inline warning style | Edit `.enc-key-needed` in `static/css/style.css` |
-| Change where the user lands after entering passphrase | Modify `isSafeReturnTo()` in `EncryptionKeyController` or the `returnUrl` built in `DataBlockTranslator.buildEncKeyNeededBlock()` |
+| Change where the user lands after entering passphrase | Modify `isSafeReturnTo()` in `EncryptionKeyController` or the `returnUrl` built in `DataBlockTranslator.buildEncKeyNeededBlock()`; without a `returnTo` the controller now redirects to `GET /config/encryption-key` (showing the "key active" state) instead of `/config` |
 | Add a field to flash cards | Add to `FlashCard.java`; update `Sm2Algorithm` if it affects scheduling; update `edit-card.jte` if it should be user-editable |
 | Change the SM-2 scheduling formula | Edit `Sm2Algorithm.apply`; update `Sm2AlgorithmSpec` regression tests |
 | Change how flash card stats are computed | Edit `FlashCardService.buildStats` / `computeStreak`; add or update `FlashCardServiceSpec` tests |
