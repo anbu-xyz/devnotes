@@ -350,8 +350,10 @@ The optional `description` field is rendered as **CommonMark HTML** inline in th
 |---|---|
 | `markdown/code/todo/TodoConfig.java` | Jackson POJO: top-level config, `ThresholdConfig` (age `ThresholdValues` + due-in `DueInThresholdValues`), `TodoItem` |
 | `markdown/code/TodoBlockTranslator.java` | Translates YAML fence → `HtmlBlock`; `computeRowClass`, `computeOpenDays`, `computeDueIn`, `renderDescriptionMarkdown` |
+| `markdown/TodoCreatedDateFiller.java` | Scans all `` ```todo `` fences in a markdown string; injects `created: <today>` into every item that lacks a `created:` field; called by `MarkdownController.saveMarkdown` |
 | `static/css/style.css` | `.todo-block`, `.todo-table`, `.todo-green/amber/red/overdue`, `.todo-days`, `.todo-error` |
 | `test/…/TodoBlockTranslatorSpec.groovy` | 63 Spock feature methods (dual-threshold colouring, highest-criticality selection, Open(days)/Due-in columns, markdown descriptions, error handling) |
+| `test/…/TodoCreatedDateFillerSpec.groovy` | 17 Spock feature methods (fence detection, per-item injection, CRLF preservation, nested-key false-positive guard) |
 
 `GET /database` serves the fetch-metadata UI page. `POST /database/fetch-metadata` connects to a
 configured datasource, introspects all matching tables via JDBC `DatabaseMetaData`, and writes a
@@ -674,11 +676,12 @@ the commit-status API. No deployment step is included.
 | Change which file extensions are treated as images | Edit `ImageController.isImage()` — used by both the image-serving endpoint and `ImageAuditService` |
 | Change image-audit path-resolution logic | Edit `ImageAuditService.audit()` visitor |
 | Add extra columns / detail to the image-audit results page | Edit `jte/tools/image-audit.jte` |
-| Change todo colour thresholds or defaults | Edit `TodoConfig.ThresholdValues` field initialisers |
+| Change todo colour thresholds or defaults | Edit `TodoConfig.ThresholdValues` / `DueInThresholdValues` field initialisers |
 | Add a new colour level to todo blocks | Add CSS class + extend `TodoBlockTranslator.computeRowClass` threshold logic |
-| Change todo colour-coding logic | Edit `TodoBlockTranslator.computeAgeClass`, `computeUrgencyClass`, and `higherCriticality` |
+| Change todo colour-coding logic | Edit `TodoBlockTranslator.computeAgeClass`, `computeDueInClass`, and `higherCriticality` |
 | Change todo table columns or header labels | Edit `TodoBlockTranslator.buildHtmlBlock` |
 | Add a new field to todo items (e.g. priority) | Add field to `TodoConfig.TodoItem`, handle in `buildHtmlBlock` |
+| Change the auto-created-date injection logic | Edit `TodoCreatedDateFiller.injectCreatedDates` |
 
 ---
 

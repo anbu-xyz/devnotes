@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.module.MarkdownRenderer;
+import uk.anbu.devnotes.markdown.TodoCreatedDateFiller;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.types.Markdown;
 import uk.anbu.devnotes.types.MarkdownFile;
@@ -32,6 +33,7 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -399,6 +401,8 @@ public class MarkdownController {
             var decodedFilename = URLDecoder.decode(filename, StandardCharsets.UTF_8);
             Path filePath = Paths.get(configService.getDocsDirectory(), decodedFilename);
 
+            var processedContent = TodoCreatedDateFiller.fillMissingCreatedDates(content, LocalDate.now());
+
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
             LocalDateTime dateTime = LocalDateTime.parse(timestampOfFileInEditor, formatter);
 
@@ -413,11 +417,11 @@ public class MarkdownController {
             }
 
             if (timestampOfFileOnDisk.isAfter(dateTime)) {
-                Files.write(filePath.getParent().resolve(newFilename), content.getBytes());
+                Files.write(filePath.getParent().resolve(newFilename), processedContent.getBytes());
                 return ResponseEntity.status(HttpStatus.CONFLICT)
                         .body(new SaveResult(newFilename, true, timestampOfFileInEditor));
             }
-            Files.write(filePath, content.getBytes());
+            Files.write(filePath, processedContent.getBytes());
             long updatedFileInstant = Files.getLastModifiedTime(filePath).toInstant().getEpochSecond();
             LocalDateTime timestampOfUpdatedFile = LocalDateTime.ofInstant(Instant.ofEpochSecond(updatedFileInstant),
                     ZoneId.systemDefault());

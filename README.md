@@ -28,7 +28,7 @@ By a corporate environment, I mean:
 * **Currency-symbol column conversion** in data blocks — columns named `$…`, `£…`, or `€…` automatically convert cell values to USD / GBP / EUR using configured exchange rates
 * **Exchange Rate Manager** at `/tools/exchange-rates` — add and delete currency-pair rates that are persisted and used for live column conversion
 * **Image Audit** at `/tools/image-audit` — scan the docs directory for orphaned image files and broken image links in markdown files
-* **Todo blocks** — embed colour-coded task lists directly in markdown using `` ```todo `` fences; rows are coloured by the worst of independent age and due-in thresholds
+* **Todo blocks** — embed colour-coded task lists directly in markdown using `` ```todo `` fences; rows are coloured by the worst of independent age and due-in thresholds; `created` dates are filled in automatically on save
 
 ### Groovy Scripting
 
@@ -714,6 +714,9 @@ java -Ddevnotes.docsDirectory=/path/to/docs -jar target/devnotes-0.0.1-SNAPSHOT.
 
 Use the `` ```todo `` fenced code block directly in any markdown file — see the
 [Todo blocks](#todo-blocks) section above for the full YAML schema and colour-threshold reference.
+
+When you save a markdown file, any todo item that is missing a `created` date is automatically
+given today's date.
 
 Additional tips can be found in the [todo-tip.md](docs/todo-tip.md) file.
 
