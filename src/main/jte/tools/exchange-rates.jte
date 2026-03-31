@@ -1,6 +1,9 @@
 @import java.util.Map
+@import uk.anbu.devnotes.controller.ExchangeRateController.UploadResult
 @param Map<String, Double> rates
 @param String errorMessage
+@param String successMessage
+@param UploadResult uploadResult
 
 <!DOCTYPE html>
 <html lang="en">
@@ -16,6 +19,31 @@
 @if(errorMessage != null)
     <div class="encryption-error">
         <i class="fas fa-exclamation-triangle"></i> ${errorMessage}
+    </div>
+@endif
+
+@if(successMessage != null)
+    <div class="enc-key-active">
+        <i class="fas fa-check-circle"></i> ${successMessage}
+    </div>
+@endif
+
+@if(uploadResult != null)
+    <div class="${uploadResult.errors().isEmpty() ? "enc-key-active" : "enc-key-needed"}">
+        @if(uploadResult.imported() > 0)
+            <p><i class="fas fa-check-circle"></i> Successfully imported <strong>${uploadResult.imported()}</strong> rate(s).</p>
+        @endif
+        @if(!uploadResult.errors().isEmpty())
+            <p><i class="fas fa-exclamation-triangle"></i> ${uploadResult.errors().size()} row(s) could not be imported:</p>
+            <ul>
+                @for(String err : uploadResult.errors())
+                    <li>${err}</li>
+                @endfor
+            </ul>
+        @endif
+        @if(uploadResult.imported() == 0 && uploadResult.errors().isEmpty())
+            <p>The file contained no data rows.</p>
+        @endif
     </div>
 @endif
 
@@ -68,6 +96,22 @@
     <div class="form-actions">
         <button type="submit" class="btn-blue-glow">
             <i class="fas fa-plus"></i>Add Rate
+        </button>
+    </div>
+</form>
+
+<hr>
+
+<h2>Bulk Upload from CSV</h2>
+<p class="muted">Upload a CSV file with two columns: <code>currency-pair</code> and <code>rate</code> (e.g. <code>GBP/USD,1.2700</code>). An optional header row is automatically detected and skipped.</p>
+<form action="/tools/exchange-rates/upload" method="post" enctype="multipart/form-data" class="config-form">
+    <div class="form-group">
+        <label for="file">CSV File:</label>
+        <input type="file" id="file" name="file" class="config-input" accept=".csv,text/csv,text/plain" required>
+    </div>
+    <div class="form-actions">
+        <button type="submit" class="btn-blue-glow">
+            <i class="fas fa-upload"></i>Upload
         </button>
     </div>
 </form>

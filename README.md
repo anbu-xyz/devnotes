@@ -28,7 +28,7 @@ By a corporate environment, I mean:
 * **Mermaid Playground** at `/mermaid-playground` — interactive split-pane editor with live Mermaid diagram preview
 * Spaced-repetition flash cards for active recall of notes
 * **Currency-symbol column conversion** in data blocks — columns named `$…`, `£…`, or `€…` automatically convert cell values to USD / GBP / EUR using configured exchange rates
-* **Exchange Rate Manager** at `/tools/exchange-rates` — add and delete currency-pair rates that are persisted and used for live column conversion
+* **Exchange Rate Manager** at `/tools/exchange-rates` — add, delete, and bulk-import currency-pair rates (via CSV upload) that are persisted and used for live column conversion
 * **Image Audit** at `/tools/image-audit` — scan the docs directory for orphaned image files and broken image links in markdown files
 * **Todo blocks** — embed colour-coded task lists directly in markdown using `` ```todo `` fences; rows are coloured by the worst of independent age and due-in thresholds; `created` dates are filled in automatically on save
 * **Inline Groovy expressions** — evaluate a Groovy expression inside any paragraph, heading, or bold/italic text using `[groovy]expression[/groovy]`; errors render as a ⚠ warning span
@@ -747,6 +747,26 @@ Navigate to **`/tools/exchange-rates`** to:
 - Add or update a rate by entering a `BASE/QUOTE` pair (e.g. `GBP/USD`) and a positive decimal
   rate.
 - Delete a rate with the trash-icon button on each row.
+- **Bulk-import rates from a CSV file** using the *Bulk Upload from CSV* form.
+
+#### CSV upload format
+
+The CSV file must have two columns — `currency-pair` and `rate` — one pair per line:
+
+```csv
+currency-pair,rate
+GBP/USD,1.2700
+EUR/USD,1.0850
+JPY/USD,0.006800
+```
+
+- An optional header row is auto-detected and skipped (detected when the first column contains
+  non-alphabetic characters such as the hyphen in `currency-pair`).
+- Blank lines and lines starting with `#` are ignored.
+- Pairs are normalised to upper-case automatically (`gbp/usd` → `GBP/USD`).
+- Any row that fails validation (invalid pair format, unknown ISO 4217 code, non-positive rate)
+  is reported individually; all other valid rows are still imported.
+- A summary banner shows the number of successfully imported rates and lists any per-row errors.
 
 Rates are persisted to `<docsDirectory>/config/exchange-rates.yaml`:
 

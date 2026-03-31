@@ -612,29 +612,43 @@ JPY/USD: 0.006800
    internal `LinkedHashMap` (insertion order preserved).
 2. `addRate(pairString, rate)` — validates both ISO 4217 codes, calls `setExchangeRate`, appends
    to the map, and calls `save()`.
-3. `deleteRate(pairString)` — removes from the map and calls `save()`.  Reverse-derived entries
+3. `bulkAddRates(Map<String,Double>)` — applies each pair in the map (validates via `parsePair`)
+   and calls `save()` once at the end.  Used by the CSV upload endpoint.
+4. `deleteRate(pairString)` — removes from the map and calls `save()`.  Reverse-derived entries
    already in `ExchangeRates` static map are NOT removed until the next restart.
-4. `save()` — writes the map to `exchange-rates.yaml` via Jackson `YAMLFactory`.
-5. `getVersion()` — returns `file.lastModified()` (or `0L` when absent); used as a cache-bust
+5. `save()` — writes the map to `exchange-rates.yaml` via Jackson `YAMLFactory`.
+6. `getVersion()` — returns `file.lastModified()` (or `0L` when absent); used as a cache-bust
    key injected into every data-block checksum as `__exchangeRatesVersion`.
 
 **Exchange Rate Manager UI** (`ExchangeRateController`, `GET/POST /tools/exchange-rates`):
 
 | Method | Path | Description |
 |---|---|---|
-| GET | `/tools/exchange-rates` | Show current rates table + add-rate form |
-| POST | `/tools/exchange-rates` | Add / update a rate (validates pair format and ISO codes) |
+| GET | `/tools/exchange-rates` | Show current rates table + add-rate form + upload form |
+| POST | `/tools/exchange-rates` | Add / update a single rate (validates pair format and ISO codes) |
 | POST | `/tools/exchange-rates/delete` | Remove a rate by pair string |
+| POST | `/tools/exchange-rates/upload` | Bulk-import rates from a CSV file (`multipart/form-data`; field `file`); returns the page with an `UploadResult` summary banner |
+
+**CSV upload behaviour:**
+
+- Two columns: pair (`BASE/QUOTE`) and rate (positive decimal), one row per line.
+- An optional header row is auto-detected and skipped when the first column contains
+  non-alphabetic characters (e.g. `currency-pair`); purely-alpha values like `GBPUSD` are treated
+  as malformed data rows so their errors are reported rather than silently discarded.
+- Blank lines and `#`-comment lines are ignored.
+- Pairs are normalised to upper-case.
+- Valid rows are passed to `ExchangeRateService.bulkAddRates` (single `save()` call).
+- Per-row errors are accumulated and displayed alongside the import count.
 
 **Key files:**
 
 | File | Role |
 |---|---|
-| `service/ExchangeRateService.java` | Load/save `exchange-rates.yaml`; drive `ExchangeRates` mutations |
+| `service/ExchangeRateService.java` | Load/save `exchange-rates.yaml`; drive `ExchangeRates` mutations; `bulkAddRates` for CSV import |
 | `cash/ExchangeRates.java` | Static in-memory map; `setExchangeRate` / `getExchangeRate` with cross-rate derivation |
 | `cash/CurrencyCodes.java` | ISO 4217 code validation |
-| `controller/ExchangeRateController.java` | `GET/POST /tools/exchange-rates` and `/tools/exchange-rates/delete` |
-| `jte/tools/exchange-rates.jte` | Rate table + add-rate form UI |
+| `controller/ExchangeRateController.java` | `GET/POST /tools/exchange-rates`, `/tools/exchange-rates/delete`, and `POST /tools/exchange-rates/upload`; inner `public record UploadResult(int imported, List<String> errors)` |
+| `jte/tools/exchange-rates.jte` | Rate table + add-rate form + CSV upload form + `UploadResult` banner |
 
 ---
 
@@ -841,6 +855,8 @@ the commit-status API. No deployment step is included.
 | Add a new exchange-rate currency symbol | Add a `case` to `DataBlockTranslator.resolveTargetCurrency`; document in README |
 | Change exchange-rate storage location | Edit `ExchangeRateService.ratesFile()` |
 | Change exchange-rate YAML format | Edit `ExchangeRateService.save()` and `init()`; update tests |
+| Change CSV upload header-detection logic | Edit the `headerSkipped` guard in `ExchangeRateController.uploadRates` |
+| Change CSV upload validation rules | Edit `ExchangeRateController.uploadRates`; update `ExchangeRateControllerSpec` upload tests |
 | Add a new currency-error CSS style | Edit `.data-block-no-rate` / `.data-block-currency-error` in `static/css/style.css` |
 | Change which file extensions are treated as images | Edit `ImageController.isImage()` — used by both the image-serving endpoint and `ImageAuditService` |
 | Change image-audit path-resolution logic | Edit `ImageAuditService.audit()` visitor |

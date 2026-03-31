@@ -68,6 +68,21 @@ public class ExchangeRateService {
     }
 
     /**
+     * Add or update multiple rates in a single operation. Persists to disk once
+     * after all rates have been applied.
+     *
+     * @param ratesToAdd map of pair strings (e.g. {@code GBP/USD}) to positive rates
+     */
+    public void bulkAddRates(Map<String, Double> ratesToAdd) {
+        ratesToAdd.forEach((pairString, rate) -> {
+            CurrencyPair pair = parsePair(pairString);
+            ExchangeRates.setExchangeRate(pair, rate);
+            rates.put(pairString, rate);
+        });
+        save();
+    }
+
+    /**
      * Remove an explicitly stored rate. Derived reverse entries remain in
      * {@link ExchangeRates} until the next restart.
      *

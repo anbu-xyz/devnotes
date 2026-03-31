@@ -5,6 +5,7 @@ import gg.jte.TemplateEngine
 import gg.jte.resolve.DirectoryCodeResolver
 import org.jsoup.Jsoup
 import org.springframework.http.HttpStatus
+import org.springframework.mock.web.MockMultipartFile
 import spock.lang.Specification
 import spock.lang.TempDir
 import uk.anbu.devnotes.cash.ExchangeRates
@@ -193,6 +194,164 @@ class ExchangeRateControllerSpec extends Specification {
         then:
         response.statusCode == HttpStatus.FOUND
         noExceptionThrown()
+    }
+
+    // =========================================================================
+    // POST /tools/exchange-rates/upload — CSV bulk upload
+    // =========================================================================
+
+    def "upload valid CSV with header row imports all rates"() {
+        given:
+        def csv = "currency-pair,rate\nGBP/USD,1.27\nEUR/USD,1.085\n"
+        def file = new MockMultipartFile("file", "rates.csv", "text/csv", csv.bytes)
+
+        when:
+        def response = controller.uploadRates(file)
+
+        then:
+        response.statusCode == HttpStatus.OK
+        exchangeRateService.getAllRates()["GBP/USD"] == 1.27
+        exchangeRateService.getAllRates()["EUR/USD"] == 1.085
+        def doc = Jsoup.parse(response.body)
+        doc.body().text().contains("Successfully imported")
+        doc.body().text().contains("2")
+    }
+
+    def "upload valid CSV without header row imports all rates"() {
+        given:
+        def csv = "GBP/USD,1.27\nEUR/USD,1.085\n"
+        def file = new MockMultipartFile("file", "rates.csv", "text/csv", csv.bytes)
+
+        when:
+        def response = controller.uploadRates(file)
+
+        then:
+        response.statusCode == HttpStatus.OK
+        exchangeRateService.getAllRates().size() == 2
+    }
+
+    def "upload CSV with lowercase pairs normalises to uppercase"() {
+        given:
+        def csv = "gbp/usd,1.27\n"
+        def file = new MockMultipartFile("file", "rates.csv", "text/csv", csv.bytes)
+
+        when:
+        controller.uploadRates(file)
+
+        then:
+        exchangeRateService.getAllRates().containsKey("GBP/USD")
+    }
+
+    def "upload CSV with blank lines and comment lines skips them"() {
+        given:
+        def csv = "# comment\n\nGBP/USD,1.27\n\nEUR/USD,1.085\n"
+        def file = new MockMultipartFile("file", "rates.csv", "text/csv", csv.bytes)
+
+        when:
+        def response = controller.uploadRates(file)
+
+        then:
+        exchangeRateService.getAllRates().size() == 2
+        def doc = Jsoup.parse(response.body)
+        doc.body().text().contains("2")
+    }
+
+    def "upload CSV with invalid pair format reports error for that row"() {
+        given:
+        def csv = "GBPUSD,1.27\nEUR/USD,1.085\n"
+        def file = new MockMultipartFile("file", "rates.csv", "text/csv", csv.bytes)
+
+        when:
+        def response = controller.uploadRates(file)
+
+        then:
+        response.statusCode == HttpStatus.OK
+        exchangeRateService.getAllRates().size() == 1
+        exchangeRateService.getAllRates().containsKey("EUR/USD")
+        def doc = Jsoup.parse(response.body)
+        doc.body().text().contains("invalid pair format")
+    }
+
+    def "upload CSV with unknown currency code reports error for that row"() {
+        given:
+        def csv = "XYZ/USD,1.5\nGBP/USD,1.27\n"
+        def file = new MockMultipartFile("file", "rates.csv", "text/csv", csv.bytes)
+
+        when:
+        def response = controller.uploadRates(file)
+
+        then:
+        exchangeRateService.getAllRates().size() == 1
+        exchangeRateService.getAllRates().containsKey("GBP/USD")
+        response.body.contains("XYZ")
+    }
+
+    def "upload CSV with non-numeric rate reports error for that row"() {
+        given:
+        def csv = "GBP/USD,notanumber\nEUR/USD,1.085\n"
+        def file = new MockMultipartFile("file", "rates.csv", "text/csv", csv.bytes)
+
+        when:
+        def response = controller.uploadRates(file)
+
+        then:
+        exchangeRateService.getAllRates().size() == 1
+        exchangeRateService.getAllRates().containsKey("EUR/USD")
+        response.body.contains("not a valid number")
+    }
+
+    def "upload CSV with zero rate reports error for that row"() {
+        given:
+        def csv = "GBP/USD,0\n"
+        def file = new MockMultipartFile("file", "rates.csv", "text/csv", csv.bytes)
+
+        when:
+        def response = controller.uploadRates(file)
+
+        then:
+        exchangeRateService.getAllRates().isEmpty()
+        response.body.contains("greater than zero")
+    }
+
+    def "upload empty file shows error"() {
+        given:
+        def file = new MockMultipartFile("file", "empty.csv", "text/csv", new byte[0])
+
+        when:
+        def response = controller.uploadRates(file)
+
+        then:
+        response.statusCode == HttpStatus.OK
+        response.body.contains("empty")
+    }
+
+    def "upload CSV with only header row shows no data rows message"() {
+        given:
+        def csv = "currency-pair,rate\n"
+        def file = new MockMultipartFile("file", "rates.csv", "text/csv", csv.bytes)
+
+        when:
+        def response = controller.uploadRates(file)
+
+        then:
+        response.statusCode == HttpStatus.OK
+        exchangeRateService.getAllRates().isEmpty()
+        def doc = Jsoup.parse(response.body)
+        doc.body().text().contains("no data rows")
+    }
+
+    def "upload CSV with missing second column reports error"() {
+        given:
+        def csv = "GBP/USD\n"
+        def file = new MockMultipartFile("file", "rates.csv", "text/csv", csv.bytes)
+
+        when:
+        def response = controller.uploadRates(file)
+
+        then:
+        response.statusCode == HttpStatus.OK
+        exchangeRateService.getAllRates().isEmpty()
+        response.body.contains("expected 2 columns")
     }
 }
 
