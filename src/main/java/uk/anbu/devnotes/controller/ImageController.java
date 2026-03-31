@@ -42,7 +42,7 @@ public class ImageController {
         }
     }
 
-    static boolean isImage(String fileExtension) {
+    public static boolean isImage(String fileExtension) {
         return "png".equals(fileExtension) || "jpg".equals(fileExtension) || "jpeg".equals(fileExtension)
                 || "gif".equals(fileExtension) || "svg".equals(fileExtension) || "bmp".equals(fileExtension)
                 || "webp".equals(fileExtension) || "tiff".equals(fileExtension) || "tif".equals(fileExtension)
