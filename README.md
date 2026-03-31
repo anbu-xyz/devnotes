@@ -24,6 +24,8 @@ By a corporate environment, I mean:
    - CSV tables
    - HTML
    - Text
+* **Groovy Playground** at `/groovy-playground` — interactive split-pane editor with live execution and render-mode selector
+* **Mermaid Playground** at `/mermaid-playground` — interactive split-pane editor with live Mermaid diagram preview
 * Spaced-repetition flash cards for active recall of notes
 * **Currency-symbol column conversion** in data blocks — columns named `$…`, `£…`, or `€…` automatically convert cell values to USD / GBP / EUR using configured exchange rates
 * **Exchange Rate Manager** at `/tools/exchange-rates` — add and delete currency-pair rates that are persisted and used for live column conversion
@@ -149,7 +151,37 @@ two-item menu:
 * **Refresh** — re-executes the script (bypasses cache) and replaces the block output in-place.
 * **Source** — toggles the visibility of the original Groovy source code.
 
-### Sql Scripting
+### Groovy Playground
+
+The **Groovy Playground** at `/groovy-playground` is a browser-based split-pane editor for
+writing and executing Groovy scripts with a live rendered output panel.
+
+At the top of the editor panel is a **render-mode** combo box with the same options as fenced
+code blocks:
+
+| Mode | Output |
+|---|---|
+| `text` | `<pre>` block |
+| `html` | Raw HTML |
+| `code-block` | Escaped `<pre>` block |
+| `csv-table` | HTML table (no header row) |
+| `csv-table-with-header` | HTML table (first row = header) |
+
+Features:
+
+- **Live preview** — the script re-executes automatically as you type (debounced 800 ms).
+- **Ctrl+Enter** — triggers an immediate run without waiting for the debounce.
+- **Render mode** — the selected mode is remembered across sessions (browser `localStorage` and
+  server-side `config/groovy-playground/last-render-mode.txt`).
+- **Save / Save as…** — persist the script to any `.groovy` file within your docs directory.
+- **Reset** — restore the editor to the built-in sample script.
+- **Error handling** — execution errors are shown inline in the output panel; the server never
+  returns a 5xx for a Groovy error.
+
+The script and render mode are autosaved to `<docsDirectory>/config/groovy-playground/` on every
+keystroke so your work is never lost.
+
+### Playwright Scripting
 
 To embed executable sql code in a markdown file, use the following syntax:
 
@@ -560,6 +592,20 @@ graph TD
 Should render: 
 
 ![](/docs/mermaid-example-flowchart.png)
+
+### Mermaid Playground
+
+The **Mermaid Playground** at `/mermaid-playground` is a browser-based split-pane editor for
+authoring and previewing Mermaid diagrams interactively.
+
+- **Live preview** — the diagram re-renders automatically as you type.
+- **Save / Save as…** — persist the diagram to any `.mmd` file within your docs directory.
+- **Download SVG** — export the current diagram as an SVG file.
+- **Fullscreen** — view the rendered diagram full-screen via an overlay modal.
+- **Reset** — restore the editor to the built-in sample diagram.
+
+The editor content is autosaved to `<docsDirectory>/config/mermaid/last-edited.mmd` on every
+keystroke so your work is never lost.
 
 ### Javascript support
 

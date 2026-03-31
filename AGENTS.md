@@ -68,6 +68,7 @@ src/
       scheduled/           # Quartz-scheduled jobs
     jte/                   # jte view templates (fragments + full pages; `database-metadata-diff.jte` for diff results)
       flashcards/          # Flash-card UI templates (summary, review, new-card, edit-card)
+      render/              # Standalone render pages (mermaid-playground.jte, groovy-playground.jte, …)
     resources/
       application.yaml     # Default config (profiles: prod / dev)
       static/              # CSS, JS, images served statically
@@ -654,6 +655,66 @@ two-item dropdown into every `.groovy-block`:
 
 ---
 
+### Mermaid Playground (`MermaidPlaygroundController`)
+
+A browser-based split-pane editor for authoring and previewing Mermaid diagrams interactively.
+
+`GET /mermaid-playground` renders the playground page.  The editor content is autosaved to
+`<docsDirectory>/config/mermaid/last-edited.mmd` on every keystroke (debounced).
+
+**Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/mermaid-playground` | Renders split-pane editor; restores autosaved content |
+| POST | `/mermaid-playground/autosave` (text/plain) | Saves current content to `config/mermaid/last-edited.mmd` |
+| POST | `/mermaid-playground/save` (text/plain, `?savePath=`) | Saves content to an arbitrary path within docs root (path-traversal protected) |
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `controller/MermaidPlaygroundController.java` | GET + 2× POST endpoints; autosave path logic |
+| `src/main/jte/render/mermaid-playground.jte` | Split-pane UI (editor, live Mermaid preview, save/save-as, fullscreen, download SVG, reset) |
+| `test/…/MermaidPlaygroundControllerSpec.groovy` | Spock specs: default content, autosave, save-as, path-traversal rejection, template error |
+
+---
+
+### Groovy Playground (`GroovyPlaygroundController`)
+
+A browser-based split-pane editor for writing and executing Groovy scripts with a live rendered
+output panel.  Mirrors the render modes available in `` ```groovy:<mode> `` fenced code blocks.
+
+`GET /groovy-playground` renders the playground page.  The script and selected render mode are
+autosaved to `<docsDirectory>/config/groovy-playground/` on every keystroke (debounced).
+
+**Render mode combo box** (top of editor panel): `text`, `html`, `code-block`, `csv-table`,
+`csv-table-with-header`.  The selected mode is persisted both server-side
+(`last-render-mode.txt`) and in the browser's `localStorage`.
+
+**Endpoints:**
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/groovy-playground` | Renders split-pane editor; restores autosaved script and render mode |
+| POST | `/groovy-playground/autosave` (JSON `{script, renderMode}`) | Saves script to `config/groovy-playground/last-edited.groovy` and mode to `last-render-mode.txt` |
+| POST | `/groovy-playground/save` (text/plain, `?savePath=`) | Saves script to an arbitrary path within docs root (path-traversal protected) |
+| POST | `/groovy-playground/execute` (JSON `{script, renderMode}`) | Executes script via `GroovyRenderer.executeToHtml`; returns rendered HTML (errors embedded in `<pre>`, never 500) |
+
+The script re-executes automatically as the user types (debounced 800 ms); **Ctrl+Enter**
+triggers an immediate run without waiting for the debounce.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `controller/GroovyPlaygroundController.java` | GET + 3× POST endpoints; autosave and execute logic |
+| `module/GroovyRenderer.java` | `executeToHtml(script, targetType)` — executes script via `GroovyShellRunner`, converts output to HTML; errors embedded in `<pre>` block |
+| `src/main/jte/render/groovy-playground.jte` | Split-pane UI (render-mode select, editor, live output preview, save/save-as, Ctrl+Enter shortcut, reset) |
+| `test/…/GroovyPlaygroundControllerSpec.groovy` | 11 Spock specs: default content, autosave, save-as, path-traversal rejection, execute for all render modes, error embedding, template error |
+
+---
+
 ## Testing
 
 - Tests live in `src/test/groovy` (Spock) and `src/test/java` (JUnit).
@@ -719,6 +780,11 @@ the commit-status API. No deployment step is included.
 | Change todo table columns or header labels | Edit `TodoBlockTranslator.buildHtmlBlock` |
 | Add a new field to todo items (e.g. priority) | Add field to `TodoConfig.TodoItem`, handle in `buildHtmlBlock` |
 | Change the auto-created-date injection logic | Edit `TodoCreatedDateFiller.injectCreatedDates` |
+| Change the mermaid playground default diagram | Edit `MermaidPlaygroundController.DEFAULT_CONTENT` |
+| Change the mermaid playground autosave path | Edit `MermaidPlaygroundController.AUTOSAVE_RELATIVE_PATH` |
+| Change the groovy playground default script | Edit `GroovyPlaygroundController.DEFAULT_SCRIPT` |
+| Change the groovy playground autosave paths | Edit `GroovyPlaygroundController.AUTOSAVE_SCRIPT_PATH` / `AUTOSAVE_MODE_PATH` |
+| Add a render mode to the groovy playground select | Add a `case` to `GroovyRenderer.convertOutputToNode` and an `<option>` in `groovy-playground.jte` |
 
 ---
 

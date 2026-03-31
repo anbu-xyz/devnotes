@@ -105,6 +105,22 @@ public class GroovyRenderer {
     }
 
     /**
+     * Executes a Groovy script with the given target type and returns the rendered HTML string.
+     * Any execution error is embedded in a {@code <pre>} block rather than thrown.
+     */
+    public String executeToHtml(String groovyScript, String targetType) {
+        try {
+            setEnvVariables();
+            var outputString = GroovyShellRunner.execute(groovyScript);
+            var node = convertOutputToNode(targetType, outputString);
+            return convertNodeToHtml(node);
+        } catch (Exception e) {
+            log.error("Error executing Groovy script in playground", e);
+            return "<pre class=\"groovy-text-output\">" + escapeHtml(e.getMessage()) + "</pre>";
+        }
+    }
+
+    /**
      * Forces re-execution by deleting any existing cache file, then delegates to
      * {@link #renderResultWrapped}.
      */

@@ -19,6 +19,7 @@
     <a href="/tools/exchange-rates" class="btn-blue-glow"><i class="fas fa-dollar-sign"></i>Exchange Rates</a>
     <a href="/tools/image-audit" class="btn-blue-glow"><i class="fas fa-images"></i>Image Audit</a>
     <a href="/mermaid-playground" class="btn-blue-glow"><i class="fas fa-project-diagram"></i>Mermaid Playground</a>
+    <a href="/groovy-playground" class="btn-blue-glow"><i class="fas fa-terminal"></i>Groovy Playground</a>
 </div>
 <hr>
 <a href="/" class="btn-blue-glow"><i class="fas fa-home"></i>Home</a>
