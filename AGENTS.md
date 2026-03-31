@@ -122,7 +122,7 @@ start; the derived AES-256-GCM key is kept only in JVM memory.
    - `` ```plantuml `` → `PlantumlController` (rendered server-side to PNG via URL)
    - `` ```parameter `` → `ParameterBlockTranslator` (populates a shared `ParameterRegistry`)
    - `` ```database-metadata `` → `DatabaseMetadataBlockTranslator` (YAML schema doc → HTML card; optional live DB diff via HTMX)
-   - `` ```todo `` → `TodoBlockTranslator` (YAML todo list → colour-coded HTML table; dual age + urgency thresholds; highest criticality wins)
+   - `` ```todo `` → `TodoBlockTranslator` (YAML todo list → colour-coded HTML table; dual age + due-in thresholds; highest criticality wins)
 3. The modified AST is rendered back to HTML and injected into the jte page template.
 
 ### Data Blocks (`DataBlockTranslator`)
@@ -301,10 +301,10 @@ thresholds:              # all fields optional; defaults: green=7, amber=14, red
     green:  7            # days open — green/amber boundary
     amber: 14            # days open — amber/red boundary
     red:   30            # days open — red/overdue boundary
-  urgency:
-    green:  7            # days left — overdue/red boundary
-    amber: 14            # days left — red/amber boundary
-    red:   30            # days left — amber/green boundary
+  due-in:
+    green: 30            # days left — amber/green boundary  (default 30)
+    amber: 14            # days left — red/amber boundary    (default 14)
+    red:    7            # days left — overdue/red boundary  (default 7)
 items:
   - summary: Fix login bug
     created: 2026-03-01
@@ -320,20 +320,23 @@ The table has four columns: **Summary / Open (days) / Due in / Description**.
 - **Open (days)** — days since `created` (positive integer, or `—` if absent).
 - **Due in** — days until `due` (positive = remaining, negative = overdue, `—` if absent).
 
-**Colour coding** — both age and urgency are evaluated independently for every item; the
+**Colour coding** — both age and due-in are evaluated independently for every item; the
 **highest criticality** of the two determines the row colour.  `color-mode` is no longer required
 (old blocks that still contain it are silently accepted).
 
 **Age threshold semantics:**
 `daysOld < green` → green · `< amber` → amber · `< red` → red · `≥ red` → overdue.
 
-**Urgency threshold semantics:**
-`daysLeft > red` → green · `> amber` → amber · `> green` → red · `≤ green` (incl. negative) → overdue.
+**Due-in threshold semantics:**
+`daysLeft > green` → green · `> amber` → amber · `> red` → red · `≤ red` (incl. negative) → overdue.
+Default due-in thresholds: `green=30, amber=14, red=7` — the mirror image of the age defaults so
+that field names are self-consistent: `green` always labels the boundary at which the *green* colour
+starts.
 
 **Criticality ranking:** `todo-overdue` > `todo-red` > `todo-amber` > `todo-green`.
 
 Items without `created` default to green for the age dimension; items without `due` default to
-green for the urgency dimension.
+green for the due-in dimension.
 
 The optional `description` field is rendered as **CommonMark HTML** inline in the table cell
 (same pipeline as flash-card question/answer fields).
@@ -345,10 +348,10 @@ The optional `description` field is rendered as **CommonMark HTML** inline in th
 
 | File | Role |
 |---|---|
-| `markdown/code/todo/TodoConfig.java` | Jackson POJO: top-level config, `ThresholdConfig` (age + urgency `ThresholdValues`), `TodoItem` |
+| `markdown/code/todo/TodoConfig.java` | Jackson POJO: top-level config, `ThresholdConfig` (age `ThresholdValues` + due-in `DueInThresholdValues`), `TodoItem` |
 | `markdown/code/TodoBlockTranslator.java` | Translates YAML fence → `HtmlBlock`; `computeRowClass`, `computeOpenDays`, `computeDueIn`, `renderDescriptionMarkdown` |
 | `static/css/style.css` | `.todo-block`, `.todo-table`, `.todo-green/amber/red/overdue`, `.todo-days`, `.todo-error` |
-| `test/…/TodoBlockTranslatorSpec.groovy` | 59 Spock feature methods (dual-threshold colouring, highest-criticality selection, Open(days)/Due-in columns, markdown descriptions, error handling) |
+| `test/…/TodoBlockTranslatorSpec.groovy` | 63 Spock feature methods (dual-threshold colouring, highest-criticality selection, Open(days)/Due-in columns, markdown descriptions, error handling) |
 
 `GET /database` serves the fetch-metadata UI page. `POST /database/fetch-metadata` connects to a
 configured datasource, introspects all matching tables via JDBC `DatabaseMetaData`, and writes a

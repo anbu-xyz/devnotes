@@ -24,13 +24,13 @@ class TodoBlockTranslatorSpec extends Specification {
         """\
 thresholds:
   age:
-    green: 7
+    green:  7
     amber: 14
     red:   30
-  urgency:
-    green: 7
+  due-in:
+    green: 30
     amber: 14
-    red:   30
+    red:    7
 items:
   - summary: Fix login bug
     created: ${LocalDate.now()}
@@ -136,7 +136,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        // created today → age green; due in 10 days → urgency red → urgency cell carries ⚠
+        // created today → age green; due in 10 days → due-in red → due-in cell carries ⚠
         def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
         cells[2].text() == "\u26A0 10"
     }
@@ -153,7 +153,7 @@ items:
         def result = translator.translate(yaml)
 
         then:
-        // age amber (10 days), urgency overdue (-3 days) → urgency wins → ⚠ in Due in cell
+        // age amber (10 days), due-in overdue (-3 days) → due-in wins → ⚠ in Due in cell
         def cells = Jsoup.parse(result.get().literal).select("tbody tr td")
         cells[2].text() == "\u26A0 -3"
     }
@@ -234,10 +234,10 @@ items:
     }
 
     // =========================================================================
-    // 5. Color coding — urgency-driven
+    // 5. Color coding — due-in-driven
     // =========================================================================
 
-    def "item with due date 35 days away (created today) gets todo-green class from urgency"() {
+    def "item with due date 35 days away (created today) gets todo-green class from due-in"() {
         given:
         def yaml = """\
 items:
@@ -252,7 +252,7 @@ items:
         Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-green")
     }
 
-    def "item due in 16 days (created today) gets todo-amber class from urgency"() {
+    def "item due in 16 days (created today) gets todo-amber class from due-in"() {
         given:
         def yaml = """\
 items:
@@ -267,7 +267,7 @@ items:
         Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-amber")
     }
 
-    def "item due in 9 days (created today) gets todo-red class from urgency"() {
+    def "item due in 9 days (created today) gets todo-red class from due-in"() {
         given:
         def yaml = """\
 items:
@@ -282,7 +282,7 @@ items:
         Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-red")
     }
 
-    def "item with past due date (created today) gets todo-overdue class from urgency"() {
+    def "item with past due date (created today) gets todo-overdue class from due-in"() {
         given:
         def yaml = """\
 items:
@@ -301,10 +301,10 @@ items:
     // 6. Highest criticality wins
     // =========================================================================
 
-    def "when age gives amber and urgency gives overdue, row class is todo-overdue"() {
+    def "when age gives amber and due-in gives overdue, row class is todo-overdue"() {
         given:
         // created 10 days ago → amber by age (between green=7 and amber=14)
-        // due yesterday → overdue by urgency
+        // due yesterday → overdue by due-in
         def yaml = """\
 items:
   - summary: Urgent and ageing
@@ -318,10 +318,10 @@ items:
         Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-overdue")
     }
 
-    def "when age gives overdue and urgency gives amber, row class is todo-overdue"() {
+    def "when age gives overdue and due-in gives amber, row class is todo-overdue"() {
         given:
         // created 31 days ago → overdue by age (≥ red=30)
-        // due in 16 days → amber by urgency (between amber=14 and red=30)
+        // due in 16 days → amber by due-in (between amber=14 and green=30)
         def yaml = """\
 items:
   - summary: Very old but has time
@@ -335,13 +335,13 @@ items:
         Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-overdue")
     }
 
-    def "when age gives red and urgency gives amber, row class is todo-red"() {
+    def "when age gives red and due-in gives amber, row class is todo-red"() {
         given:
         // created 20 days ago → red by age (between amber=14 and red=30)
-        // due in 20 days → amber by urgency (between amber=14 and red=30)
+        // due in 20 days → amber by due-in (between amber=14 and green=30)
         def yaml = """\
 items:
-  - summary: Red age, amber urgency
+  - summary: Red age, amber due-in
     created: ${LocalDate.now().minusDays(20)}
     due: ${LocalDate.now().plusDays(20)}
 """
@@ -353,13 +353,13 @@ items:
     }
 
     // =========================================================================
-    // 7. Separate age and urgency thresholds
+    // 7. Separate age and due-in thresholds
     // =========================================================================
 
-    def "separate age and urgency thresholds are applied independently"() {
+    def "separate age and due-in thresholds are applied independently"() {
         given:
         // age thresholds: green=3, amber=7, red=14  → item 5 days old → amber by age
-        // urgency thresholds: green=2, amber=5, red=10 → due in 8 days → amber by urgency
+        // due-in thresholds: green=10, amber=5, red=2 → due in 8 days → amber by due-in
         // highest = amber
         def yaml = """\
 thresholds:
@@ -367,10 +367,10 @@ thresholds:
     green: 3
     amber: 7
     red: 14
-  urgency:
-    green: 2
+  due-in:
+    green: 10
     amber: 5
-    red: 10
+    red: 2
 items:
   - summary: Custom thresholds
     created: ${LocalDate.now().minusDays(5)}
@@ -383,22 +383,22 @@ items:
         Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-amber")
     }
 
-    def "tighter urgency threshold escalates colour when age would give green"() {
+    def "tighter due-in threshold escalates colour when age would give green"() {
         given:
         // created today → green by age
-        // urgency thresholds: green=30, amber=60, red=90 → due in 15 days → overdue by urgency
+        // due-in thresholds: green=90, amber=60, red=30 → due in 15 days → overdue by due-in
         def yaml = """\
 thresholds:
   age:
     green: 7
     amber: 14
     red: 30
-  urgency:
-    green: 30
+  due-in:
+    green: 90
     amber: 60
-    red: 90
+    red: 30
 items:
-  - summary: Tight urgency threshold
+  - summary: Tight due-in threshold
     created: ${LocalDate.now()}
     due: ${LocalDate.now().plusDays(15)}
 """
@@ -430,7 +430,7 @@ items:
 
     def "item without created date defaults to green for age dimension"() {
         given:
-        // No created → age class = green; due far away → urgency class = green; result = green
+        // No created → age class = green; due far away → due-in class = green; result = green
         def yaml = """\
 items:
   - summary: No created
@@ -443,9 +443,9 @@ items:
         Jsoup.parse(result.get().literal).select("tbody tr")[0].hasClass("todo-green")
     }
 
-    def "item without due date defaults to green for urgency dimension"() {
+    def "item without due date defaults to green for due-in dimension"() {
         given:
-        // created today → green by age; no due → urgency = green; result = green
+        // created today → green by age; no due → due-in = green; result = green
         def yaml = """\
 items:
   - summary: No deadline
@@ -565,7 +565,7 @@ items:
         def config = new TodoConfig()
         def item = new TodoConfig.TodoItem()
         item.created = LocalDate.now().minusDays(daysOld)
-        // no due date → urgency always green
+        // no due date → due-in always green
 
         expect:
         translator.computeRowClass(config, item) == expectedClass
@@ -582,7 +582,7 @@ items:
         100     | "todo-overdue"
     }
 
-    def "computeRowClass returns correct class driven purely by urgency"() {
+    def "computeRowClass returns correct class driven purely by due-in"() {
         given:
         def config = new TodoConfig()
         def item = new TodoConfig.TodoItem()
@@ -606,25 +606,25 @@ items:
         LocalDate.now().minusDays(1)      | "todo-overdue"
     }
 
-    def "computeRowClass picks highest criticality between age and urgency"() {
+    def "computeRowClass picks highest criticality between age and due-in"() {
         given:
         def config = new TodoConfig()
         def item = new TodoConfig.TodoItem()
         item.created = LocalDate.now().minusDays(ageClass == "todo-overdue" ? 31 :
                                                   ageClass == "todo-red"     ? 20 :
                                                   ageClass == "todo-amber"   ? 10 : 0)
-        // wire up urgency via daysLeft
-        item.due = LocalDate.now().plusDays(urgencyDaysLeft)
+        // wire up due-in via daysLeft
+        item.due = LocalDate.now().plusDays(dueInDaysLeft)
 
         expect:
         translator.computeRowClass(config, item) == expectedClass
 
         where:
-        ageClass      | urgencyDaysLeft | expectedClass
-        "todo-green"  | -1              | "todo-overdue"   // urgency wins
-        "todo-amber"  | 35              | "todo-amber"     // age wins (tie: age=amber, urgency=green)
-        "todo-red"    | 16              | "todo-red"       // age wins (red > amber)
-        "todo-overdue"| 16             | "todo-overdue"   // age wins
+        ageClass       | dueInDaysLeft | expectedClass
+        "todo-green"   | -1            | "todo-overdue"   // due-in wins
+        "todo-amber"   | 35            | "todo-amber"     // age wins (tie: age=amber, due-in=green)
+        "todo-red"     | 16            | "todo-red"       // age wins (red > amber)
+        "todo-overdue" | 16            | "todo-overdue"   // age wins
     }
 
     // =========================================================================
@@ -678,9 +678,9 @@ items:
     // 15. Warning icon
     // =========================================================================
 
-    def "warning icon appears in Open (days) cell when age has higher criticality than urgency"() {
+    def "warning icon appears in Open (days) cell when age has higher criticality than due-in"() {
         given:
-        // created 20 days ago → age red (crit 2); no due → urgency green (crit 0)
+        // created 20 days ago → age red (crit 2); no due → due-in green (crit 0)
         def yaml = """\
 items:
   - summary: Age-driven
@@ -695,12 +695,12 @@ items:
         !cells[2].text().startsWith("\u26A0")
     }
 
-    def "warning icon appears in Due in cell when urgency has higher criticality than age"() {
+    def "warning icon appears in Due in cell when due-in has higher criticality than age"() {
         given:
-        // created today → age green (crit 0); due in 9 days → urgency red (crit 2)
+        // created today → age green (crit 0); due in 9 days → due-in red (crit 2)
         def yaml = """\
 items:
-  - summary: Urgency-driven
+  - summary: Due-in-driven
     created: ${LocalDate.now()}
     due: ${LocalDate.now().plusDays(9)}
 """
@@ -713,9 +713,9 @@ items:
         cells[2].text().startsWith("\u26A0")
     }
 
-    def "warning icon appears in both cells when age and urgency share the highest criticality"() {
+    def "warning icon appears in both cells when age and due-in share the highest criticality"() {
         given:
-        // created 20 days ago → age red (crit 2); due in 9 days → urgency red (crit 2)
+        // created 20 days ago → age red (crit 2); due in 9 days → due-in red (crit 2)
         def yaml = """\
 items:
   - summary: Equal criticality
@@ -733,7 +733,7 @@ items:
 
     def "no warning icon appears when both dimensions are green"() {
         given:
-        // created today → age green; due in 35 days → urgency green
+        // created today → age green; due in 35 days → due-in green
         def yaml = """\
 items:
   - summary: All good

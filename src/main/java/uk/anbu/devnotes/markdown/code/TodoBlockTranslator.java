@@ -53,24 +53,24 @@ public class TodoBlockTranslator {
         List<TodoConfig.TodoItem> items = config.getItems() != null ? config.getItems() : List.of();
         for (var item : items) {
             var thresholds  = config.getThresholds() != null ? config.getThresholds() : new TodoConfig.ThresholdConfig();
-            String ageClass     = computeAgeClass(thresholds.getAge(), item);
-            String urgencyClass = computeUrgencyClass(thresholds.getUrgency(), item);
-            String rowClass     = higherCriticality(ageClass, urgencyClass);
-            int    ageCrit      = criticality(ageClass);
-            int    urgencyCrit  = criticality(urgencyClass);
+            String ageClass    = computeAgeClass(thresholds.getAge(), item);
+            String dueInClass  = computeDueInClass(thresholds.getDueIn(), item);
+            String rowClass    = higherCriticality(ageClass, dueInClass);
+            int    ageCrit     = criticality(ageClass);
+            int    dueInCrit   = criticality(dueInClass);
 
             String openDays = computeOpenDays(item);
             String dueIn    = computeDueIn(item);
             String descHtml = renderDescriptionMarkdown(item.getDescription());
 
-            String ageCell     = (ageCrit > 0 && ageCrit >= urgencyCrit ? WARN : "") + openDays;
-            String urgencyCell = (urgencyCrit > 0 && urgencyCrit >= ageCrit ? WARN : "") + dueIn;
+            String ageCell    = (ageCrit > 0 && ageCrit >= dueInCrit ? WARN : "") + openDays;
+            String dueInCell  = (dueInCrit > 0 && dueInCrit >= ageCrit ? WARN : "") + dueIn;
 
             tbody.with(
                 tr().withClass(rowClass)
                     .with(td().withText(item.getSummary() != null ? item.getSummary() : ""))
                     .with(td().withClass("todo-days").withText(ageCell))
-                    .with(td().withClass("todo-days").withText(urgencyCell))
+                    .with(td().withClass("todo-days").withText(dueInCell))
                     .with(td().with(rawHtml(descHtml)))
             );
         }
@@ -87,14 +87,14 @@ public class TodoBlockTranslator {
     }
 
     /**
-     * Returns the highest-criticality CSS class between the age-based and urgency-based
+     * Returns the highest-criticality CSS class between the age-based and due-in-based
      * row classes.  Criticality ranking: todo-overdue > todo-red > todo-amber > todo-green.
      */
     String computeRowClass(TodoConfig config, TodoConfig.TodoItem item) {
-        var thresholds   = config.getThresholds() != null ? config.getThresholds() : new TodoConfig.ThresholdConfig();
-        String ageClass      = computeAgeClass(thresholds.getAge(), item);
-        String urgencyClass  = computeUrgencyClass(thresholds.getUrgency(), item);
-        return higherCriticality(ageClass, urgencyClass);
+        var thresholds  = config.getThresholds() != null ? config.getThresholds() : new TodoConfig.ThresholdConfig();
+        String ageClass    = computeAgeClass(thresholds.getAge(), item);
+        String dueInClass  = computeDueInClass(thresholds.getDueIn(), item);
+        return higherCriticality(ageClass, dueInClass);
     }
 
     private String computeAgeClass(TodoConfig.ThresholdValues t, TodoConfig.TodoItem item) {
@@ -106,12 +106,12 @@ public class TodoBlockTranslator {
         return "todo-overdue";
     }
 
-    private String computeUrgencyClass(TodoConfig.ThresholdValues t, TodoConfig.TodoItem item) {
+    private String computeDueInClass(TodoConfig.DueInThresholdValues t, TodoConfig.TodoItem item) {
         if (item.getDue() == null) return "todo-green";
         long daysLeft = ChronoUnit.DAYS.between(LocalDate.now(), item.getDue());
-        if (daysLeft > t.getRed())   return "todo-green";
+        if (daysLeft > t.getGreen()) return "todo-green";
         if (daysLeft > t.getAmber()) return "todo-amber";
-        if (daysLeft > t.getGreen()) return "todo-red";
+        if (daysLeft > t.getRed())   return "todo-red";
         return "todo-overdue";
     }
 
