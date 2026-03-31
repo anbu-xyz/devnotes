@@ -50,10 +50,11 @@ src/
     java/uk/anbu/devnotes/
       controller/          # Spring MVC controllers (one per feature area)
       markdown/            # Markdown AST visitors / transformers
-        code/              # Code-block translators (Groovy, SQL, data, Mermaid, parameter, database-metadata, todo)
+        code/              # Code-block translators (Groovy, SQL, data, Mermaid, parameter, database-metadata, todo, rest)
           datablock/       # YamlCodeblockConfig POJO + ParameterRegistry
           databasemetadata/ # DatabaseMetadataConfig POJO
           todo/            # TodoConfig POJO
+          restblock/       # RestCodeblockConfig POJO
         groovy/            # Inline [groovy]…[/groovy] transformer + custom AST node + renderer
         red/               # Inline [red]…[/red] transformer + custom AST node + renderer
         image/             # Local-image path rewriting
@@ -126,6 +127,7 @@ start; the derived AES-256-GCM key is kept only in JVM memory.
    - `` ```parameter `` → `ParameterBlockTranslator` (populates a shared `ParameterRegistry`)
    - `` ```database-metadata `` → `DatabaseMetadataBlockTranslator` (YAML schema doc → HTML card; optional live DB diff via HTMX)
    - `` ```todo `` → `TodoBlockTranslator` (YAML todo list → colour-coded HTML table; dual age + due-in thresholds; highest criticality wins)
+   - `` ```rest `` → `RestBlockTranslator` (YAML HTTP config → executes request → JSONPath extraction → HTML table or jte template; output cached to disk)
 3. **Inline transformers** walk every `Text` node in the AST and replace matched spans with
    custom `CustomNode` instances that are rendered by registered `HtmlNodeRendererFactory`
    implementations:
@@ -409,7 +411,74 @@ The optional `description` field is rendered as **CommonMark HTML** inline in th
 | `test/…/TodoBlockTranslatorSpec.groovy` | 63 Spock feature methods (dual-threshold colouring, highest-criticality selection, Open(days)/Due-in columns, markdown descriptions, error handling) |
 | `test/…/TodoCreatedDateFillerSpec.groovy` | 17 Spock feature methods (fence detection, per-item injection, CRLF preservation, nested-key false-positive guard) |
 
-`GET /database` serves the fetch-metadata UI page. `POST /database/fetch-metadata` connects to a
+### REST Blocks (`RestBlockTranslator`)
+
+REST blocks use a YAML mini-language inside a `` ```rest `` fence to execute an HTTP request,
+parse the JSON response, and render the result as an HTML table.
+
+```yaml
+url: https://api.example.com/todos
+method: GET                     # GET | POST | PUT | PATCH | DELETE  (default: GET)
+headers:
+  Authorization: "Bearer token"
+  Accept: application/json
+body: '{"filter":"active"}'      # optional; used for POST/PUT/PATCH
+timeout-seconds: 30              # optional; default 30
+tls-verify: true                 # optional; default true (false skips cert validation)
+jsonpath: "$[*]"                 # optional JSONPath expression
+options:
+  columns: [id, title, completed]
+  row-limit: 50
+column-formats:
+  price:
+    number-format: "#,##0.00"
+output:                          # optional; same jte template mechanism as data blocks
+  template-type: jte
+  template: |
+    @param java.util.List<java.util.Map<String,Object>> rows
+    ...
+```
+
+**Rendering** (`RestBlockTranslator`): Parses the YAML into a `RestCodeblockConfig` POJO, executes
+the HTTP request via `java.net.http.HttpClient`, optionally applies a Jayway JSONPath expression,
+normalises the result to `List<Map<String,Object>>`, then builds a j2html table
+(`div.rest-block > table.rest-block-table`).  Cell values that are JSON objects or arrays are
+rendered as nested `table.rest-block-nested-table` elements rather than raw JSON strings.
+
+**Caching**: Results are cached to `<mdFileNoExt>.<checksum>.output` next to the markdown file.
+The checksum is a SHA-256 hash of the serialised `RestCodeblockConfig`.  The cache is read on
+every page render and bypassed only on an explicit Refresh action.
+
+**Row normalisation** (`normalizeToRows`):
+
+| Extracted type | Normalised to |
+|---|---|
+| `List<Map>` | Used directly |
+| `List` of scalars | Each element wrapped as `{"value": element}` |
+| Single `Map` | Single-element list |
+| Scalar | `[{"value": scalar.toString()}]` |
+
+**Context menu**: Every rendered REST block gets a **⋮** button (injected by `setupRestBlockControls()`
+in `markdown.js`):
+
+| Menu item | Behaviour |
+|---|---|
+| **Refresh** | POSTs `{markdownFile, restblockId}` to `POST /restblock/fragment`; deletes cache file; re-executes; replaces the block. |
+| **Source** | Toggles the adjacent `<pre><code class="language-hidden-rest">` visibility. |
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `markdown/code/restblock/RestCodeblockConfig.java` | Jackson POJO (`@Data`, `@JsonIgnoreProperties`) with `checksum()` method; nested `RestOptions`, `ColumnFormatConfig`, `Output` |
+| `markdown/code/RestBlockTranslator.java` | Stateless translator; `translate`, `executeHttpRequest`, `extractWithJsonPath`, `normalizeToRows`, `buildHtmlTable`, `buildFromTemplate`, `cacheFilePath` |
+| `controller/RestBlockRefreshController.java` | `POST /restblock/fragment` — find matching block by checksum, delete cache, re-execute, return HTML fragment |
+| `static/css/style.css` | `.rest-block*` classes (table, nested table, error, status row, ⋮ controls/menu); `pre:has(> code.language-hidden-rest)` hides source by default |
+| `static/js/markdown.js` | `setupRestBlockControls`, `setupRestBlockMenuToggle`, `setupRestBlockActionHandler`, `showRestBlockError`, `setRestBlockBusy` |
+| `test/…/RestBlockTranslatorSpec.groovy` | 26 Spock feature methods (GET/POST, JSONPath, columns, row-limit, headers, HTTP errors, malformed JSON, nested tables, caching, number-format, jte template, normalizeToRows unit tests) |
+| `test/…/RestBlockRefreshControllerSpec.groovy` | 6 Spock feature methods (happy path, 404, 400 on missing fields, cache invalidation) |
+
+ `POST /database/fetch-metadata` connects to a
 configured datasource, introspects all matching tables via JDBC `DatabaseMetaData`, and writes a
 single Markdown file containing one fenced `` ```database-metadata `` block per table.
 
@@ -867,6 +936,14 @@ the commit-status API. No deployment step is included.
 | Change todo table columns or header labels | Edit `TodoBlockTranslator.buildHtmlBlock` |
 | Add a new field to todo items (e.g. priority) | Add field to `TodoConfig.TodoItem`, handle in `buildHtmlBlock` |
 | Change the auto-created-date injection logic | Edit `TodoCreatedDateFiller.injectCreatedDates` |
+| Change rest block HTTP client timeout defaults | Edit `RestCodeblockConfig.timeoutSeconds` default and `RestBlockTranslator.executeHttpRequest` |
+| Add a new HTTP method to rest blocks | Add a `case` to the `switch (method)` in `RestBlockTranslator.executeHttpRequest` |
+| Change rest block cache key logic | Edit `RestCodeblockConfig.checksum()` |
+| Change how rest block nested objects are rendered | Edit `RestBlockTranslator.buildNestedMapTable` / `buildNestedListTable` |
+| Change rest block row normalisation | Edit `RestBlockTranslator.normalizeToRows` |
+| Add a new format type to rest block column-formats | Add field to `RestCodeblockConfig.ColumnFormatConfig`; handle in `RestBlockTranslator.createTdTag` |
+| Change rest block refresh endpoint | Edit `RestBlockRefreshController.java` |
+| Add menu items to the rest block context menu | Edit `setupRestBlockControls` in `markdown.js`; add a new `action` case in `setupRestBlockActionHandler` |
 | Change the mermaid playground default diagram | Edit `MermaidPlaygroundController.DEFAULT_CONTENT` |
 | Change the mermaid playground autosave path | Edit `MermaidPlaygroundController.AUTOSAVE_RELATIVE_PATH` |
 | Change the groovy playground default script | Edit `GroovyPlaygroundController.DEFAULT_SCRIPT` |

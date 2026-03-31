@@ -86,6 +86,8 @@ public class CodeBlockTransformer {
             renderDatabaseMetadataBlock(codeBlock);
         } else if (codeType.equals("todo")) {
             renderTodoBlock(codeBlock);
+        } else if (codeType.equals("rest")) {
+            renderRestBlock(codeBlock, markdownFile);
         } else {
             log.debug("unhandled code type: {}, delegating to default handler", codeType);
         }
@@ -131,6 +133,18 @@ public class CodeBlockTransformer {
         } catch (Exception e) {
             log.error("Error rendering todo block", e);
             codeBlock.insertBefore(new Text("Error rendering todo block: " + e.getMessage()));
+        }
+    }
+
+    private void renderRestBlock(FencedCodeBlock codeBlock, MarkdownFile markdownFile) {
+        try {
+            new RestBlockTranslator()
+                    .translate(codeBlock.getLiteral(), markdownFile)
+                    .ifPresent(codeBlock::insertBefore);
+            codeBlock.setInfo("hidden-rest");
+        } catch (Exception e) {
+            log.error("Error rendering rest block", e);
+            codeBlock.insertBefore(new Text("Error rendering rest block: " + e.getMessage()));
         }
     }
 

@@ -153,6 +153,9 @@ document.body.addEventListener('htmx:afterSwap', evt => {
             setupGroovyBlockControls()
             setupGroovyBlockMenuToggle()
             setupGroovyBlockActionHandler()
+            setupRestBlockControls()
+            setupRestBlockMenuToggle()
+            setupRestBlockActionHandler()
         },
         markdownEditor: () => {
             attachEasyMdeOn('easyMdeEditor')
@@ -734,6 +737,174 @@ function setGroovyBlockBusy(groovyBlock, busy) {
     } else {
         groovyBlock.removeAttribute('aria-busy');
         const spinnerEl = groovyBlock.querySelector('.groovy-block-spinner');
+        if (spinnerEl) spinnerEl.remove();
+    }
+}
+
+//-----------------------------------------------------------------------------
+// REST Block Controls
+//-----------------------------------------------------------------------------
+
+function setupRestBlockControls() {
+    document.querySelectorAll('.rest-block').forEach(block => {
+        if (block.querySelector('.rest-block-controls')) return;
+
+        const btn = document.createElement('button');
+        btn.className = 'rest-block-more-btn';
+        btn.type = 'button';
+        btn.textContent = '\u22EE'; // ⋮
+
+        const menu = document.createElement('ul');
+        menu.className = 'rest-block-menu';
+        menu.innerHTML =
+            '<li><a data-action="source">Source</a></li>' +
+            '<li><a data-action="refresh">Refresh</a></li>';
+
+        const controls = document.createElement('div');
+        controls.className = 'rest-block-controls';
+        controls.appendChild(btn);
+        controls.appendChild(menu);
+        block.insertBefore(controls, block.firstChild);
+    });
+}
+
+function setupRestBlockMenuToggle() {
+    if (window._restBlockMenuToggleAttached) return;
+    window._restBlockMenuToggleAttached = true;
+
+    document.body.addEventListener('click', function (e) {
+        const btn = e.target.closest('.rest-block-more-btn');
+        if (btn) {
+            const menu = btn.nextElementSibling;
+            if (menu) {
+                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+            }
+            return;
+        }
+        if (!e.target.closest('.rest-block-controls')) {
+            document.querySelectorAll('.rest-block-menu').forEach(m => {
+                m.style.display = 'none';
+            });
+        }
+    });
+}
+
+function setupRestBlockActionHandler() {
+    if (window._restBlockActionHandlerAttached) return;
+    window._restBlockActionHandlerAttached = true;
+
+    document.body.addEventListener('click', function (e) {
+        const link = e.target.closest('.rest-block-menu a');
+        if (!link) return;
+
+        const action = link.dataset.action ? link.dataset.action.trim() : '';
+        if (!action) return;
+
+        e.preventDefault();
+
+        const restBlock = link.closest('.rest-block');
+        const menu = link.closest('.rest-block-menu');
+        if (menu) menu.style.display = 'none';
+        if (!restBlock) return;
+
+        if (action === 'source') {
+            const togglePre = (pre) => {
+                if (!pre) return;
+                const style = window.getComputedStyle(pre);
+                pre.style.display = (style.display === 'none' ? 'block' : 'none');
+            };
+
+            let sibling = restBlock.nextElementSibling;
+            while (sibling) {
+                if (sibling.tagName === 'PRE' && sibling.querySelector('code.language-hidden-rest')) {
+                    togglePre(sibling);
+                    return;
+                }
+                sibling = sibling.nextElementSibling;
+            }
+            console.debug('No hidden-rest <pre> found for source toggle');
+            return;
+        }
+
+        if (action === 'refresh') {
+            const table = restBlock.querySelector('table[data-restblock-id]');
+            if (!table) {
+                showRestBlockError(restBlock, 'Cannot find table to refresh');
+                return;
+            }
+            const restblockId = table.getAttribute('data-restblock-id');
+            const mdEl = document.getElementById('md-file-path');
+            const markdownFile = mdEl ? mdEl.textContent.trim() : '';
+            if (!restblockId || !markdownFile) {
+                showRestBlockError(restBlock, 'Missing restblock id or markdown file path');
+                return;
+            }
+
+            setRestBlockBusy(restBlock, true);
+            link.setAttribute('aria-disabled', 'true');
+
+            fetch('/restblock/fragment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ markdownFile, restblockId })
+            }).then(async (resp) => {
+                if (!resp.ok) {
+                    const txt = await resp.text().catch(() => resp.statusText);
+                    throw new Error(txt || resp.statusText);
+                }
+                return resp.text();
+            }).then((html) => {
+                const container = document.createElement('div');
+                container.innerHTML = html;
+                const newBlock = container.querySelector('.rest-block') || container.firstElementChild;
+                if (newBlock) {
+                    restBlock.replaceWith(newBlock);
+                    setupRestBlockControls();
+                }
+            }).catch((err) => {
+                console.error('REST block refresh failed', err);
+                showRestBlockError(restBlock, 'Refresh failed: ' + (err.message || 'unknown error'));
+            }).finally(() => {
+                setRestBlockBusy(restBlock, false);
+                link.removeAttribute('aria-disabled');
+            });
+        }
+    });
+}
+
+function showRestBlockError(restBlock, message) {
+    if (!restBlock) return;
+    let err = restBlock.querySelector('.rest-block-inline-error');
+    if (!err) {
+        err = document.createElement('div');
+        err.className = 'rest-block-inline-error';
+        err.style.color = 'red';
+        err.style.marginTop = '8px';
+        restBlock.appendChild(err);
+    }
+    err.textContent = message;
+    err.style.display = 'block';
+    setTimeout(() => { if (err) err.style.display = 'none'; }, 10000);
+}
+
+function setRestBlockBusy(restBlock, busy) {
+    if (!restBlock) return;
+    if (busy) {
+        restBlock.setAttribute('aria-busy', 'true');
+        let spinner = restBlock.querySelector('.rest-block-spinner');
+        if (!spinner) {
+            spinner = document.createElement('span');
+            spinner.className = 'rest-block-spinner';
+            spinner.style.marginLeft = '8px';
+            spinner.textContent = '⏳';
+            const controls = restBlock.querySelector('.rest-block-controls');
+            if (controls) controls.appendChild(spinner);
+            else restBlock.appendChild(spinner);
+        }
+    } else {
+        restBlock.removeAttribute('aria-busy');
+        const spinnerEl = restBlock.querySelector('.rest-block-spinner');
         if (spinnerEl) spinnerEl.remove();
     }
 }

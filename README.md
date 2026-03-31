@@ -31,6 +31,7 @@ By a corporate environment, I mean:
 * **Exchange Rate Manager** at `/tools/exchange-rates` — add, delete, and bulk-import currency-pair rates (via CSV upload) that are persisted and used for live column conversion
 * **Image Audit** at `/tools/image-audit` — scan the docs directory for orphaned image files and broken image links in markdown files
 * **Todo blocks** — embed colour-coded task lists directly in markdown using `` ```todo `` fences; rows are coloured by the worst of independent age and due-in thresholds; `created` dates are filled in automatically on save
+* **REST blocks** — call any HTTP endpoint from a `` ```rest `` fence; extract results with JSONPath; render as an HTML table (with nested tables for nested objects/arrays); results are cached to disk and refreshable via a context menu
 * **Inline Groovy expressions** — evaluate a Groovy expression inside any paragraph, heading, or bold/italic text using `[groovy]expression[/groovy]`; errors render as a ⚠ warning span
 * **Inline red text** — highlight a span of text in red using `[red]text[/red]`
 
@@ -584,6 +585,111 @@ green for the due-in dimension.
 | `items[].due` | no | ISO date `yyyy-MM-dd` | Target completion date; drives the due-in colour dimension |
 | `items[].description` | no | CommonMark markdown | Multi-line detail rendered as HTML in the table cell |
 
+
+### REST blocks
+
+REST blocks execute an HTTP request from inside a markdown file and render the JSON response as
+an HTML table.  The block body is YAML.
+
+````
+```rest
+url: https://jsonplaceholder.typicode.com/todos
+method: GET                     # GET | POST | PUT | PATCH | DELETE  (default: GET)
+headers:
+  Authorization: "Bearer my-token"
+  Accept: application/json
+jsonpath: "$[*]"                 # optional — JSONPath expression to extract elements
+options:
+  columns: [id, title, completed]   # optional — controls column order / filter
+  row-limit: 20                      # optional — max rows to display (default 100)
+column-formats:                 # optional — same format as data blocks
+  id:
+    number-format: "#"
+```
+````
+
+#### Making a POST request
+
+````
+```rest
+url: https://api.example.com/search
+method: POST
+headers:
+  Content-Type: application/json
+body: '{"query": "devnotes"}'
+jsonpath: "$.results[*]"
+```
+````
+
+#### Field reference
+
+| Field | Required | Default | Description |
+|---|---|---|---|
+| `url` | **yes** | — | Full URL of the REST endpoint |
+| `method` | no | `GET` | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, `DELETE` |
+| `headers` | no | — | Map of request headers |
+| `body` | no | — | Request body string (typically JSON); used with `POST`/`PUT`/`PATCH` |
+| `timeout-seconds` | no | `30` | HTTP connect + read timeout |
+| `tls-verify` | no | `true` | Set `false` to skip TLS certificate validation (self-signed certs) |
+| `jsonpath` | no | — | [JSONPath](https://github.com/json-path/JsonPath) expression to extract part of the response |
+| `options.columns` | no | — | Explicit list of columns to show, in order; inferred from first row when absent |
+| `options.row-limit` | no | `100` | Maximum number of rows to render |
+| `column-formats.<col>.number-format` | no | — | `java.text.DecimalFormat` pattern applied to numeric cells |
+| `output.template-type` | no | — | Set to `jte` to use a custom jte template |
+| `output.template` | no | — | Inline jte template; receives `List<Map<String,Object>> rows` |
+
+#### JSONPath extraction
+
+When `jsonpath` is omitted the entire response body is used:
+
+- **JSON array of objects** → each object becomes a table row.
+- **Single JSON object** → rendered as a one-row table.
+- **Array of scalars** → rendered as a single-column `value` table.
+
+When `jsonpath` is specified, the expression is evaluated against the response using
+[Jayway JsonPath](https://github.com/json-path/JsonPath).  Examples:
+
+| Response | JSONPath | Result |
+|---|---|---|
+| `{"items":[…]}` | `$.items[*]` | The array under `items` |
+| `{"count":7}` | `$.count` | Scalar `7` in a `value` column |
+| `[{"a":1},{"a":2}]` | `$[?(@.a > 1)]` | Filtered rows |
+
+#### Nested objects and arrays
+
+Cell values that are JSON objects or arrays are rendered as small **nested tables** inside the
+`<td>`, rather than raw JSON strings.  Objects render as key/value rows; arrays render as
+indexed rows.
+
+#### Caching and the context menu
+
+Results are cached to `<mdFileNoExt>.<checksum>.output` alongside the markdown file, in the
+same way as data blocks.  The cache key is a SHA-256 hash of the complete YAML configuration.
+
+Every rendered REST block has a **⋮** button in the top-right corner:
+
+- **Refresh** — deletes the cache file and re-executes the request in-place.
+- **Source** — toggles the visibility of the original YAML source.
+
+#### Custom jte template
+
+For full control over the output, supply an inline jte template.  The template receives
+`List<Map<String,Object>> rows`:
+
+````
+```rest
+url: https://api.example.com/users
+output:
+  template-type: jte
+  template: |
+    @param java.util.List<java.util.Map<String,Object>> rows
+    <ul>
+    @for(var r : rows)
+      <li>${String.valueOf(r.get("name"))}</li>
+    @endfor
+    </ul>
+```
+````
 
 ### Constructing dynamic URLs
 
