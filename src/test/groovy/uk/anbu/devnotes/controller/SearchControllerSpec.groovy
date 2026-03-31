@@ -60,8 +60,8 @@ class SearchControllerSpec extends Specification {
         then:
         response.statusCode == HttpStatus.OK
         def doc = Jsoup.parse(response.body)
-        doc.select("h3").text().contains("2 results found")
-        doc.select("h3").text().contains("hello")
+        doc.select(".search-count").text().contains("2 results found")
+        doc.select(".search-meta-query").text().contains("hello")
     }
 
     def "plain text search with no results returns 200 HTML with no-results message"() {
@@ -100,7 +100,7 @@ class SearchControllerSpec extends Specification {
         then:
         response.statusCode == HttpStatus.OK
         def doc = Jsoup.parse(response.body)
-        def links = doc.select("h4.file-name")*.text()
+        def links = doc.select("a.search-result-link")*.text()*.trim()
         links.sort() == ["alpha.md", "beta.md"]
     }
 

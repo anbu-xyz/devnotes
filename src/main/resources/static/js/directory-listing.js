@@ -1,6 +1,7 @@
 const currentDirectoryName = document.getElementById('dl-current-directory-name').textContent;
 let hoverTimer;
 let currentVisibleActions = null;
+let searchTargetPath = '';
 
 // Action display functions
 function showActions(entry, event) {
@@ -51,11 +52,13 @@ async function createSubdirectory() {
 
 async function searchSubdirectory(subdirName) {
     hideActions();
-    const searchText = prompt("Enter text to search:");
-    if (searchText) {
-        // redirect to search results page
-        window.location.href = `/search?path=${encodeURIComponent(subdirName)}&q=${encodeURIComponent(searchText)}`;
-    }
+    searchTargetPath = subdirName;
+    document.getElementById('search-dialog-path').textContent = subdirName || '/';
+    document.getElementById('search-query').value = '';
+    document.getElementById('search-case-sensitive').checked = false;
+    document.getElementById('search-regex').checked = false;
+    document.getElementById('search-dialog').showModal();
+    document.getElementById('search-query').focus();
 }
 
 async function recentlyModified() {
@@ -174,4 +177,20 @@ document.addEventListener('DOMContentLoaded', () => {
         return width;
     }));
     entryElements.forEach(div => div.style.width = `${maxWidth + 30}px`);
+
+    // Search dialog
+    document.getElementById('search-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const query = document.getElementById('search-query').value.trim();
+        if (!query) return;
+        const caseSensitive = document.getElementById('search-case-sensitive').checked;
+        const regex = document.getElementById('search-regex').checked;
+        const params = new URLSearchParams({path: searchTargetPath, q: query, caseSensitive, regex});
+        document.getElementById('search-dialog').close();
+        window.location.href = `/search?${params}`;
+    });
+
+    document.getElementById('search-cancel').addEventListener('click', () => {
+        document.getElementById('search-dialog').close();
+    });
 });

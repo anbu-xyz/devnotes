@@ -100,6 +100,32 @@
 </div>
 <div hidden id="dl-current-directory-name">${directoryName}</div>
 
+<dialog id="search-dialog">
+    <form id="search-form">
+        <h3>Search in <span id="search-dialog-path"></span></h3>
+        <div class="search-dialog-field">
+            <label for="search-query">Search text</label>
+            <input type="text" id="search-query" name="q" autocomplete="off">
+        </div>
+        <div class="search-dialog-options">
+            <label>
+                <input type="checkbox" id="search-case-sensitive">
+                Case sensitive
+            </label>
+            <label>
+                <input type="checkbox" id="search-regex">
+                Regular expression
+            </label>
+        </div>
+        <div class="search-dialog-buttons">
+            <button type="submit" class="btn-blue-glow">
+                <i class="fas fa-search"></i> Search
+            </button>
+            <button type="button" id="search-cancel" class="btn-blue-glow">Cancel</button>
+        </div>
+    </form>
+</dialog>
+
 <script src="/js/paste-image.js"></script>
 <script src="/js/directory-listing.js"></script>
 </body>

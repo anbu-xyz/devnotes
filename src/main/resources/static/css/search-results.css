@@ -1,0 +1,103 @@
+/* ============================================================
+   Search Results page — matches the directory-listing theme
+   ============================================================ */
+
+/* Meta strip: query / directory / extensions */
+.search-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.75rem 0 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #2a2a2a;
+    font-size: 0.85rem;
+    color: #a0a0a0;
+}
+
+.search-meta-query {
+    color: #29b4fd;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.search-meta-query i,
+.search-meta-detail i {
+    margin-right: 0.35rem;
+}
+
+/* Result count line */
+.search-count {
+    margin: 0 0 0.5rem;
+    font-size: 0.8rem;
+    color: #a0a0a0;
+}
+
+/* Individual result row */
+.search-result-item {
+    display: flex;
+    flex-direction: column;
+    border-left: 2px solid #2a2a2a;
+    padding: 0.4rem 0 0.4rem 0.75rem;
+    margin-bottom: 0.75rem !important;
+    transition: border-left-color 0.2s;
+}
+
+.search-result-item:hover {
+    border-left-color: #29b4fd;
+}
+
+/* File link */
+.search-result-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: #29b4fd;
+    text-decoration: none;
+}
+
+.search-result-link:hover {
+    text-decoration: underline;
+}
+
+/* Preview snippet */
+.search-result-preview {
+    margin: 0.35rem 0 0;
+    padding: 0.4rem 0.7rem;
+    background-color: #1a1a1a;
+    border-left: 3px solid #29b4fd33;
+    border-radius: 0 3px 3px 0;
+    color: #777;
+    font-size: 0.75rem;
+    font-family: 'Courier New', Courier, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 3.6rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+/* Empty state */
+.search-no-results {
+    margin-top: 3rem;
+    text-align: center;
+    color: #444;
+}
+
+.search-no-results > i {
+    display: block;
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    color: #333;
+}
+
+.search-no-results p {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.search-no-results strong {
+    color: #29b4fd;
+}
