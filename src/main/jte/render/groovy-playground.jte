@@ -54,6 +54,10 @@
     <div class="panel" id="left">
         <div class="header">
             <div class="controls">
+                <button id="saveBtn" class="secondary" disabled title="No save location set — use Save as… first">Save</button>
+                <button id="saveAsBtn" class="secondary">Save as…</button>
+            </div>
+            <div class="controls">
                 <label class="mode-label" for="renderMode">Mode:</label>
                 <select id="renderMode">
                     <option value="text">text</option>
@@ -62,10 +66,6 @@
                     <option value="csv-table">csv-table</option>
                     <option value="csv-table-with-header">csv-table-with-header</option>
                 </select>
-            </div>
-            <div class="controls">
-                <button id="saveBtn" class="secondary" disabled title="No save location set — use Save as… first">Save</button>
-                <button id="saveAsBtn" class="secondary">Save as…</button>
             </div>
             <div class="controls">
                 <span id="saveStatus" aria-live="polite"></span>
