@@ -53,7 +53,6 @@ public class MarkdownController {
 
     private final ConfigService configService;
 
-
     @GetMapping("/markdownViewer")
     public ResponseEntity<String> markdownViewer(@RequestParam String filename,
                                                  @RequestParam Map<String, String> allRequestParams) {
