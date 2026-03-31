@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.service.ConfigService;
 
@@ -68,6 +69,24 @@ public class MermaidPlaygroundController {
             return ResponseEntity.ok().build();
         } catch (Exception e) {
             log.error("Error autosaving mermaid playground content", e);
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @PostMapping(value = "/mermaid-playground/save", consumes = MediaType.TEXT_PLAIN_VALUE)
+    public ResponseEntity<Void> save(@RequestParam String savePath, @RequestBody String content) {
+        try {
+            var docsRoot = Paths.get(configService.getDocsDirectory()).toAbsolutePath().normalize();
+            var targetPath = docsRoot.resolve(savePath).normalize();
+            if (!targetPath.startsWith(docsRoot)) {
+                log.warn("Rejected path traversal attempt: {}", savePath);
+                return ResponseEntity.badRequest().build();
+            }
+            Files.createDirectories(targetPath.getParent());
+            Files.writeString(targetPath, content, StandardCharsets.UTF_8);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            log.error("Error saving mermaid content to {}", savePath, e);
             return ResponseEntity.internalServerError().build();
         }
     }

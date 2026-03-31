@@ -37,6 +37,10 @@
         #fsModal .fs-close { position: absolute; top: 8px; right: 8px; background: #111827; color: white; border: none; border-radius: 6px; width: 36px; height: 36px; font-size: 18px; cursor: pointer; }
         #saveStatus { font-size: 0.78rem; color: #86efac; opacity: 0; transition: opacity 0.4s ease; white-space: nowrap; }
         #saveStatus.error { color: #fca5a5; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        #saveAsRow { display: none; gap: 0.5rem; align-items: center; margin-bottom: 0.4rem; }
+        #saveAsRow input { flex: 1; background: #0b1220; color: #dbeafe; border: 1px solid #3b5270; padding: 0.3rem 0.6rem; border-radius: 4px; font-size: 0.88rem; font-family: menlo, Monaco, 'Courier New', monospace; }
+        #saveAsRow input:focus { outline: none; border-color: #2563eb; }
         @media (max-width: 800px) {
             .container { grid-template-columns: 1fr; }
         }
@@ -46,13 +50,21 @@
 <div class="container">
     <div class="panel" id="left">
         <div class="header">
-            <div class="title">Mermaid editor</div>
+            <div class="controls">
+                <button id="saveBtn" class="secondary" disabled title="No save location set — use Save as… first">Save</button>
+                <button id="saveAsBtn" class="secondary">Save as…</button>
+            </div>
             <div class="controls">
                 <span id="saveStatus" aria-live="polite"></span>
                 <button id="renderBtn">Render</button>
                 <button id="fullscreenBtn" class="secondary">FullScreen</button>
                 <button id="resetBtn" class="secondary">Reset</button>
             </div>
+        </div>
+        <div id="saveAsRow">
+            <input type="text" id="saveAsInput" placeholder="Relative path, e.g. diagrams/my-chart.mmd" aria-label="Save path" />
+            <button id="saveAsConfirmBtn">Save here</button>
+            <button id="saveAsCancelBtn" class="secondary">Cancel</button>
         </div>
         <textarea id="editor" aria-label="Mermaid editor">${initialContent}</textarea>
         <div class="error" id="error" role="status" aria-live="polite" style="display:none"></div>
@@ -82,6 +94,12 @@
     const downloadBtn = document.getElementById('downloadBtn');
     const fullscreenBtn = document.getElementById('fullscreenBtn');
     const saveStatus = document.getElementById('saveStatus');
+    const saveBtn = document.getElementById('saveBtn');
+    const saveAsBtn = document.getElementById('saveAsBtn');
+    const saveAsRow = document.getElementById('saveAsRow');
+    const saveAsInput = document.getElementById('saveAsInput');
+    const saveAsConfirmBtn = document.getElementById('saveAsConfirmBtn');
+    const saveAsCancelBtn = document.getElementById('saveAsCancelBtn');
 
     // Debounce helper
     function debounce(fn, wait) {
@@ -113,6 +131,60 @@
             showSaveStatus('Save failed', true);
         }
     }, 800);
+
+    // ----- Explicit save-to-path -----
+    const SAVE_PATH_KEY = 'mermaidPlaygroundSavePath';
+    let currentSavePath = localStorage.getItem(SAVE_PATH_KEY) || null;
+
+    function updateSaveButton() {
+        saveBtn.disabled = !currentSavePath;
+        saveBtn.title = currentSavePath
+            ? 'Save to: ' + currentSavePath
+            : 'No save location set — use Save as… first';
+    }
+    updateSaveButton();
+
+    async function saveToPath(path) {
+        try {
+            const res = await fetch('/mermaid-playground/save?savePath=' + encodeURIComponent(path), {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: editor.value
+            });
+            if (res.ok) {
+                currentSavePath = path;
+                localStorage.setItem(SAVE_PATH_KEY, path);
+                updateSaveButton();
+                showSaveStatus('Saved to ' + path);
+            } else {
+                showSaveStatus('Save failed', true);
+            }
+        } catch (e) {
+            showSaveStatus('Save failed', true);
+        }
+    }
+
+    saveBtn.addEventListener('click', () => { if (currentSavePath) saveToPath(currentSavePath); });
+
+    saveAsBtn.addEventListener('click', () => {
+        saveAsInput.value = currentSavePath || '';
+        saveAsRow.style.display = 'flex';
+        saveAsInput.focus();
+    });
+
+    saveAsCancelBtn.addEventListener('click', () => { saveAsRow.style.display = 'none'; });
+
+    saveAsConfirmBtn.addEventListener('click', () => {
+        const path = saveAsInput.value.trim();
+        if (!path) return;
+        saveAsRow.style.display = 'none';
+        saveToPath(path);
+    });
+
+    saveAsInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveAsConfirmBtn.click();
+        if (e.key === 'Escape') saveAsCancelBtn.click();
+    });
 
     function showError(msg) {
         if (!msg) {

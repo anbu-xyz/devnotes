@@ -120,8 +120,7 @@ class MermaidPlaygroundControllerSpec extends Specification {
         tempDir.toFile().deleteDir()
     }
 
-    def "mermaidPlayground() should surface template errors"() {
-        given:
+    def "mermaidPlayground() should surface template errors"() {        given:
         def tempDir = Files.createTempDirectory("test")
         configService.getDocsDirectory() >> tempDir.toFile().absolutePath
         def failingEngine = Mock(TemplateEngine)
@@ -136,6 +135,56 @@ class MermaidPlaygroundControllerSpec extends Specification {
         then:
         response.statusCode == HttpStatus.INTERNAL_SERVER_ERROR
         response.body.toString().contains("Error rendering mermaid playground: boom")
+
+        cleanup:
+        tempDir.toFile().deleteDir()
+    }
+
+    def "save() should write content to the specified relative path within the docs directory"() {
+        given:
+        def tempDir = Files.createTempDirectory("test")
+        configService.getDocsDirectory() >> tempDir.toFile().absolutePath
+        def content = "sequenceDiagram\n    Alice->>Bob: Hello"
+
+        when:
+        def response = controller.save("diagrams/my-chart.mmd", content)
+
+        then:
+        response.statusCode == HttpStatus.OK
+        def savedPath = tempDir.resolve("diagrams/my-chart.mmd")
+        Files.exists(savedPath)
+        Files.readString(savedPath) == content
+
+        cleanup:
+        tempDir.toFile().deleteDir()
+    }
+
+    def "save() should create intermediate directories when they do not exist"() {
+        given:
+        def tempDir = Files.createTempDirectory("test")
+        configService.getDocsDirectory() >> tempDir.toFile().absolutePath
+
+        when:
+        def response = controller.save("a/b/c/diagram.mmd", "graph LR\n    A --> B")
+
+        then:
+        response.statusCode == HttpStatus.OK
+        Files.isDirectory(tempDir.resolve("a/b/c"))
+
+        cleanup:
+        tempDir.toFile().deleteDir()
+    }
+
+    def "save() should reject path traversal attempts"() {
+        given:
+        def tempDir = Files.createTempDirectory("test")
+        configService.getDocsDirectory() >> tempDir.toFile().absolutePath
+
+        when:
+        def response = controller.save("../../etc/passwd", "evil content")
+
+        then:
+        response.statusCode == HttpStatus.BAD_REQUEST
 
         cleanup:
         tempDir.toFile().deleteDir()
