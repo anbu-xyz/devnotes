@@ -2,7 +2,6 @@ package uk.anbu.devnotes.controller
 
 import gg.jte.ContentType
 import gg.jte.TemplateEngine
-import gg.jte.TemplateOutput
 import gg.jte.resolve.DirectoryCodeResolver
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
@@ -359,32 +358,6 @@ class MarkdownControllerSpec extends Specification {
         tempDir.toFile().deleteDir()
     }
 
-    def "mermaidPlayground() should render the playground template"() {
-        when:
-        def response = controller.mermaidPlayground()
-
-        then:
-        response.statusCode == HttpStatus.OK
-        response.headers.getContentType().toString().contains("text/html")
-        response.body.toString().contains("<title>Mermaid playground</title>")
-        response.body.toString().contains("<div class=\"container\">")
-    }
-
-    def "mermaidPlayground() should surface template errors"() {
-        given:
-        def failingEngine = Mock(TemplateEngine)
-        failingEngine.render(_ as String, _ as Map, _ as TemplateOutput) >> {
-            throw new IllegalStateException("boom")
-        }
-        def failingController = new MarkdownController(markdownRenderer, failingEngine, configService)
-
-        when:
-        def response = failingController.mermaidPlayground()
-
-        then:
-        response.statusCode == HttpStatus.INTERNAL_SERVER_ERROR
-        response.body.toString().contains("Error rendering mermaid playground: boom")
-    }
 
     def "markdown() should interpret image location as relative to current document"() {
         given:

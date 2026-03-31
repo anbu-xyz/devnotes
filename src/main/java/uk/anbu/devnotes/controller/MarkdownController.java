@@ -51,20 +51,6 @@ public class MarkdownController {
 
     private final ConfigService configService;
 
-    @GetMapping("/mermaid-playground")
-    public ResponseEntity<String> mermaidPlayground() {
-        try {
-            TemplateOutput output = new StringOutput();
-            templateEngine.render("render/mermaid-playground.jte", Map.of(), output);
-
-            return ResponseEntity.ok()
-                    .contentType(org.springframework.http.MediaType.TEXT_HTML)
-                    .body(output.toString());
-        } catch (Exception e) {
-            log.error("Error rendering mermaid playground", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error rendering mermaid playground: " + e.getMessage());
-        }
-    }
 
     @GetMapping("/markdownViewer")
     public ResponseEntity<String> markdownViewer(@RequestParam String filename,

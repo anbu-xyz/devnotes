@@ -1,3 +1,4 @@
+@param String initialContent
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -34,6 +35,8 @@
         #fsModal .fs-body { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; overflow: auto; }
         #fsModal svg { max-width: 100%; max-height: 100%; display: block; }
         #fsModal .fs-close { position: absolute; top: 8px; right: 8px; background: #111827; color: white; border: none; border-radius: 6px; width: 36px; height: 36px; font-size: 18px; cursor: pointer; }
+        #saveStatus { font-size: 0.78rem; color: #86efac; opacity: 0; transition: opacity 0.4s ease; white-space: nowrap; }
+        #saveStatus.error { color: #fca5a5; }
         @media (max-width: 800px) {
             .container { grid-template-columns: 1fr; }
         }
@@ -45,18 +48,13 @@
         <div class="header">
             <div class="title">Mermaid editor</div>
             <div class="controls">
+                <span id="saveStatus" aria-live="polite"></span>
                 <button id="renderBtn">Render</button>
                 <button id="fullscreenBtn" class="secondary">FullScreen</button>
                 <button id="resetBtn" class="secondary">Reset</button>
             </div>
         </div>
-        <textarea id="editor" aria-label="Mermaid editor">graph TD
-    A[Client] --> B[Load Balancer]
-    B --> C[Server 1]
-    B --> D[Server 2]
-
-    click A "https://example.com" "Go to example"
-</textarea>
+        <textarea id="editor" aria-label="Mermaid editor">${initialContent}</textarea>
         <div class="error" id="error" role="status" aria-live="polite" style="display:none"></div>
     </div>
 
@@ -83,6 +81,7 @@
     const resetBtn = document.getElementById('resetBtn');
     const downloadBtn = document.getElementById('downloadBtn');
     const fullscreenBtn = document.getElementById('fullscreenBtn');
+    const saveStatus = document.getElementById('saveStatus');
 
     // Debounce helper
     function debounce(fn, wait) {
@@ -92,6 +91,28 @@
             t = setTimeout(() => fn.apply(this, args), wait);
         };
     }
+
+    // ----- Autosave -----
+    function showSaveStatus(msg, isError = false) {
+        saveStatus.textContent = msg;
+        saveStatus.className = isError ? 'error' : '';
+        saveStatus.style.opacity = '1';
+        clearTimeout(saveStatus._fadeTimer);
+        saveStatus._fadeTimer = setTimeout(() => { saveStatus.style.opacity = '0'; }, 2000);
+    }
+
+    const debouncedSave = debounce(async (text) => {
+        try {
+            const res = await fetch('/mermaid-playground/autosave', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: text
+            });
+            showSaveStatus(res.ok ? 'Saved' : 'Save failed', !res.ok);
+        } catch (e) {
+            showSaveStatus('Save failed', true);
+        }
+    }, 800);
 
     function showError(msg) {
         if (!msg) {
@@ -120,7 +141,10 @@
     const debouncedRender = debounce(() => renderMermaid(editor.value), 300);
 
     // Live render on input
-    editor.addEventListener('input', debouncedRender);
+    editor.addEventListener('input', () => {
+        debouncedRender();
+        debouncedSave(editor.value);
+    });
 
     // Manual render
     renderBtn.addEventListener('click', () => renderMermaid(editor.value));
@@ -129,6 +153,7 @@
     resetBtn.addEventListener('click', () => {
         editor.value = `graph TD\n    A[Client] --> B[Load Balancer]\n    B --> C[Server 1]\n    B --> D[Server 2]\n\n    click A "https://example.com" "Go to example"`;
         renderMermaid(editor.value);
+        debouncedSave(editor.value);
     });
 
     // Download the current SVG if available
