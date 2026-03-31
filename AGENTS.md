@@ -692,4 +692,5 @@ the commit-status API. No deployment step is included.
 - Use `@Slf4j` for logging; prefer parameterized messages (`log.info("… {}", var)`) over string concatenation.
 - Inside a method do not modify the input parameters; if you need to transform them, assign to a new `var` (e.g. `var transformedInput = transform(input)`).
 - Use pure functions where possible.
+- In tests, avoid using mocks/stubs unless necessary; prefer real objects and test doubles that are as close to the real thing as possible (e.g. an embedded H2 database instead of mocking a `DataSource`).
 
