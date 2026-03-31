@@ -29,11 +29,12 @@ public class SearchController {
     public ResponseEntity<String> search(@RequestParam("q") String searchParam,
           @RequestParam(value = "path", required = false) String searchPath,
           @RequestParam(value = "caseSensitive", required = false, defaultValue = "false") boolean caseSensitive,
+          @RequestParam(value = "regex", required = false, defaultValue = "false") boolean regex,
           @RequestParam(value= "json", required = false, defaultValue = "false") boolean renderJsonResults) {
         try {
             searchParam = searchParam.trim();
             var result = new SearchExecutor(configService.getDocsDirectory())
-                    .search(searchPath, searchParam, caseSensitive);
+                    .search(searchPath, searchParam, caseSensitive, regex);
             if (result.results().isEmpty()) {
                 if (renderJsonResults) {
                     return ResponseEntity.notFound().build();
