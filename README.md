@@ -141,6 +141,14 @@ To enable caching use the following syntax in the code block header:
 groovy:csv-table-with-header(cacheEnabled:false)
 ```
 
+#### Groovy block context menu
+
+Every rendered groovy block has a **⋮** button in the top-right corner. Clicking it opens a
+two-item menu:
+
+* **Refresh** — re-executes the script (bypasses cache) and replaces the block output in-place.
+* **Source** — toggles the visibility of the original Groovy source code.
+
 ### Sql Scripting
 
 To embed executable sql code in a markdown file, use the following syntax:

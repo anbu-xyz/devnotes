@@ -24,6 +24,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static uk.anbu.devnotes.util.FileBasedCache.generateCacheFileName;
+import static uk.anbu.devnotes.util.FileBasedCache.generateHash;
 
 @Slf4j
 @Builder
@@ -63,7 +64,8 @@ public class CodeBlockTransformer {
         // match codeType of format "groovy:targetType(config1:value1,config2:value2) or "groovy:targetType"
         if (codeType.matches("^groovy:([^(]+)\\(.*\\)$") || codeType.matches("^groovy:([^(]+)$")) {
             String cacheFileName = generateCacheFileName(markdownFile, codeBlock.getLiteral());
-            var node = groovyRenderer.renderResult(codeBlock, cacheFileName, codeType);
+            String groovyId = generateHash(codeBlock.getLiteral());
+            var node = groovyRenderer.renderResultWrapped(codeBlock, cacheFileName, codeType, groovyId);
             if (node.isEmpty()) {
                 codeBlock.insertBefore(new Text("Error: Unable to render Groovy result"));
             } else {

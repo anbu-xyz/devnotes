@@ -20,7 +20,7 @@ public class FileBasedCache {
         return markdownFile.fullPath().getParent().resolve(generatedFileName).toString();
     }
 
-    private static String generateHash(String input) {
+    public static String generateHash(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(input.getBytes());

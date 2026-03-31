@@ -7,6 +7,7 @@ import org.commonmark.node.Node;
 import org.commonmark.node.Text;
 import uk.anbu.devnotes.util.GroovyShellRunner;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -91,6 +92,57 @@ public class GroovyRenderer {
             }
         }
         return Optional.of(node);
+    }
+
+    /**
+     * Renders the groovy block and wraps the output in a {@code <div class="groovy-block">}
+     * container that carries a {@code data-groovy-id} attribute for client-side refresh.
+     */
+    public Optional<Node> renderResultWrapped(FencedCodeBlock codeBlock, String cacheFileName,
+                                              String codeType, String groovyId) {
+        return renderResult(codeBlock, cacheFileName, codeType)
+                .map(node -> wrapInGroovyBlock(node, groovyId));
+    }
+
+    /**
+     * Forces re-execution by deleting any existing cache file, then delegates to
+     * {@link #renderResultWrapped}.
+     */
+    public Optional<Node> renderResultFresh(FencedCodeBlock codeBlock, String cacheFileName,
+                                            String codeType, String groovyId) {
+        Path outputFile = Paths.get(cacheFileName);
+        try {
+            Files.deleteIfExists(outputFile);
+        } catch (IOException e) {
+            log.warn("Could not delete Groovy cache file {}", cacheFileName, e);
+        }
+        return renderResultWrapped(codeBlock, cacheFileName, codeType, groovyId);
+    }
+
+    private static HtmlBlock wrapInGroovyBlock(Node node, String groovyId) {
+        var innerHtml = convertNodeToHtml(node);
+        var wrapper = new HtmlBlock();
+        wrapper.setLiteral("<div class=\"groovy-block\" data-groovy-id=\"" + groovyId + "\">"
+                + innerHtml + "</div>\n");
+        return wrapper;
+    }
+
+    private static String convertNodeToHtml(Node node) {
+        if (node instanceof HtmlBlock htmlBlock) {
+            return htmlBlock.getLiteral();
+        } else if (node instanceof Text text) {
+            return "<pre class=\"groovy-text-output\">" + escapeHtml(text.getLiteral()) + "</pre>";
+        } else if (node instanceof FencedCodeBlock fcb) {
+            var lang = fcb.getInfo() != null ? fcb.getInfo() : "text";
+            return "<pre><code class=\"language-" + lang + "\">"
+                    + escapeHtml(fcb.getLiteral()) + "</code></pre>";
+        }
+        return "<pre>" + escapeHtml(node.toString()) + "</pre>";
+    }
+
+    private static String escapeHtml(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
     private Node convertOutputToNode(String targetType, String output) {

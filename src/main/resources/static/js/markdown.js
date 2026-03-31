@@ -150,6 +150,9 @@ document.body.addEventListener('htmx:afterSwap', evt => {
             setupDataBlockMenuToggle()
             setupDataBlockSourceToggle()
             setupDataBlockErrorRetry()
+            setupGroovyBlockControls()
+            setupGroovyBlockMenuToggle()
+            setupGroovyBlockActionHandler()
         },
         markdownEditor: () => {
             attachEasyMdeOn('easyMdeEditor')
@@ -557,6 +560,180 @@ function setDataBlockBusy(dataBlock, busy) {
     } else {
         dataBlock.removeAttribute('aria-busy');
         const spinnerEl = dataBlock.querySelector('.data-block-spinner');
+        if (spinnerEl) spinnerEl.remove();
+    }
+}
+
+//-----------------------------------------------------------------------------
+// Groovy Block Controls
+//-----------------------------------------------------------------------------
+
+// Dynamically create and attach controls to each .groovy-block that doesn't already have them
+function setupGroovyBlockControls() {
+    document.querySelectorAll('.groovy-block').forEach(block => {
+        if (block.querySelector('.groovy-block-controls')) return; // already attached
+
+        const btn = document.createElement('button');
+        btn.className = 'groovy-block-more-btn';
+        btn.type = 'button';
+        btn.textContent = '\u22EE'; // '⋮'
+
+        const menu = document.createElement('ul');
+        menu.className = 'groovy-block-menu';
+        menu.innerHTML =
+            '<li><a data-action="refresh">Refresh</a></li>' +
+            '<li><a data-action="source">Source</a></li>';
+
+        const controls = document.createElement('div');
+        controls.className = 'groovy-block-controls';
+        controls.appendChild(btn);
+        controls.appendChild(menu);
+
+        block.insertBefore(controls, block.firstChild);
+    });
+}
+
+// Toggle the ⋮ dropdown menu for groovy blocks
+function setupGroovyBlockMenuToggle() {
+    if (window._groovyBlockMenuToggleAttached) return;
+    window._groovyBlockMenuToggleAttached = true;
+
+    document.body.addEventListener('click', function (e) {
+        const btn = e.target.closest('.groovy-block-more-btn');
+        if (btn) {
+            const menu = btn.nextElementSibling;
+            if (menu) {
+                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+            }
+            return;
+        }
+
+        // Close any open groovy menu when clicking outside
+        if (!e.target.closest('.groovy-block-controls')) {
+            document.querySelectorAll('.groovy-block-menu').forEach(m => {
+                m.style.display = 'none';
+            });
+        }
+    });
+}
+
+// Handle Source and Refresh actions for groovy blocks
+function setupGroovyBlockActionHandler() {
+    if (window._groovyBlockActionHandlerAttached) return;
+    window._groovyBlockActionHandlerAttached = true;
+
+    document.body.addEventListener('click', function (e) {
+        const link = e.target.closest('.groovy-block-menu a');
+        if (!link) return;
+
+        const action = link.dataset.action ? link.dataset.action.trim() : '';
+        if (!action) return;
+
+        e.preventDefault();
+
+        const groovyBlock = link.closest('.groovy-block');
+        const menu = link.closest('.groovy-block-menu');
+        if (menu) menu.style.display = 'none';
+        if (!groovyBlock) return;
+
+        if (action === 'source') {
+            const togglePre = (pre) => {
+                if (!pre) return;
+                const style = window.getComputedStyle(pre);
+                pre.style.display = (style.display === 'none' ? 'block' : 'none');
+            };
+
+            // The hidden source <pre> is a previous sibling of the groovy-block div
+            let sibling = groovyBlock.previousElementSibling;
+            while (sibling) {
+                if (sibling.tagName === 'PRE' && sibling.querySelector('code.language-hidden-groovy')) {
+                    togglePre(sibling);
+                    return;
+                }
+                sibling = sibling.previousElementSibling;
+            }
+            console.debug('No hidden-groovy <pre> found for source toggle');
+            return;
+        }
+
+        if (action === 'refresh') {
+            const groovyId = groovyBlock.getAttribute('data-groovy-id');
+            const mdEl = document.getElementById('md-file-path');
+            const markdownFile = mdEl ? mdEl.textContent.trim() : '';
+
+            if (!groovyId || !markdownFile) {
+                showGroovyError(groovyBlock, 'Missing groovy ID or markdown file path');
+                return;
+            }
+
+            setGroovyBlockBusy(groovyBlock, true);
+            link.setAttribute('aria-disabled', 'true');
+
+            fetch('/groovy/fragment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ markdownFile, groovyId })
+            }).then(async (resp) => {
+                if (!resp.ok) {
+                    const txt = await resp.text().catch(() => resp.statusText);
+                    throw new Error(txt || resp.statusText);
+                }
+                return resp.text();
+            }).then((html) => {
+                const container = document.createElement('div');
+                container.innerHTML = html;
+                const newBlock = container.querySelector('.groovy-block') || container.firstElementChild;
+                if (newBlock) {
+                    groovyBlock.replaceWith(newBlock);
+                    setupGroovyBlockControls();
+                }
+            }).catch((err) => {
+                console.error('Groovy block refresh failed', err);
+                showGroovyError(groovyBlock, 'Refresh failed: ' + (err.message || 'unknown error'));
+            }).finally(() => {
+                setGroovyBlockBusy(groovyBlock, false);
+                link.removeAttribute('aria-disabled');
+            });
+        }
+    });
+}
+
+function showGroovyError(groovyBlock, message) {
+    if (!groovyBlock) return;
+    let err = groovyBlock.querySelector('.groovy-block-error');
+    if (!err) {
+        err = document.createElement('div');
+        err.className = 'groovy-block-error';
+        err.style.color = 'red';
+        err.style.marginTop = '8px';
+        groovyBlock.appendChild(err);
+    }
+    err.textContent = message;
+    err.style.display = 'block';
+    setTimeout(() => { if (err) err.style.display = 'none'; }, 10000);
+}
+
+function setGroovyBlockBusy(groovyBlock, busy) {
+    if (!groovyBlock) return;
+    if (busy) {
+        groovyBlock.setAttribute('aria-busy', 'true');
+        let spinner = groovyBlock.querySelector('.groovy-block-spinner');
+        if (!spinner) {
+            spinner = document.createElement('span');
+            spinner.className = 'groovy-block-spinner';
+            spinner.style.marginLeft = '8px';
+            spinner.textContent = '⏳';
+            const controls = groovyBlock.querySelector('.groovy-block-controls');
+            if (controls) {
+                controls.appendChild(spinner);
+            } else {
+                groovyBlock.appendChild(spinner);
+            }
+        }
+    } else {
+        groovyBlock.removeAttribute('aria-busy');
+        const spinnerEl = groovyBlock.querySelector('.groovy-block-spinner');
         if (spinnerEl) spinnerEl.remove();
     }
 }

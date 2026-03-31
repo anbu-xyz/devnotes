@@ -172,6 +172,43 @@ td td, th td, td th, th th {
     z-index: 10;
 }
 
+/* ==========================================================================
+                       Groovy Block Controls
+   ========================================================================== */
+
+.groovy-block {
+    position: relative;
+}
+
+.groovy-block-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+}
+
+.groovy-block-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 28px;
+    background: #121212;
+    border: 1px solid #e0e0e0;
+    padding: 4px;
+    margin: 0;
+    list-style: none;
+}
+
+.groovy-block-more-btn {
+    background: #0b1220;
+    color: gray;
+}
+
+.groovy-text-output {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 .data-block-menu {
     display: none;
     position: absolute;

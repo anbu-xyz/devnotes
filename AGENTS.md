@@ -619,6 +619,39 @@ info string):
 
 Append `(cacheEnabled:false)` to the info string to disable output caching.
 
+#### Groovy block context menu (Refresh / Source)
+
+Every rendered groovy output is wrapped in a `<div class="groovy-block" data-groovy-id="…">`.
+The ID is the first 16 hex characters of the SHA-256 hash of the script literal (the same hash
+used to name the `.output` cache file).  `CodeBlockTransformer` computes this via
+`FileBasedCache.generateHash(literal)` and calls `GroovyRenderer.renderResultWrapped(…, groovyId)`.
+
+The JavaScript function `setupGroovyBlockControls()` dynamically injects a **⋮** button and a
+two-item dropdown into every `.groovy-block`:
+
+| Menu item | Behaviour |
+|---|---|
+| **Refresh** | POSTs `{markdownFile, groovyId}` to `POST /groovy/fragment`; replaces the `.groovy-block` div with the returned HTML. |
+| **Source** | Walks `previousElementSibling` to find the adjacent `<pre><code class="language-hidden-groovy">` and toggles its visibility. |
+
+`GroovyRefreshController` (`POST /groovy/fragment`):
+1. Reads the markdown file.
+2. Walks all `FencedCodeBlock` nodes whose `info` matches `groovy:…`.
+3. Matches by `generateHash(literal)`.
+4. Calls `GroovyRenderer.renderResultFresh(…)` which deletes the cache file then re-executes.
+5. Returns the new `<div class="groovy-block">` HTML fragment.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `module/GroovyRenderer.java` | `renderResultWrapped` — wraps output in groovy-block div; `renderResultFresh` — deletes cache then re-executes; `convertNodeToHtml` — serialises any AST node to HTML |
+| `markdown/code/CodeBlockTransformer.java` | Computes `groovyId` via `FileBasedCache.generateHash`; calls `renderResultWrapped` |
+| `controller/GroovyRefreshController.java` | `POST /groovy/fragment` — find-by-hash, force-refresh, return HTML fragment |
+| `util/FileBasedCache.java` | `generateHash` (now `public`) — 16-char SHA-256 hex used as block ID and cache-file suffix |
+| `static/js/markdown.js` | `setupGroovyBlockControls`, `setupGroovyBlockMenuToggle`, `setupGroovyBlockActionHandler`, `showGroovyError`, `setGroovyBlockBusy` |
+| `static/css/style.css` | `.groovy-block`, `.groovy-block-controls`, `.groovy-block-menu`, `.groovy-block-more-btn`, `.groovy-text-output` |
+
 ---
 
 ## Testing
@@ -644,6 +677,10 @@ the commit-status API. No deployment step is included.
 |---|---|
 | Add a new code-fence type | `CodeBlockTransformer.java`, then add a translator class |
 | Add a new REST endpoint | New class in `controller/`, register as `@RestController` |
+| Change groovy block refresh endpoint | Edit `GroovyRefreshController.java` |
+| Change how groovy block ID is computed | Edit `FileBasedCache.generateHash` and update `CodeBlockTransformer` + `GroovyRefreshController` accordingly |
+| Add menu items to the groovy block context menu | Edit `setupGroovyBlockControls` in `markdown.js`; add a new `action` case in `setupGroovyBlockActionHandler` |
+| Change the groovy block wrapper structure | Edit `GroovyRenderer.wrapInGroovyBlock` and `convertNodeToHtml` |
 | Add a new datasource driver | Add the JDBC dependency in `pom.xml` |
 | Change default SQL row limit | `devnotes.sql.maxRows` in `application.yaml` or override in data-block YAML |
 | Add a new jte view template | `src/main/jte/` (dev profile) or `src/main/resources/templates/` |
