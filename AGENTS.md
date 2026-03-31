@@ -60,6 +60,7 @@ src/
                            #   FlashCardService.java      — load/save/query cards; delegates SM-2 to Sm2Algorithm
                            #   Sm2Algorithm.java          — pure stateless SM-2 computation (no I/O, no Spring)
                            #   ExchangeRateService.java   — load/save exchange-rates.yaml; populates ExchangeRates on startup
+                           #   ImageAuditService.java     — walks docsDir to find orphaned images and broken image links
       types/               # Value types (MarkdownFile, CashAmount, FlashCard, FlashCardStats, …)
       util/                # Helpers (FileUtil, DateTimeUtil, FileBasedCache, JdbcTypeMapper)
       cash/                # Currency / exchange-rate support
@@ -503,6 +504,40 @@ JPY/USD: 0.006800
 
 ---
 
+### Image Audit Tool (`ImageAuditController`)
+
+`GET /tools/image-audit` scans every `.md` file and every image file under `docsDirectory` and
+produces two lists:
+
+| List | Meaning |
+|---|---|
+| **Orphaned images** | Image files on disk (`.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.bmp`, `.webp`, `.tiff`, `.tif`, `.ico`) not referenced by any markdown file |
+| **Broken links** | `![…](…)` image links in markdown files that resolve to a path that does not exist on disk |
+
+**Path resolution rules applied by `ImageAuditService.audit()`:**
+
+| Link form | Resolved as |
+|---|---|
+| `http://…` / `https://…` | Ignored (external) |
+| `/plantumlContent?…` | Ignored (synthetic plantuml link) |
+| `/path/to/img.png` | `<docsDir>/path/to/img.png` (absolute from docs root) |
+| `relative/img.png` | Relative to the markdown file's own directory |
+
+Results are sorted: orphaned paths alphabetically; broken links by markdown filename then image
+link.  `ImageController.isImage()` (widened to `public`) is reused to identify image files by
+extension.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `service/ImageAuditService.java` | Walks docs tree; returns `ImageAuditResult` with `orphanedImages` and `brokenLinks` |
+| `controller/ImageAuditController.java` | `GET /tools/image-audit` — runs audit and renders the jte page |
+| `controller/ImageController.java` | `isImage(String)` — now `public`; shared by both the image-serving endpoint and the audit service |
+| `jte/tools/image-audit.jte` | Two-section results page (orphaned table + broken-link table) |
+
+---
+
 ### Groovy Execution
 
 Scripts run inside a sandboxed `GroovyShell`. Supported output formats (specified in the code-fence
@@ -572,6 +607,9 @@ the commit-status API. No deployment step is included.
 | Change exchange-rate storage location | Edit `ExchangeRateService.ratesFile()` |
 | Change exchange-rate YAML format | Edit `ExchangeRateService.save()` and `init()`; update tests |
 | Add a new currency-error CSS style | Edit `.data-block-no-rate` / `.data-block-currency-error` in `static/css/style.css` |
+| Change which file extensions are treated as images | Edit `ImageController.isImage()` — used by both the image-serving endpoint and `ImageAuditService` |
+| Change image-audit path-resolution logic | Edit `ImageAuditService.audit()` visitor |
+| Add extra columns / detail to the image-audit results page | Edit `jte/tools/image-audit.jte` |
 
 ---
 

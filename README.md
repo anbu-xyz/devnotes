@@ -27,6 +27,7 @@ By a corporate environment, I mean:
 * Spaced-repetition flash cards for active recall of notes
 * **Currency-symbol column conversion** in data blocks — columns named `$…`, `£…`, or `€…` automatically convert cell values to USD / GBP / EUR using configured exchange rates
 * **Exchange Rate Manager** at `/tools/exchange-rates` — add and delete currency-pair rates that are persisted and used for live column conversion
+* **Image Audit** at `/tools/image-audit` — scan the docs directory for orphaned image files and broken image links in markdown files
 
 ### Groovy Scripting
 
@@ -594,6 +595,39 @@ JPY/USD: 0.006800
 **Cache invalidation** is automatic: saving or deleting any rate rewrites the YAML file, which
 changes the cache checksum for every data block that contains a currency-symbol column.  The
 next page render will re-execute the query with fresh rates.
+
+### Image Audit
+
+The **Image Audit** tool at **`/tools/image-audit`** scans the entire docs directory and reports
+two kinds of housekeeping issues:
+
+| Section | What it shows |
+|---|---|
+| **Orphaned Images** | Image files on disk that are not linked from any `.md` file |
+| **Broken Image Links** | `![…](…)` references in markdown files that point to a file that does not exist |
+
+Navigate to `/tools/image-audit` to run the audit on demand.  There are no parameters — it
+always scans the full `docsDirectory`.
+
+#### Path resolution
+
+| Link form | Interpreted as |
+|---|---|
+| `http://…` / `https://…` | External — ignored |
+| `/path/to/img.png` | Absolute from the docs root — resolved as `<docsDirectory>/path/to/img.png` |
+| `relative/img.png` | Relative to the markdown file's own directory |
+
+#### Recognised image extensions
+
+`.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.bmp`, `.webp`, `.tiff`, `.tif`, `.ico`
+
+#### Results layout
+
+- Each section has a count badge next to its heading.
+- When no issues are found, a green check message is shown instead of a table.
+- Orphaned image paths are sorted alphabetically (relative to `docsDirectory`).
+- Broken links are sorted by markdown filename, then by image link.
+- Each broken-link row links directly to the markdown file so you can open and fix it.
 
 ## Building and Running
 
