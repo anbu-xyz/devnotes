@@ -82,6 +82,8 @@ public class CodeBlockTransformer {
             renderPlantUmlResult(codeBlock);
         } else if (codeType.equals("database-metadata")) {
             renderDatabaseMetadataBlock(codeBlock);
+        } else if (codeType.equals("todo")) {
+            renderTodoBlock(codeBlock);
         } else {
             log.debug("unhandled code type: {}, delegating to default handler", codeType);
         }
@@ -115,6 +117,18 @@ public class CodeBlockTransformer {
         } catch (Exception e) {
             log.error("Error rendering database-metadata block", e);
             codeBlock.insertBefore(new Text("Error rendering database-metadata block: " + e.getMessage()));
+        }
+    }
+
+    private void renderTodoBlock(FencedCodeBlock codeBlock) {
+        try {
+            new TodoBlockTranslator()
+                    .translate(codeBlock.getLiteral())
+                    .ifPresent(codeBlock::insertBefore);
+            codeBlock.setInfo("hidden-todo");
+        } catch (Exception e) {
+            log.error("Error rendering todo block", e);
+            codeBlock.insertBefore(new Text("Error rendering todo block: " + e.getMessage()));
         }
     }
 

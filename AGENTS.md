@@ -50,9 +50,10 @@ src/
     java/uk/anbu/devnotes/
       controller/          # Spring MVC controllers (one per feature area)
       markdown/            # Markdown AST visitors / transformers
-        code/              # Code-block translators (Groovy, SQL, data, Mermaid, parameter, database-metadata)
+        code/              # Code-block translators (Groovy, SQL, data, Mermaid, parameter, database-metadata, todo)
           datablock/       # YamlCodeblockConfig POJO + ParameterRegistry
           databasemetadata/ # DatabaseMetadataConfig POJO
+          todo/            # TodoConfig POJO
         image/             # Local-image path rewriting
         link/              # Link transformers
       module/              # Business-logic modules (search, SQL executor, Groovy renderer …)
@@ -121,6 +122,7 @@ start; the derived AES-256-GCM key is kept only in JVM memory.
    - `` ```plantuml `` → `PlantumlController` (rendered server-side to PNG via URL)
    - `` ```parameter `` → `ParameterBlockTranslator` (populates a shared `ParameterRegistry`)
    - `` ```database-metadata `` → `DatabaseMetadataBlockTranslator` (YAML schema doc → HTML card; optional live DB diff via HTMX)
+   - `` ```todo `` → `TodoBlockTranslator` (YAML todo list → colour-coded HTML table; dual age + urgency thresholds; highest criticality wins)
 3. The modified AST is rendered back to HTML and injected into the jte page template.
 
 ### Data Blocks (`DataBlockTranslator`)
@@ -287,7 +289,66 @@ HTMX `hx-swap="innerHTML"`.
 | `controller/DatabaseMetadataController.java` | `POST /database-metadata/check` diff endpoint |
 | `src/main/jte/database-metadata-diff.jte` | jte fragment template for the diff result |
 
-### Fetch Metadata Tool (`JdbcDatabaseController`)
+### Todo Blocks (`TodoBlockTranslator`)
+
+Todo blocks use a YAML mini-language inside a `` ```todo `` fence to render a colour-coded task
+list.  Each item has a required `summary` and `created` date; `due` and `description` are
+optional.
+
+```yaml
+thresholds:              # all fields optional; defaults: green=7, amber=14, red=30
+  age:
+    green:  7            # days open — green/amber boundary
+    amber: 14            # days open — amber/red boundary
+    red:   30            # days open — red/overdue boundary
+  urgency:
+    green:  7            # days left — overdue/red boundary
+    amber: 14            # days left — red/amber boundary
+    red:   30            # days left — amber/green boundary
+items:
+  - summary: Fix login bug
+    created: 2026-03-01
+    due: 2026-04-01
+    description: |
+      See ticket #1234. Steps to reproduce…
+  - summary: Update docs
+    created: 2026-03-20
+```
+
+The table has four columns: **Summary / Open (days) / Due in / Description**.
+
+- **Open (days)** — days since `created` (positive integer, or `—` if absent).
+- **Due in** — days until `due` (positive = remaining, negative = overdue, `—` if absent).
+
+**Colour coding** — both age and urgency are evaluated independently for every item; the
+**highest criticality** of the two determines the row colour.  `color-mode` is no longer required
+(old blocks that still contain it are silently accepted).
+
+**Age threshold semantics:**
+`daysOld < green` → green · `< amber` → amber · `< red` → red · `≥ red` → overdue.
+
+**Urgency threshold semantics:**
+`daysLeft > red` → green · `> amber` → amber · `> green` → red · `≤ green` (incl. negative) → overdue.
+
+**Criticality ranking:** `todo-overdue` > `todo-red` > `todo-amber` > `todo-green`.
+
+Items without `created` default to green for the age dimension; items without `due` default to
+green for the urgency dimension.
+
+The optional `description` field is rendered as **CommonMark HTML** inline in the table cell
+(same pipeline as flash-card question/answer fields).
+
+`TodoBlockTranslator` is stateless and has no Spring dependencies — it is instantiated inline in
+`CodeBlockTransformer`, consistent with `MermaidBlockTranslator`.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `markdown/code/todo/TodoConfig.java` | Jackson POJO: top-level config, `ThresholdConfig` (age + urgency `ThresholdValues`), `TodoItem` |
+| `markdown/code/TodoBlockTranslator.java` | Translates YAML fence → `HtmlBlock`; `computeRowClass`, `computeOpenDays`, `computeDueIn`, `renderDescriptionMarkdown` |
+| `static/css/style.css` | `.todo-block`, `.todo-table`, `.todo-green/amber/red/overdue`, `.todo-days`, `.todo-error` |
+| `test/…/TodoBlockTranslatorSpec.groovy` | 59 Spock feature methods (dual-threshold colouring, highest-criticality selection, Open(days)/Due-in columns, markdown descriptions, error handling) |
 
 `GET /database` serves the fetch-metadata UI page. `POST /database/fetch-metadata` connects to a
 configured datasource, introspects all matching tables via JDBC `DatabaseMetaData`, and writes a
@@ -610,6 +671,11 @@ the commit-status API. No deployment step is included.
 | Change which file extensions are treated as images | Edit `ImageController.isImage()` — used by both the image-serving endpoint and `ImageAuditService` |
 | Change image-audit path-resolution logic | Edit `ImageAuditService.audit()` visitor |
 | Add extra columns / detail to the image-audit results page | Edit `jte/tools/image-audit.jte` |
+| Change todo colour thresholds or defaults | Edit `TodoConfig.ThresholdValues` field initialisers |
+| Add a new colour level to todo blocks | Add CSS class + extend `TodoBlockTranslator.computeRowClass` threshold logic |
+| Change todo colour-coding logic | Edit `TodoBlockTranslator.computeAgeClass`, `computeUrgencyClass`, and `higherCriticality` |
+| Change todo table columns or header labels | Edit `TodoBlockTranslator.buildHtmlBlock` |
+| Add a new field to todo items (e.g. priority) | Add field to `TodoConfig.TodoItem`, handle in `buildHtmlBlock` |
 
 ---
 

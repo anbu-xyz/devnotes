@@ -101,6 +101,10 @@ pre:has(> code.language-hidden-database-metadata) {
     display: none;
 }
 
+pre:has(> code.language-hidden-todo) {
+    display: none;
+}
+
 .mermaid {
     display: none; /* Hide mermaid diagrams on load */
 }
@@ -849,3 +853,50 @@ table.sortable .btn-blue-glow i {
     margin-left: 4px;
 }
 
+/* ── Todo blocks ────────────────────────────────────────────────────── */
+.todo-block {
+    border: 1px solid #444;
+    background-color: #1a1a2e;
+    border-radius: 4px;
+    padding: 0.6em 0.8em;
+    margin: 1em 0;
+    overflow-x: auto;
+}
+
+.todo-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.todo-table th {
+    text-align: left;
+    color: #7ec8e3;
+    border-bottom: 1px solid #444;
+    padding: 4px 8px;
+    white-space: nowrap;
+}
+
+.todo-table td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #2a2a2a;
+    vertical-align: top;
+}
+
+.todo-green   { background-color: rgba(63,  185,  80, 0.12); }
+.todo-amber   { background-color: rgba(210, 153,  34, 0.18); }
+.todo-red     { background-color: rgba(248,  81,  73, 0.18); }
+.todo-overdue {
+    background-color: rgba(248, 81, 73, 0.35);
+    font-weight: bold;
+}
+
+.todo-days {
+    white-space: nowrap;
+}
+
+.todo-error {
+    color: #f85149;
+    border: 1px solid #f85149;
+    padding: 0.4em 0.6em;
+    border-radius: 4px;
+}

@@ -28,6 +28,7 @@ By a corporate environment, I mean:
 * **Currency-symbol column conversion** in data blocks — columns named `$…`, `£…`, or `€…` automatically convert cell values to USD / GBP / EUR using configured exchange rates
 * **Exchange Rate Manager** at `/tools/exchange-rates` — add and delete currency-pair rates that are persisted and used for live column conversion
 * **Image Audit** at `/tools/image-audit` — scan the docs directory for orphaned image files and broken image links in markdown files
+* **Todo blocks** — embed colour-coded task lists directly in markdown using `` ```todo `` fences; rows are coloured by the worst of independent age and urgency thresholds
 
 ### Groovy Scripting
 
@@ -432,6 +433,72 @@ After generation, open the file in your wiki, fill in the `description` placehol
 `values` maps for enum-like columns. The `table.datasource` key is pre-populated so the
 **Check against DB ▶** button works immediately.
 
+### Todo blocks
+
+Embed a colour-coded task list directly in a markdown file using a `` ```todo `` fenced code
+block.  The block body is YAML.
+
+````
+```todo
+thresholds:              # optional — these are the defaults
+  age:
+    green:  7            # days open — green/amber boundary
+    amber: 14            # days open — amber/red boundary
+    red:   30            # days open — red/overdue boundary
+  urgency:
+    green:  7            # days left — overdue/red boundary
+    amber: 14            # days left — red/amber boundary
+    red:   30            # days left — amber/green boundary
+items:
+  - summary: Fix login bug
+    created: 2026-03-01
+    due: 2026-04-01
+    description: |
+      See ticket **#1234**. Steps to reproduce…
+  - summary: Update docs
+    created: 2026-03-20
+```
+````
+
+The fence renders as a styled HTML table with four columns: **Summary / Open (days) / Due in /
+Description**.
+
+- **Open (days)** — number of days since `created` (`—` when absent).
+- **Due in** — days until `due`; negative means overdue (`—` when absent).
+
+#### Colour coding
+
+Both age and urgency are evaluated independently for every item.  The **highest criticality**
+of the two determines the row colour.
+
+| CSS class | Age condition | Urgency condition |
+|---|---|---|
+| `todo-green` | Newer than `green` days | Due more than `red` days away |
+| `todo-amber` | Between `green` and `amber` days old | Due between `amber` and `red` days away |
+| `todo-red` | Between `amber` and `red` days old | Due between `green` and `amber` days away |
+| `todo-overdue` | Older than `red` days | Past due, or due within `green` days |
+
+Criticality ranking: `todo-overdue` > `todo-red` > `todo-amber` > `todo-green`.
+
+Items without `created` default to green for the age dimension; items without `due` default to
+green for the urgency dimension.
+
+#### Field reference
+
+| Field | Required | Type | Description |
+|---|---|---|---|
+| `thresholds.age.green` | no | int (days) | Age green/amber boundary; default `7` |
+| `thresholds.age.amber` | no | int (days) | Age amber/red boundary; default `14` |
+| `thresholds.age.red` | no | int (days) | Age red/overdue boundary; default `30` |
+| `thresholds.urgency.green` | no | int (days) | Urgency overdue/red boundary; default `7` |
+| `thresholds.urgency.amber` | no | int (days) | Urgency red/amber boundary; default `14` |
+| `thresholds.urgency.red` | no | int (days) | Urgency amber/green boundary; default `30` |
+| `items[].summary` | **yes** | string | One-line task description |
+| `items[].created` | no | ISO date `yyyy-MM-dd` | Date the item was opened; drives the age colour dimension |
+| `items[].due` | no | ISO date `yyyy-MM-dd` | Target completion date; drives the urgency colour dimension |
+| `items[].description` | no | CommonMark markdown | Multi-line detail rendered as HTML in the table cell |
+
+
 ### Constructing dynamic URLs
 
 To construct a dynamic URL, you can use the following code:
@@ -645,7 +712,10 @@ java -Ddevnotes.docsDirectory=/path/to/docs -jar target/devnotes-0.0.1-SNAPSHOT.
 
 ## Adding todo items
 
-Tips can be found in the [todo-tip.md](docs/todo-tip.md) file.
+Use the `` ```todo `` fenced code block directly in any markdown file — see the
+[Todo blocks](#todo-blocks) section above for the full YAML schema and colour-threshold reference.
+
+Additional tips can be found in the [todo-tip.md](docs/todo-tip.md) file.
 
 ## Workarounds 
 
