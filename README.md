@@ -31,6 +31,8 @@ By a corporate environment, I mean:
 * **Exchange Rate Manager** at `/tools/exchange-rates` — add and delete currency-pair rates that are persisted and used for live column conversion
 * **Image Audit** at `/tools/image-audit` — scan the docs directory for orphaned image files and broken image links in markdown files
 * **Todo blocks** — embed colour-coded task lists directly in markdown using `` ```todo `` fences; rows are coloured by the worst of independent age and due-in thresholds; `created` dates are filled in automatically on save
+* **Inline Groovy expressions** — evaluate a Groovy expression inside any paragraph, heading, or bold/italic text using `[groovy]expression[/groovy]`; errors render as a ⚠ warning span
+* **Inline red text** — highlight a span of text in red using `[red]text[/red]`
 
 ### Groovy Scripting
 
@@ -180,6 +182,41 @@ Features:
 
 The script and render mode are autosaved to `<docsDirectory>/config/groovy-playground/` on every
 keystroke so your work is never lost.
+
+### Inline Groovy expressions
+
+Any paragraph, heading, list item, or bold/italic run can contain a `[groovy]…[/groovy]` tag.
+The content between the tags is executed as a Groovy expression and its `toString()` result is
+injected inline:
+
+```markdown
+Today is [groovy]LocalDate.now()[/groovy].
+
+Report version [groovy]2 * 3[/groovy].
+
+**Balance: [groovy]1_000_000 * 1.05[/groovy] USD**
+```
+
+The same built-in classes that are available in fenced Groovy blocks are available here
+(`LocalDate`, `LocalDateTime`, etc.).
+
+- **Success** — the result is rendered in a `<span class="groovy-inline">`.
+- **Error** — a `<span class="groovy-inline-error">` with a ⚠ icon is shown; the full error
+  message is in the `title` attribute so hovering reveals it.
+- **Null result** — renders as an empty span (no visible output).
+- **Backtick code spans** — content inside `` `…` `` is never evaluated; it is rendered as
+  literal text.
+- **Unclosed tag** — if `[groovy]` has no matching `[/groovy]`, the tag is left as plain text.
+
+### Inline text highlighting
+
+Wrap any run of text in `[red]…[/red]` to render it as a red `<span>`:
+
+```markdown
+This is [red]very important[/red] information.
+```
+
+The span receives the CSS class `color-red`, which is defined in `static/css/style.css`.
 
 ### Playwright Scripting
 

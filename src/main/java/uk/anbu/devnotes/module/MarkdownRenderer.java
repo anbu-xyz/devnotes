@@ -17,6 +17,8 @@ import uk.anbu.devnotes.markdown.check.SymbolTransformer;
 import uk.anbu.devnotes.markdown.code.CodeBlockTransformer;
 import uk.anbu.devnotes.markdown.code.DatabaseMetadataBlockTranslator;
 import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
+import uk.anbu.devnotes.markdown.groovy.GroovyInlineNodeRenderer;
+import uk.anbu.devnotes.markdown.groovy.GroovyInlineTransformer;
 import uk.anbu.devnotes.markdown.image.LocalImageTransformer;
 import uk.anbu.devnotes.markdown.link.LocalLinkTransformer;
 import uk.anbu.devnotes.markdown.red.RedTextNodeRenderer;
@@ -71,6 +73,7 @@ public class MarkdownRenderer {
                 .transform(document);
         LocalLinkTransformer.transform(document);
         RedTextTransformer.transform(document);
+        GroovyInlineTransformer.transform(document);
         SymbolTransformer.transform(document);
         LocalImageTransformer.builder()
                 .markdownFile(markdownFile)
@@ -79,6 +82,7 @@ public class MarkdownRenderer {
         HtmlRenderer renderer = HtmlRenderer.builder()
                 .extensions(extensions)
                 .nodeRendererFactory(new RedTextNodeRenderer.Factory())
+                .nodeRendererFactory(new GroovyInlineNodeRenderer.Factory())
                 .attributeProviderFactory(context -> new ImageAttributeProvider())
                 .build();
         return renderer.render(document);

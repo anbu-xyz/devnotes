@@ -54,6 +54,8 @@ src/
           datablock/       # YamlCodeblockConfig POJO + ParameterRegistry
           databasemetadata/ # DatabaseMetadataConfig POJO
           todo/            # TodoConfig POJO
+        groovy/            # Inline [groovy]…[/groovy] transformer + custom AST node + renderer
+        red/               # Inline [red]…[/red] transformer + custom AST node + renderer
         image/             # Local-image path rewriting
         link/              # Link transformers
       module/              # Business-logic modules (search, SQL executor, Groovy renderer …)
@@ -124,9 +126,60 @@ start; the derived AES-256-GCM key is kept only in JVM memory.
    - `` ```parameter `` → `ParameterBlockTranslator` (populates a shared `ParameterRegistry`)
    - `` ```database-metadata `` → `DatabaseMetadataBlockTranslator` (YAML schema doc → HTML card; optional live DB diff via HTMX)
    - `` ```todo `` → `TodoBlockTranslator` (YAML todo list → colour-coded HTML table; dual age + due-in thresholds; highest criticality wins)
-3. The modified AST is rendered back to HTML and injected into the jte page template.
+3. **Inline transformers** walk every `Text` node in the AST and replace matched spans with
+   custom `CustomNode` instances that are rendered by registered `HtmlNodeRendererFactory`
+   implementations:
+   - `[groovy]expression[/groovy]` → `GroovyInlineTransformer` → `GroovyInlineNode` → `GroovyInlineNodeRenderer`
+   - `[red]text[/red]` → `RedTextTransformer` → `RedTextNode` → `RedTextNodeRenderer`
+4. The modified AST is rendered back to HTML and injected into the jte page template.
 
-### Data Blocks (`DataBlockTranslator`)
+### Inline Groovy Expressions (`GroovyInlineTransformer`)
+
+The `[groovy]expression[/groovy]` tag can appear anywhere inside a `Text` node — paragraphs,
+headings, list items, bold/italic runs, etc.  The content is executed via `GroovyShellRunner`
+and the `toString()` of the result is injected as an inline HTML element.
+
+**Behaviour:**
+
+| Situation | Rendered as |
+|---|---|
+| Successful evaluation | `<span class="groovy-inline">result</span>` |
+| Runtime error (exception) | `<span class="groovy-inline-error" title="error message">⚠</span>` |
+| `null` result | `<span class="groovy-inline"></span>` (empty span) |
+| Unclosed `[groovy]` (no `[/groovy]`) | Left as literal text — not evaluated |
+| Inside a backtick code span | Never evaluated — commonmark parses code spans as `Code` nodes, not `Text` |
+
+HTML special characters in the result are HTML-escaped by the renderer before output.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `markdown/groovy/GroovyInlineTransformer.java` | Walks `Text` nodes; splits on `[groovy]` / `[/groovy]`; delegates evaluation to `GroovyShellRunner`; inserts `GroovyInlineNode` or `Text` siblings |
+| `markdown/groovy/GroovyInlineNode.java` | `CustomNode` subclass holding the result string and an `isError` flag |
+| `markdown/groovy/GroovyInlineNodeRenderer.java` | `NodeRenderer` that emits `<span class="groovy-inline">` or `<span class="groovy-inline-error">` |
+
+### Inline Red Text (`RedTextTransformer`)
+
+The `[red]text[/red]` tag wraps the enclosed text in a `<span class="color-red">`.  It can
+appear inside any `Text` node and follows the same pattern as `GroovyInlineTransformer`.
+
+**Behaviour:**
+
+| Situation | Rendered as |
+|---|---|
+| Normal usage | `<span class="color-red">text</span>` |
+| Unclosed `[red]` (no `[/red]`) | The remainder of the text node is treated as plain text |
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `markdown/red/RedTextTransformer.java` | Walks `Text` nodes; splits on `[red]` / `[/red]`; inserts `RedTextNode` siblings |
+| `markdown/red/RedTextNode.java` | `CustomNode` subclass holding the literal string |
+| `markdown/red/RedTextNodeRenderer.java` | `NodeRenderer` that emits `<span class="color-red">` |
+
+
 
 Data blocks use a YAML mini-language inside a `` ```data `` fence:
 
@@ -737,6 +790,10 @@ the commit-status API. No deployment step is included.
 | Task | Where to look / what to change |
 |---|---|
 | Add a new code-fence type | `CodeBlockTransformer.java`, then add a translator class |
+| Add a new inline tag transformer | Create a `CustomNode` subclass, a `NodeRenderer`, and a transformer class in `markdown/`; register in the parser/renderer chain |
+| Change inline Groovy expression delimiters | Edit `GroovyInlineTransformer.OPEN` / `CLOSE` constants; update `GroovyInlineTransformerSpec` |
+| Change inline Groovy error rendering | Edit `GroovyInlineNodeRenderer.render` and the `.groovy-inline-error` CSS class |
+| Change inline red text CSS class or tag | Edit `RedTextNodeRenderer.render` and update the `.color-red` style in `static/css/style.css` |
 | Add a new REST endpoint | New class in `controller/`, register as `@RestController` |
 | Change groovy block refresh endpoint | Edit `GroovyRefreshController.java` |
 | Change how groovy block ID is computed | Edit `FileBasedCache.generateHash` and update `CodeBlockTransformer` + `GroovyRefreshController` accordingly |

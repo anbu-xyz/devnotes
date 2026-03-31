@@ -949,3 +949,21 @@ table.sortable .btn-blue-glow i {
     padding: 0.4em 0.6em;
     border-radius: 4px;
 }
+
+/* ==========================================================================
+                       Groovy Inline Expressions  [groovy] ... [/groovy]
+   ========================================================================== */
+
+.groovy-inline {
+    font-family: 'Courier New', Courier, monospace;
+    background-color: rgba(100, 160, 255, 0.08);
+    border-radius: 3px;
+    padding: 0.1em 0.3em;
+}
+
+.groovy-inline-error {
+    color: #f0a030;
+    cursor: help;
+    border-bottom: 1px dotted #f0a030;
+}
+
