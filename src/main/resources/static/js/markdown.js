@@ -233,7 +233,8 @@ function setupDataBlockControls() {
         menu.className = 'data-block-menu';
         menu.innerHTML =
             '<li><a data-action="source">Source</a></li>' +
-            '<li><a data-action="refresh">Refresh</a></li>';
+            '<li><a data-action="refresh">Refresh</a></li>' +
+            '<li><a data-action="export-excel">Export Excel</a></li>';
 
         const controls = document.createElement('div');
         controls.className = 'data-block-controls';
@@ -390,6 +391,68 @@ function setupDataBlockSourceToggle() {
             }).catch((err) => {
                 console.error('Data block refresh failed', err);
                 showInlineError(dataBlock, 'Refresh failed: ' + (err.message || 'unknown error'));
+            }).finally(() => {
+                setDataBlockBusy(dataBlock, false);
+                link.removeAttribute('aria-disabled');
+            });
+        }
+
+        if (action === 'export-excel') {
+            const table = dataBlock.querySelector('table[data-datablock-id]');
+            if (!table) {
+                showInlineError(dataBlock, 'Cannot find table to export');
+                return;
+            }
+            const datablockId = table.getAttribute('data-datablock-id');
+            const datablockParams = table.getAttribute('data-datablock-params') || '{}';
+            const mdEl = document.getElementById('md-file-path');
+            const markdownFile = mdEl ? mdEl.textContent.trim() : '';
+            if (!datablockId || !markdownFile) {
+                showInlineError(dataBlock, 'Missing datablock id or markdown file path');
+                return;
+            }
+
+            let paramsObj = {};
+            if (datablockParams && datablockParams.trim() !== '') {
+                try {
+                    paramsObj = JSON.parse(datablockParams);
+                } catch (e) {
+                    console.error('Invalid datablock params JSON', e, datablockParams);
+                    showInlineError(dataBlock, 'Invalid datablock parameters (malformed JSON)');
+                    return;
+                }
+            }
+
+            setDataBlockBusy(dataBlock, true);
+            link.setAttribute('aria-disabled', 'true');
+
+            fetch('/datablock/export-excel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ markdownFile, datablockId, params: paramsObj })
+            }).then(async (resp) => {
+                if (!resp.ok) {
+                    const txt = await resp.text().catch(() => resp.statusText);
+                    throw new Error(txt || resp.statusText);
+                }
+                // Extract suggested filename from Content-Disposition if present
+                const disposition = resp.headers.get('Content-Disposition') || '';
+                const match = disposition.match(/filename="?([^";\n]+)"?/);
+                const filename = match ? match[1] : 'export.xlsx';
+                return resp.blob().then(blob => ({ blob, filename }));
+            }).then(({ blob, filename }) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            }).catch((err) => {
+                console.error('Data block Excel export failed', err);
+                showInlineError(dataBlock, 'Export failed: ' + (err.message || 'unknown error'));
             }).finally(() => {
                 setDataBlockBusy(dataBlock, false);
                 link.removeAttribute('aria-disabled');

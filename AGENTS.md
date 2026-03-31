@@ -620,4 +620,10 @@ the commit-status API. No deployment step is included.
 - HTML fragments are built with **j2html** (`TagCreator.*` static imports).
 - Avoid Spring `@Autowired` field injection; use constructor injection (Lombok `@RequiredArgsConstructor`).
 - Spock feature method names are written as plain-English sentences in string form.
+- Use functional style where it improves readability (e.g. `map`/`filter`/`collect` on streams, `Optional.map`, etc.).
+- Use `var` for local variables when the type is obvious from the right-hand side (e.g. `var config = …` when the method name makes it clear that it's a config object).
+- Use `final` for method parameters and local variables when it adds clarity or prevents bugs; omit when it adds noise.
+- Use `@Slf4j` for logging; prefer parameterized messages (`log.info("… {}", var)`) over string concatenation.
+- Inside a method do not modify the input parameters; if you need to transform them, assign to a new `var` (e.g. `var transformedInput = transform(input)`).
+- Use pure functions where possible.
 

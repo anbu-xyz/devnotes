@@ -692,7 +692,7 @@ public class DataBlockTranslator {
      *   <li>{@code €…} → EUR</li>
      * </ul>
      */
-    static Optional<String> resolveTargetCurrency(String col) {
+    public static Optional<String> resolveTargetCurrency(String col) {
         if (col == null || col.isEmpty()) return Optional.empty();
         char first = col.charAt(0);
         return switch (first) {
@@ -701,6 +701,37 @@ public class DataBlockTranslator {
             case '\u20AC' -> Optional.of("EUR");
             default -> Optional.empty();
         };
+    }
+
+    /**
+     * Parses and converts a currency-column raw value ({@code "SRC_ISO amount"}) to the target
+     * ISO 4217 currency using the in-memory {@link ExchangeRates} map.
+     *
+     * <p>Returns an empty {@link Optional} when the value is malformed, the source ISO code is
+     * unknown, or no exchange rate is configured for the pair.  Shared by both the HTML renderer
+     * and the Excel export path so both surfaces apply identical conversion logic.
+     */
+    public static Optional<BigDecimal> convertCurrencyValue(String rawValue, String targetCurrency) {
+        if (rawValue == null || rawValue.isBlank()) return Optional.empty();
+        int spaceIdx = rawValue.indexOf(' ');
+        if (spaceIdx <= 0 || spaceIdx == rawValue.length() - 1) return Optional.empty();
+
+        String srcCurrency = rawValue.substring(0, spaceIdx).trim().toUpperCase();
+        String amountStr   = rawValue.substring(spaceIdx + 1).trim();
+
+        if (!CurrencyCodes.isValidCurrencyCode(srcCurrency)) return Optional.empty();
+
+        BigDecimal amount;
+        try {
+            amount = new BigDecimal(amountStr);
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+
+        if (srcCurrency.equals(targetCurrency)) return Optional.of(amount);
+
+        Optional<Double> rate = ExchangeRates.getExchangeRate(new CurrencyPair(srcCurrency, targetCurrency));
+        return rate.map(r -> amount.multiply(BigDecimal.valueOf(r)));
     }
 
     private static TdTag convertAndRenderCurrencyCell(String rawValue, String targetCurrency,
@@ -796,6 +827,36 @@ public class DataBlockTranslator {
                         a("Enter encryption key").withHref(href)
                 );
         return toHtmlBlock(warning);
+    }
+
+    /**
+     * Executes the query for the given config without any row limit, streaming results through the
+     * provided {@link org.springframework.jdbc.core.ResultSetExtractor}.  Intended for export
+     * operations where all rows are needed and memory must be managed by the caller.
+     */
+    public <T> T executeQueryForExport(YamlCodeblockConfig config, Map<String, Object> sharedParams,
+                                       org.springframework.jdbc.core.ResultSetExtractor<T> extractor) {
+        String source = config.getSource();
+        if (source == null || source.isBlank()) {
+            throw new IllegalArgumentException("'source' not specified in data block.");
+        }
+        String dataSourceName = source.contains("/")
+                ? source.substring(source.lastIndexOf('/') + 1) : source;
+        ConfigService.DataSourceConfig dsConfig = dataSourceConfigResolver == null ? null
+                : dataSourceConfigResolver.resolve(dataSourceName);
+        if (dsConfig == null) {
+            throw new IllegalArgumentException("DataSource '" + dataSourceName + "' not configured.");
+        }
+        DriverManagerDataSource ds = new DriverManagerDataSource();
+        ds.setDriverClassName(dsConfig.driverClassName());
+        ds.setUrl(dsConfig.url());
+        ds.setUsername(dsConfig.username());
+        ds.setPassword(dsConfig.password());
+
+        var jdbcTemplate = new JdbcTemplate(ds);
+        var named = new NamedParameterJdbcTemplate(jdbcTemplate);
+        MapSqlParameterSource paramSource = buildParameterSource(config, sharedParams);
+        return named.query(config.getQuery(), paramSource, extractor);
     }
 
     @SneakyThrows
