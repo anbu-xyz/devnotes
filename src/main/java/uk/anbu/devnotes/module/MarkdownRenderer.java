@@ -24,6 +24,7 @@ import uk.anbu.devnotes.markdown.red.RedTextTransformer;
 import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
+import uk.anbu.devnotes.service.ExchangeRateService;
 import uk.anbu.devnotes.types.Markdown;
 import uk.anbu.devnotes.types.MarkdownFile;
 
@@ -39,6 +40,7 @@ public class MarkdownRenderer {
     private final SqlExecutor sqlExecutor;
     private final ConfigService configService;
     private final DatabaseMetadataBlockTranslator databaseMetadataBlockTranslator;
+    private final ExchangeRateService exchangeRateService;
 
     public String convertMarkdown(Markdown markdown, MarkdownFile markdownFile, Map<String, String> queryParams) {
         String markdownText = markdown.text();
@@ -64,6 +66,7 @@ public class MarkdownRenderer {
                 .configService(configService)
                 .parameterRegistry(parameterRegistry)
                 .databaseMetadataBlockTranslator(databaseMetadataBlockTranslator)
+                .exchangeRateService(exchangeRateService)
                 .build()
                 .transform(document);
         LocalLinkTransformer.transform(document);

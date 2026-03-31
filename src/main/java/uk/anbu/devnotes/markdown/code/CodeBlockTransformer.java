@@ -12,6 +12,7 @@ import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.service.EncryptionService;
+import uk.anbu.devnotes.service.ExchangeRateService;
 import uk.anbu.devnotes.types.MarkdownFile;
 import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 
@@ -37,6 +38,7 @@ public class CodeBlockTransformer {
     private final ConfigService configService;
     private final ParameterRegistry parameterRegistry;
     private final DatabaseMetadataBlockTranslator databaseMetadataBlockTranslator;
+    private final ExchangeRateService exchangeRateService;
 
     public void transform(Node current) {
         // If there is a next sibling, process it
@@ -133,7 +135,7 @@ public class CodeBlockTransformer {
     private void renderDataBlock(FencedCodeBlock codeBlock, MarkdownFile markdownFile) {
         String dataConfig = codeBlock.getLiteral();
         try {
-            var newNodeToInsert = new DataBlockTranslator(dataSourceConfigResolver, configService, parameterRegistry)
+            var newNodeToInsert = new DataBlockTranslator(dataSourceConfigResolver, configService, parameterRegistry, exchangeRateService)
                     .renderDataBlock(dataConfig, markdownFile);
             newNodeToInsert.ifPresent(codeBlock::insertBefore);
 

@@ -7,19 +7,22 @@ import uk.anbu.devnotes.module.GroovyRenderer;
 import uk.anbu.devnotes.module.MarkdownRenderer;
 import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.service.ExchangeRateService;
 
 @Configuration
 public class DevnotesContext {
     @Bean
     MarkdownRenderer markdownRenderer(ConfigService configService,
-                                      SqlExecutor sqlExecutor) {
+                                      SqlExecutor sqlExecutor,
+                                      ExchangeRateService exchangeRateService) {
         GroovyRenderer groovyExecutor = new GroovyRenderer(configService::getChromeDriverLocation);
         return new MarkdownRenderer(
                 groovyExecutor,
                 configService::getDataSourceConfig,
                 sqlExecutor,
                 configService,
-                new DatabaseMetadataBlockTranslator()
+                new DatabaseMetadataBlockTranslator(),
+                exchangeRateService
         );
     }
 }

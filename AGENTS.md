@@ -57,8 +57,9 @@ src/
         link/              # Link transformers
       module/              # Business-logic modules (search, SQL executor, Groovy renderer …)
       service/             # Spring services (config, git, pomodoro, scheduler, datasource, encryption)
-                           #   FlashCardService.java  — load/save/query cards; delegates SM-2 to Sm2Algorithm
-                           #   Sm2Algorithm.java      — pure stateless SM-2 computation (no I/O, no Spring)
+                           #   FlashCardService.java      — load/save/query cards; delegates SM-2 to Sm2Algorithm
+                           #   Sm2Algorithm.java          — pure stateless SM-2 computation (no I/O, no Spring)
+                           #   ExchangeRateService.java   — load/save exchange-rates.yaml; populates ExchangeRates on startup
       types/               # Value types (MarkdownFile, CashAmount, FlashCard, FlashCardStats, …)
       util/                # Helpers (FileUtil, DateTimeUtil, FileBasedCache, JdbcTypeMapper)
       cash/                # Currency / exchange-rate support
@@ -148,8 +149,52 @@ output:
 ```
 
 Results are cached to `<filename>.<checksum>.output` files alongside the markdown source.
-The checksum covers the query, parameters, shared parameter registry state, and `column-formats`,
-so any format change automatically invalidates the cache.
+The checksum covers the query, parameters, shared parameter registry state, `column-formats`,
+and the current `__exchangeRatesVersion` (last-modified epoch millis of `exchange-rates.yaml`),
+so any rate change automatically invalidates the cache.
+
+### Currency-Symbol Column Conversion
+
+When a SQL result column name starts with a recognised currency symbol, every non-null cell value
+is automatically converted to the target currency and displayed as a formatted number.
+
+| Column prefix | Unicode | Target currency | Example column name |
+|---|---|---|---|
+| `$` | U+0024 | USD | `$balance` |
+| `£` | U+00A3 | GBP | `£nav` |
+| `€` | U+20AC | EUR | `€revenue` |
+
+**Wire format** expected in each cell: `CCC <number>` where `CCC` is an ISO 4217 alphabetic
+code (e.g. `GBP 200`, `EUR 1234.56`).  Negative amounts are supported.
+
+**Rendering rules:**
+
+1. Null / blank cell → rendered as `(null)` — no conversion attempted.
+2. Malformed value (no space, unknown ISO code, non-numeric amount) → `<td class="data-block-currency-error">` (red).
+3. Same currency as target → formatted as number directly — no rate lookup.
+4. Different currency → `ExchangeRates.getExchangeRate(srcCurrency, targetCurrency)` called.
+   - Rate found: `converted = amount × rate`; rendered as `<td class="data-block-number">`.
+   - Rate absent: `<td class="data-block-no-rate" title="No exchange rate configured for …">` (amber, `cursor:help`).
+5. `column-formats` `number-format` pattern is applied to the converted result if present;
+   otherwise `DecimalFormat("#,##0.00")` is used.
+
+Column headers are displayed as-is, including the symbol prefix.
+
+**Cache invalidation:** `DataBlockTranslator` always injects `__exchangeRatesVersion`
+(`ExchangeRateService.getVersion()` — the last-modified epoch millis of `exchange-rates.yaml`)
+into the shared-params copy before computing the checksum.  Saving a rate via
+`ExchangeRateService.addRate` / `deleteRate` rewrites the file, changing `lastModified`,
+which changes the checksum, which causes a cache miss on the next page render.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `markdown/code/DataBlockTranslator.resolveTargetCurrency` | Maps column prefix to target ISO code |
+| `markdown/code/DataBlockTranslator.convertAndRenderCurrencyCell` | Performs lookup and formats the cell |
+| `cash/ExchangeRates.java` | Static in-memory rate map; `getExchangeRate` derives cross-rates |
+| `service/ExchangeRateService.java` | Loads/saves `exchange-rates.yaml`; drives `ExchangeRates` mutations |
+| `static/css/style.css` | `.data-block-no-rate` (amber) and `.data-block-currency-error` (red) classes |
 
 ### Column Formats (`column-formats`)
 
@@ -415,6 +460,49 @@ new cards slugifies the first 40 chars of the question; duplicates get `-2`, `-3
 
 ---
 
+### Exchange Rates (`ExchangeRateService`)
+
+Exchange rates are persisted to `<docsDirectory>/config/exchange-rates.yaml` as a flat YAML map:
+
+```yaml
+GBP/USD: 1.2700
+EUR/USD: 1.0850
+JPY/USD: 0.006800
+```
+
+**Lifecycle:**
+
+1. On startup `ExchangeRateService.init()` reads the file (if present), calls
+   `ExchangeRates.setExchangeRate(pair, rate)` for every entry, and stores explicit pairs in an
+   internal `LinkedHashMap` (insertion order preserved).
+2. `addRate(pairString, rate)` — validates both ISO 4217 codes, calls `setExchangeRate`, appends
+   to the map, and calls `save()`.
+3. `deleteRate(pairString)` — removes from the map and calls `save()`.  Reverse-derived entries
+   already in `ExchangeRates` static map are NOT removed until the next restart.
+4. `save()` — writes the map to `exchange-rates.yaml` via Jackson `YAMLFactory`.
+5. `getVersion()` — returns `file.lastModified()` (or `0L` when absent); used as a cache-bust
+   key injected into every data-block checksum as `__exchangeRatesVersion`.
+
+**Exchange Rate Manager UI** (`ExchangeRateController`, `GET/POST /tools/exchange-rates`):
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/tools/exchange-rates` | Show current rates table + add-rate form |
+| POST | `/tools/exchange-rates` | Add / update a rate (validates pair format and ISO codes) |
+| POST | `/tools/exchange-rates/delete` | Remove a rate by pair string |
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `service/ExchangeRateService.java` | Load/save `exchange-rates.yaml`; drive `ExchangeRates` mutations |
+| `cash/ExchangeRates.java` | Static in-memory map; `setExchangeRate` / `getExchangeRate` with cross-rate derivation |
+| `cash/CurrencyCodes.java` | ISO 4217 code validation |
+| `controller/ExchangeRateController.java` | `GET/POST /tools/exchange-rates` and `/tools/exchange-rates/delete` |
+| `jte/tools/exchange-rates.jte` | Rate table + add-rate form UI |
+
+---
+
 ### Groovy Execution
 
 Scripts run inside a sandboxed `GroovyShell`. Supported output formats (specified in the code-fence
@@ -480,6 +568,10 @@ the commit-status API. No deployment step is included.
 | Add a new flash card endpoint | Add handler to `FlashCardController`; add a jte template if needed |
 | Change flash card storage location | Edit `FlashCardService.flashcardsRoot()` |
 | Change flash card filename generation | Edit `FlashCardController.slugify` |
+| Add a new exchange-rate currency symbol | Add a `case` to `DataBlockTranslator.resolveTargetCurrency`; document in README |
+| Change exchange-rate storage location | Edit `ExchangeRateService.ratesFile()` |
+| Change exchange-rate YAML format | Edit `ExchangeRateService.save()` and `init()`; update tests |
+| Add a new currency-error CSS style | Edit `.data-block-no-rate` / `.data-block-currency-error` in `static/css/style.css` |
 
 ---
 

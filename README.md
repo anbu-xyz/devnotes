@@ -25,6 +25,8 @@ By a corporate environment, I mean:
    - HTML
    - Text
 * Spaced-repetition flash cards for active recall of notes
+* **Currency-symbol column conversion** in data blocks — columns named `$…`, `£…`, or `€…` automatically convert cell values to USD / GBP / EUR using configured exchange rates
+* **Exchange Rate Manager** at `/tools/exchange-rates` — add and delete currency-pair rates that are persisted and used for live column conversion
 
 ### Groovy Scripting
 
@@ -235,6 +237,49 @@ Columns without a `column-formats` entry fall back to the built-in defaults:
 | Key | Type | Description |
 |---|---|---|
 | `column-formats.<col>.number-format` | `DecimalFormat` pattern | Format applied to any `Number` value in that column |
+
+#### Currency-symbol column conversion
+
+When a SQL result column name begins with a recognised currency symbol, every non-null cell value
+is automatically converted to the corresponding target currency and displayed as a formatted
+number.
+
+| Column prefix | Unicode | Target currency | Example |
+|---|---|---|---|
+| `$` | U+0024 | USD | `$balance` |
+| `£` | U+00A3 | GBP | `£nav` |
+| `€` | U+20AC | EUR | `€revenue` |
+
+**Cell wire format:** `CCC <number>` where `CCC` is an ISO 4217 code (e.g. `GBP 200`,
+`EUR 1234.56`).  Negative amounts are supported.
+
+Example — a column named `$balance` holding `GBP 200` will look up the GBP→USD rate and
+display the converted value formatted with `#,##0.00` (or a custom `number-format` if
+configured):
+
+````
+```data
+source: datasource1
+query: SELECT name, cast('GBP 200' as varchar) AS "$balance" FROM trades
+column-formats:
+  "$balance":
+    number-format: "#,##0.00"
+```
+````
+
+**Rendering rules:**
+
+| Situation | Result |
+|---|---|
+| Null / blank cell | `(null)` — no conversion |
+| Malformed value (no space, unknown ISO code, non-numeric) | Red cell (`data-block-currency-error`) |
+| Source currency = target currency | Formatted directly as a number — no rate lookup |
+| Rate found | Converted and formatted; `data-block-number` CSS class |
+| Rate not configured | Amber cell with tooltip (`data-block-no-rate`) |
+
+Exchange rates are managed at **`/tools/exchange-rates`** and are persisted to
+`<docsDirectory>/config/exchange-rates.yaml`.  Saving or deleting a rate automatically
+invalidates any cached data-block output that involves a currency-symbol column.
 
 #### Database Connection Details
 
@@ -522,6 +567,33 @@ then the next due card is shown automatically.
 Dropping plain YAML files (with only `question` and `answer`) into the `config/flashcards/`
 directory is enough to create new cards.  Missing SM-2 fields default to
 `easeFactor=2.5`, `interval=1`, and all counts to `0`.
+
+### Exchange Rate Manager
+
+Exchange rates are used by the [currency-symbol column conversion](#currency-symbol-column-conversion)
+feature to convert cell values to a target currency at render time.
+
+Navigate to **`/tools/exchange-rates`** to:
+
+- View the current rate table (pair → rate, e.g. `GBP/USD: 1.2700`).
+- Add or update a rate by entering a `BASE/QUOTE` pair (e.g. `GBP/USD`) and a positive decimal
+  rate.
+- Delete a rate with the trash-icon button on each row.
+
+Rates are persisted to `<docsDirectory>/config/exchange-rates.yaml`:
+
+```yaml
+GBP/USD: 1.2700
+EUR/USD: 1.0850
+JPY/USD: 0.006800
+```
+
+**Cross-rates** are derived automatically — if `GBP/USD` and `EUR/USD` are both configured,
+`GBP/EUR` is computed on the fly without an explicit entry.
+
+**Cache invalidation** is automatic: saving or deleting any rate rewrites the YAML file, which
+changes the cache checksum for every data block that contains a currency-symbol column.  The
+next page render will re-execute the query with fresh rates.
 
 ## Building and Running
 

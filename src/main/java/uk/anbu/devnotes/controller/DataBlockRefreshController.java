@@ -19,6 +19,7 @@ import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.service.EncryptionService;
+import uk.anbu.devnotes.service.ExchangeRateService;
 import uk.anbu.devnotes.types.MarkdownFile;
 
 import java.nio.file.Files;
@@ -33,10 +34,12 @@ import java.util.Optional;
 public class DataBlockRefreshController {
 
     private final ConfigService configService;
+    private final ExchangeRateService exchangeRateService;
     private final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
-    public DataBlockRefreshController(ConfigService configService) {
+    public DataBlockRefreshController(ConfigService configService, ExchangeRateService exchangeRateService) {
         this.configService = configService;
+        this.exchangeRateService = exchangeRateService;
     }
 
     @PostMapping(value = "/fragment", consumes = MediaType.APPLICATION_JSON_VALUE,
@@ -135,7 +138,7 @@ public class DataBlockRefreshController {
                 var resolver = (DatasourceConfigResolver) configService::getDataSourceConfig;
                 var registry = new ParameterRegistry();
                 DataBlockTranslator translator =
-                    new DataBlockTranslator(resolver, configService, registry);
+                    new DataBlockTranslator(resolver, configService, registry, exchangeRateService);
                 var rendered = translator.renderDataBlockFreshFromYaml(yaml, mdFile, params);
                 if (rendered.isPresent() &&
                     rendered.get() instanceof org.commonmark.node.HtmlBlock hb) {

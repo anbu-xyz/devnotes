@@ -30,7 +30,7 @@ query: SELECT 1
 ```
 '''
 
-        def controller = new DataBlockRefreshController(configService)
+        def controller = new DataBlockRefreshController(configService, null)
 
         def body = [
                 markdownFile: "test.md",
@@ -52,7 +52,7 @@ query: SELECT 1
     def "returns 400 when markdownFile is missing"() {
         given:
         def configService = Mock(ConfigService)
-        def controller = new DataBlockRefreshController(configService)
+        def controller = new DataBlockRefreshController(configService, null)
 
         when:
         def response = controller.renderFragment([datablockId: "abc"])
@@ -64,7 +64,7 @@ query: SELECT 1
     def "returns 400 when datablockId is missing"() {
         given:
         def configService = Mock(ConfigService)
-        def controller = new DataBlockRefreshController(configService)
+        def controller = new DataBlockRefreshController(configService, null)
 
         when:
         def response = controller.renderFragment([markdownFile: "test.md"])

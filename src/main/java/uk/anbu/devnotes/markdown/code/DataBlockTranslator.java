@@ -17,11 +17,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import uk.anbu.devnotes.cash.CurrencyCodes;
+import uk.anbu.devnotes.cash.ExchangeRates;
 import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 import uk.anbu.devnotes.markdown.code.datablock.YamlCodeblockConfig;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.service.EncryptionService;
+import uk.anbu.devnotes.service.ExchangeRateService;
+import uk.anbu.devnotes.types.CurrencyPair;
 import uk.anbu.devnotes.types.MarkdownFile;
 import uk.anbu.devnotes.util.FileBasedCache;
 
@@ -50,6 +54,7 @@ public class DataBlockTranslator {
     private final DatasourceConfigResolver dataSourceConfigResolver;
     private final ConfigService configService;
     private final ParameterRegistry parameterRegistry;
+    private final ExchangeRateService exchangeRateService;
 
     @SneakyThrows
     public Optional<Node> renderDataBlock(String dataConfig, MarkdownFile markdownFile) {
@@ -66,7 +71,14 @@ public class DataBlockTranslator {
         }
 
         var sharedParams = parameterRegistry == null ? Map.<String, Object>of() : parameterRegistry.getAll();
-        var html = readCached(markdownFile, config, sharedParams);
+        // Inject exchange-rate version so any rate change busts the cache
+        if (exchangeRateService != null) {
+            var augmented = new LinkedHashMap<>(sharedParams);
+            augmented.put("__exchangeRatesVersion", exchangeRateService.getVersion());
+            sharedParams = augmented;
+        }
+        final Map<String, Object> effectiveParams = sharedParams;
+        var html = readCached(markdownFile, config, effectiveParams);
         if (html.isPresent()) {
             return html;
         }
@@ -87,8 +99,8 @@ public class DataBlockTranslator {
             }
         }
 
-        html = directlyRead(config, mdName, sharedParams);
-        html.ifPresent(node -> saveNodeToCache(node, markdownFile, config, sharedParams));
+        html = directlyRead(config, mdName, effectiveParams);
+        html.ifPresent(node -> saveNodeToCache(node, markdownFile, config, effectiveParams));
         return html;
     }
 
@@ -172,7 +184,7 @@ public class DataBlockTranslator {
             return buildFromTemplate(columns, rows, dataSourceName, mdName, templateContent);
         }
 
-        HtmlBlock node = htmlFallbackTable(config, rows, maxRowsReached, sharedParams);
+        HtmlBlock node = htmlFallbackTable(config, rows, maxRowsReached, sharedParams, exchangeRateService);
         return Optional.of(node);
     }
 
@@ -507,9 +519,10 @@ public class DataBlockTranslator {
     private static HtmlBlock htmlFallbackTable(YamlCodeblockConfig config,
                                                List<LinkedHashMap<String, Object>> rows,
                                                boolean maxRowsReached,
-                                               Map<String, Object> sharedParams) {
+                                               Map<String, Object> sharedParams,
+                                               ExchangeRateService exchangeRateService) {
         if (config.isTranspose()) {
-            return transposedViewTable(config, rows, maxRowsReached, sharedParams);
+            return transposedViewTable(config, rows, maxRowsReached, sharedParams, exchangeRateService);
         }
         var tableTag = table()
                 .attr("data-datablock-id", config.checksum(sharedParams))
@@ -538,7 +551,7 @@ public class DataBlockTranslator {
         for (Map<String, Object> row : rows) {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
             for (String col : columns) {
-                rowTag.with(createTdTag(col, row, config.getColumnFormats()));
+                rowTag.with(createTdTag(col, row, config.getColumnFormats(), exchangeRateService));
             }
             tbodyTag.with(rowTag);
         }
@@ -571,7 +584,8 @@ public class DataBlockTranslator {
     private static HtmlBlock transposedViewTable(YamlCodeblockConfig config,
                                                  List<LinkedHashMap<String, Object>> rows,
                                                  boolean maxRowsReached,
-                                                 Map<String, Object> sharedParams) {
+                                                 Map<String, Object> sharedParams,
+                                                 ExchangeRateService exchangeRateService) {
         var tableTag = table()
                 .attr("data-datablock-id", config.checksum(sharedParams))
                 .attr("data-datablock-params", jsonStringify(sharedParams))
@@ -581,7 +595,7 @@ public class DataBlockTranslator {
             ContainerTag<?> rowTag = tr().withClass("data-block-data-row");
             rowTag.with(th().withText(col));
             for (Map<String, Object> row : rows) {
-                rowTag.with(createTdTag(col, row, config.getColumnFormats()));
+                rowTag.with(createTdTag(col, row, config.getColumnFormats(), exchangeRateService));
             }
             tableTag.with(rowTag);
         }
@@ -629,8 +643,16 @@ public class DataBlockTranslator {
     }
 
     private static TdTag createTdTag(String col, Map<String, Object> row,
-                                      Map<String, YamlCodeblockConfig.ColumnFormatConfig> columnFormats) {
+                                      Map<String, YamlCodeblockConfig.ColumnFormatConfig> columnFormats,
+                                      ExchangeRateService exchangeRateService) {
         Object v = row.get(col);
+
+        // Currency-symbol column conversion
+        Optional<String> targetCurrency = resolveTargetCurrency(col);
+        if (targetCurrency.isPresent() && v != null && !v.toString().isBlank()) {
+            return convertAndRenderCurrencyCell(v.toString(), targetCurrency.get(), col, columnFormats);
+        }
+
         boolean dataIsNumber = false;
         var dataCellText = v == null ? "(null)" : v.toString();
         if (v instanceof Number) {
@@ -660,6 +682,82 @@ public class DataBlockTranslator {
             dataCell.withClass("data-block-number");
         }
         return dataCell;
+    }
+
+    /**
+     * Maps a column-name prefix to the target ISO 4217 currency code.
+     * <ul>
+     *   <li>{@code $…} → USD</li>
+     *   <li>{@code £…} → GBP</li>
+     *   <li>{@code €…} → EUR</li>
+     * </ul>
+     */
+    static Optional<String> resolveTargetCurrency(String col) {
+        if (col == null || col.isEmpty()) return Optional.empty();
+        char first = col.charAt(0);
+        return switch (first) {
+            case '$' -> Optional.of("USD");
+            case '\u00A3' -> Optional.of("GBP");
+            case '\u20AC' -> Optional.of("EUR");
+            default -> Optional.empty();
+        };
+    }
+
+    private static TdTag convertAndRenderCurrencyCell(String rawValue, String targetCurrency,
+                                                      String col,
+                                                      Map<String, YamlCodeblockConfig.ColumnFormatConfig> columnFormats) {
+        // 1. Split on first space
+        int spaceIdx = rawValue.indexOf(' ');
+        if (spaceIdx <= 0 || spaceIdx == rawValue.length() - 1) {
+            return td().withClass("data-block-currency-error").withText(rawValue);
+        }
+        String srcCurrency = rawValue.substring(0, spaceIdx).trim().toUpperCase();
+        String amountStr = rawValue.substring(spaceIdx + 1).trim();
+
+        if (!CurrencyCodes.isValidCurrencyCode(srcCurrency)) {
+            return td().withClass("data-block-currency-error").withText(rawValue);
+        }
+
+        // 2. Parse amount as BigDecimal (supports negatives)
+        BigDecimal amount;
+        try {
+            amount = new BigDecimal(amountStr);
+        } catch (NumberFormatException e) {
+            return td().withClass("data-block-currency-error").withText(rawValue);
+        }
+
+        // 3. Same currency – no conversion needed
+        BigDecimal converted;
+        if (srcCurrency.equals(targetCurrency)) {
+            converted = amount;
+        } else {
+            // 4. Look up exchange rate
+            Optional<Double> rate = ExchangeRates.getExchangeRate(new CurrencyPair(srcCurrency, targetCurrency));
+            if (rate.isEmpty()) {
+                String tooltip = "No exchange rate configured for " + srcCurrency + "/" + targetCurrency;
+                return td().withClass("data-block-no-rate")
+                        .attr("title", tooltip)
+                        .withText(rawValue);
+            }
+            converted = amount.multiply(BigDecimal.valueOf(rate.get()));
+        }
+
+        // 5. Apply number-format from columnFormats if present
+        YamlCodeblockConfig.ColumnFormatConfig fmt = findFormatConfig(col, columnFormats);
+        String formatted;
+        if (fmt != null && fmt.getNumberFormat() != null && !fmt.getNumberFormat().isBlank()) {
+            try {
+                formatted = new DecimalFormat(fmt.getNumberFormat()).format(converted.doubleValue());
+            } catch (Exception e) {
+                log.warn("Invalid number-format '{}' for column '{}': {}", fmt.getNumberFormat(), col, e.getMessage());
+                formatted = new DecimalFormat("#,##0.00").format(converted.doubleValue());
+            }
+        } else {
+            formatted = new DecimalFormat("#,##0.00").format(converted.doubleValue());
+        }
+
+        // 6. Return td with class data-block-number
+        return td().withClass("data-block-number").withText(formatted);
     }
 
     /**

@@ -826,4 +826,13 @@ table.sortable .btn-blue-glow i {
     outline-color: #f85149;
 }
 
+.data-block-no-rate {
+    background-color: #fff3cd;
+    color: #856404;
+    cursor: help;
+}
 
+.data-block-currency-error {
+    background-color: #f8d7da;
+    color: #721c24;
+}

@@ -12,7 +12,7 @@ import java.util.Optional;
 public class ExchangeRates {
     private static final Map<CurrencyPair, Double> exchangeRates = new HashMap<>();
 
-    static void clear() {
+    public static void clear() {
         exchangeRates.clear();
     }
 
@@ -45,6 +45,7 @@ public class ExchangeRates {
 
         // go through the pairs and identify those with same quote and different base
         for (int i = 0; i < pairs.size(); i++) {
+            if (i + 1 >= pairs.size()) break;
             var firstPair = pairs.get(i);
             var nextPair = pairs.get(i + 1);
             if (firstPair.quote().equals(nextPair.quote())) {

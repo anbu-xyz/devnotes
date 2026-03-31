@@ -53,7 +53,7 @@ class DataBlockTranslatorSpec extends Specification {
         configService = Mock(ConfigService)
         configService.getSqlMaxRows() >> 100
         registry = new ParameterRegistry()
-        translator = new DataBlockTranslator(resolver, configService, registry)
+        translator = new DataBlockTranslator(resolver, configService, registry, null)
     }
 
     def cleanupSpec() {
@@ -467,7 +467,7 @@ column-formats:
         mockConfigService.getSqlMaxRows() >> 100
         def ds = new ConfigService.DataSourceConfig("myDs", "jdbc:h2:mem:", "sa", "ENC(abc123==)", "org.h2.Driver")
         def encResolver = { String name -> ds } as DatasourceConfigResolver
-        def encTranslator = new DataBlockTranslator(encResolver, mockConfigService, null)
+        def encTranslator = new DataBlockTranslator(encResolver, mockConfigService, null, null)
         def yaml = '''
 source: myDs
 query: SELECT 1

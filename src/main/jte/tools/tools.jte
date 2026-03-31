@@ -16,6 +16,7 @@
     <a href="/config" class="btn-blue-glow"><i class="fas fa-cog"></i>Config Editor</a>
     <a href="/scheduler" class="btn-blue-glow"><i class="fas fa-calendar-alt"></i>Script Scheduler</a>
     <a href="/flashcards" class="btn-blue-glow"><i class="fas fa-layer-group"></i>Flash Cards</a>
+    <a href="/tools/exchange-rates" class="btn-blue-glow"><i class="fas fa-dollar-sign"></i>Exchange Rates</a>
 </div>
 <hr>
 <a href="/" class="btn-blue-glow"><i class="fas fa-home"></i>Home</a>
