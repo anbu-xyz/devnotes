@@ -156,6 +156,9 @@ document.body.addEventListener('htmx:afterSwap', evt => {
             setupRestBlockControls()
             setupRestBlockMenuToggle()
             setupRestBlockActionHandler()
+            setupTodoBlockControls()
+            setupTodoStatusHandler()
+            document.querySelectorAll('.todo-widget').forEach(w => applyTodoFilters(w))
         },
         markdownEditor: () => {
             attachEasyMdeOn('easyMdeEditor')
@@ -907,6 +910,139 @@ function setRestBlockBusy(restBlock, busy) {
         const spinnerEl = restBlock.querySelector('.rest-block-spinner');
         if (spinnerEl) spinnerEl.remove();
     }
+}
+
+//-----------------------------------------------------------------------------
+// Todo Block Controls  (filter checkboxes + next-state button)
+//-----------------------------------------------------------------------------
+
+/**
+ * Wire up the filter checkboxes inside every .todo-widget on the page.
+ * Uses event delegation so it only needs to be called once per page load.
+ */
+function setupTodoBlockControls() {
+    if (window._todoBlockControlsAttached) return;
+    window._todoBlockControlsAttached = true;
+
+    document.body.addEventListener('change', function (e) {
+        const cb = e.target.closest('.todo-filter-cb');
+        if (!cb) return;
+        const widget = cb.closest('.todo-widget');
+        if (widget) {
+            applyTodoFilters(widget);   // immediate local update
+            saveTodoFilters(widget);    // persist to YAML
+        }
+    });
+}
+
+function applyTodoFilters(widget) {
+    const activeStatuses = new Set();
+    widget.querySelectorAll('.todo-filter-cb').forEach(cb => {
+        if (cb.checked) activeStatuses.add(cb.dataset.filterStatus);
+    });
+    widget.querySelectorAll('.todo-item').forEach(item => {
+        const status = item.dataset.status || '';
+        // Items with no status are always visible
+        item.style.display = (status === '' || activeStatuses.has(status)) ? '' : 'none';
+    });
+}
+
+/**
+ * Persists the current filter-checkbox state of {@code widget} to the YAML file.
+ * The server returns the new todo-id hash (because YAML content changed), which
+ * we write back to {@code widget.dataset.todoId} so subsequent clicks still match.
+ */
+function saveTodoFilters(widget) {
+    const todoId = widget.dataset.todoId;
+    const mdEl = document.getElementById('md-file-path');
+    const markdownFile = mdEl ? mdEl.textContent.trim() : '';
+    if (!todoId || !markdownFile) return;
+
+    const filters = {};
+    widget.querySelectorAll('.todo-filter-cb').forEach(cb => {
+        filters[cb.dataset.filterStatus] = cb.checked;
+    });
+
+    fetch('/todo/save-filters', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            markdownFile,
+            todoId,
+            'not-started': filters['not-started'] !== false,
+            'in-progress': filters['in-progress'] !== false,
+            'completed':   filters['completed']   !== false
+        })
+    }).then(async (resp) => {
+        if (resp.ok) {
+            // Update the widget's hash so the next status-advance (or filter save)
+            // uses the new hash that reflects the saved YAML content.
+            const newTodoId = (await resp.text()).trim();
+            if (newTodoId) widget.dataset.todoId = newTodoId;
+        } else {
+            console.warn('Failed to save todo filters:', resp.status, await resp.text().catch(() => ''));
+        }
+    }).catch(err => console.error('saveTodoFilters error', err));
+}
+
+/**
+ * Handle clicks on .todo-next-state-btn — POST to /todo/advance-status and
+ * replace the whole .todo-widget with the returned HTML fragment.
+ * Uses event delegation so it only needs to be called once per page load.
+ */
+function setupTodoStatusHandler() {
+    if (window._todoStatusHandlerAttached) return;
+    window._todoStatusHandlerAttached = true;
+
+    document.body.addEventListener('click', function (e) {
+        const btn = e.target.closest('.todo-next-state-btn');
+        if (!btn) return;
+
+        const item = btn.closest('.todo-item');
+        const widget = btn.closest('.todo-widget');
+        if (!item || !widget) return;
+
+        const todoId = widget.dataset.todoId;
+        const itemIndex = item.dataset.itemIndex;
+        const mdEl = document.getElementById('md-file-path');
+        const markdownFile = mdEl ? mdEl.textContent.trim() : '';
+
+        if (!todoId || itemIndex === undefined || !markdownFile) {
+            console.error('Todo advance-status: missing data', { todoId, itemIndex, markdownFile });
+            return;
+        }
+
+        btn.disabled = true;
+        btn.textContent = '⏳';
+
+        fetch('/todo/advance-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ markdownFile, todoId, itemIndex: parseInt(itemIndex, 10) })
+        }).then(async (resp) => {
+            if (!resp.ok) {
+                const txt = await resp.text().catch(() => resp.statusText);
+                throw new Error(txt || resp.statusText);
+            }
+            return resp.text();
+        }).then((html) => {
+            const container = document.createElement('div');
+            container.innerHTML = html;
+            const newWidget = container.querySelector('.todo-widget') || container.firstElementChild;
+            if (newWidget) {
+                widget.replaceWith(newWidget);
+                // Apply filter visibility — the checkboxes already reflect the persisted
+                // YAML state, so applyTodoFilters will hide the right items.
+                applyTodoFilters(newWidget);
+            }
+        }).catch((err) => {
+            console.error('Todo status advance failed', err);
+            btn.disabled = false;
+            btn.textContent = '→';
+        });
+    });
 }
 
 //-----------------------------------------------------------------------------

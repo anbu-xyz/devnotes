@@ -14,7 +14,9 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class TodoConfig {
 
-    private ThresholdConfig thresholds = new ThresholdConfig();
+    private ThresholdConfig thresholds;
+
+    private FilterConfig filters;
 
     private List<TodoItem> items = List.of();
 
@@ -47,7 +49,47 @@ public class TodoConfig {
         private int red   = 7;
     }
 
+    /**
+     * Filter visibility for the todo widget.
+     * {@code null} (field absent) means visible; {@code false} means hidden.
+     * Only {@code false} values are written to YAML (via NON_NULL serialisation),
+     * keeping the file clean when all statuses are visible.
+     */
     @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class FilterConfig {
+        @JsonProperty("not-started")
+        private Boolean notStarted;
+
+        @JsonProperty("in-progress")
+        private Boolean inProgress;
+
+        private Boolean completed;
+
+        /** {@code true} if items with status {@code not-started} should be shown. */
+        public boolean isNotStartedVisible() { return !Boolean.FALSE.equals(notStarted); }
+
+        /** {@code true} if items with status {@code in-progress} should be shown. */
+        public boolean isInProgressVisible() { return !Boolean.FALSE.equals(inProgress); }
+
+        /** {@code true} if items with status {@code completed} should be shown. */
+        public boolean isCompletedVisible()  { return !Boolean.FALSE.equals(completed); }
+
+        /** {@code true} if all three statuses are visible (i.e. no filters active). */
+        public boolean isAllVisible() {
+            return isNotStartedVisible() && isInProgressVisible() && isCompletedVisible();
+        }
+    }
+
+    public enum TodoStatus {
+        @JsonProperty("not-started") NOT_STARTED,
+        @JsonProperty("in-progress") IN_PROGRESS,
+        @JsonProperty("completed")   COMPLETED
+    }
+
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class TodoItem {
         private String summary;
 
@@ -58,5 +100,7 @@ public class TodoConfig {
         private LocalDate due;
 
         private String description;
+
+        private TodoStatus status;
     }
 }

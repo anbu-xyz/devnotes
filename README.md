@@ -701,10 +701,12 @@ items:
   - summary: Fix login bug
     created: 2026-03-01
     due: 2026-04-01
+    status: in-progress
     description: |
       See ticket **#1234**. Steps to reproduce…
   - summary: Update docs
     created: 2026-03-20
+    status: not-started
 ```
 ````
 
@@ -744,7 +746,26 @@ green for the due-in dimension.
 | `items[].summary` | **yes** | string | One-line task description |
 | `items[].created` | no | ISO date `yyyy-MM-dd` | Date the item was opened; drives the age colour dimension |
 | `items[].due` | no | ISO date `yyyy-MM-dd` | Target completion date; drives the due-in colour dimension |
+| `items[].status` | no | `not-started` \| `in-progress` \| `completed` | Workflow status; displayed as a coloured badge. Completed items also get a strikethrough on the summary line. |
 | `items[].description` | no | CommonMark markdown | Multi-line detail rendered as HTML in the table cell |
+
+#### Interactive controls
+
+Each rendered todo block includes two interactive controls that do not require saving the
+markdown editor:
+
+**Next-state button (→)** — Every item has a small arrow button on its right edge.  Clicking it
+advances the item's status through the cycle:
+
+> (none) → `not-started` → `in-progress` → `completed` → `not-started` → …
+
+The button POSTs to `POST /todo/advance-status`, updates the YAML in the markdown file on disk,
+and replaces the widget with the freshly re-rendered HTML — no page reload needed.
+
+**Filter checkboxes** — Three checkboxes at the top of the widget (`Not started`, `In progress`,
+`Completed`) let you show or hide items by status.  Items without an explicit `status` are always
+visible.  The filter state resets to all-checked whenever the widget is re-rendered after a
+status advance.
 
 
 ### REST blocks

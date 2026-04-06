@@ -348,7 +348,7 @@ HTMX `hx-swap="innerHTML"`.
 ### Todo Blocks (`TodoBlockTranslator`)
 
 Todo blocks use a YAML mini-language inside a `` ```todo `` fence to render a colour-coded task
-list.  Each item has a required `summary` and `created` date; `due` and `description` are
+list.  Each item has a required `summary` and `created` date; `due`, `status`, and `description` are
 optional.
 
 ```yaml
@@ -365,10 +365,12 @@ items:
   - summary: Fix login bug
     created: 2026-03-01
     due: 2026-04-01
+    status: in-progress
     description: |
       See ticket #1234. Steps to reproduce…
   - summary: Update docs
     created: 2026-03-20
+    status: not-started
 ```
 
 The table has four columns: **Summary / Open (days) / Due in / Description**.
@@ -404,11 +406,14 @@ The optional `description` field is rendered as **CommonMark HTML** inline in th
 
 | File | Role |
 |---|---|
-| `markdown/code/todo/TodoConfig.java` | Jackson POJO: top-level config, `ThresholdConfig` (age `ThresholdValues` + due-in `DueInThresholdValues`), `TodoItem` |
-| `markdown/code/TodoBlockTranslator.java` | Translates YAML fence → `HtmlBlock`; `computeRowClass`, `computeOpenDays`, `computeDueIn`, `renderDescriptionMarkdown` |
+| `markdown/code/todo/TodoConfig.java` | Jackson POJO: top-level config, `ThresholdConfig` (age `ThresholdValues` + due-in `DueInThresholdValues`), `TodoItem`, `TodoStatus` enum (`not-started` / `in-progress` / `completed`) |
+| `markdown/code/TodoBlockTranslator.java` | Translates YAML fence → `HtmlBlock`; `computeRowClass`, `computeOpenDays`, `computeDueIn`, `renderDescriptionMarkdown`, `statusLabel`, `nextStatusLabel`, `makeFilterLabel` |
+| `controller/TodoStatusController.java` | `POST /todo/advance-status` — finds block by hash, advances item status, persists file, returns updated widget HTML |
 | `markdown/TodoCreatedDateFiller.java` | Scans all `` ```todo `` fences in a markdown string; injects `created: <today>` into every item that lacks a `created:` field; called by `MarkdownController.saveMarkdown` |
-| `static/css/style.css` | `.todo-block`, `.todo-table`, `.todo-green/amber/red/overdue`, `.todo-days`, `.todo-error` |
-| `test/…/TodoBlockTranslatorSpec.groovy` | 63 Spock feature methods (dual-threshold colouring, highest-criticality selection, Open(days)/Due-in columns, markdown descriptions, error handling) |
+| `static/css/style.css` | `.todo-widget`, `.todo-filters`, `.todo-filter-label`, `.todo-block`, `.todo-green/amber/red/overdue`, `.todo-completed`, `.todo-status-badge`, `.todo-status-not-started/in-progress/completed`, `.todo-item-header`, `.todo-next-state-btn`, `.todo-error` |
+| `static/js/markdown.js` | `setupTodoBlockControls`, `applyTodoFilters`, `setupTodoStatusHandler` |
+| `test/…/TodoBlockTranslatorSpec.groovy` | 81 Spock feature methods (dual-threshold colouring, highest-criticality selection, Open(days)/Due-in columns, markdown descriptions, status badges, widget structure, filter bar, next-state button) |
+| `test/…/TodoStatusControllerSpec.groovy` | 12 Spock feature methods (status transitions, multi-item update, file persistence, 404/400 error cases) |
 | `test/…/TodoCreatedDateFillerSpec.groovy` | 17 Spock feature methods (fence detection, per-item injection, CRLF preservation, nested-key false-positive guard) |
 
 ### REST Blocks (`RestBlockTranslator`)
@@ -1049,7 +1054,13 @@ the commit-status API. No deployment step is included.
 | Add a new colour level to todo blocks | Add CSS class + extend `TodoBlockTranslator.computeRowClass` threshold logic |
 | Change todo colour-coding logic | Edit `TodoBlockTranslator.computeAgeClass`, `computeDueInClass`, and `higherCriticality` |
 | Change todo table columns or header labels | Edit `TodoBlockTranslator.buildHtmlBlock` |
-| Add a new field to todo items (e.g. priority) | Add field to `TodoConfig.TodoItem`, handle in `buildHtmlBlock` |
+| Add a new field to todo items (e.g. priority) | Add field to `TodoConfig.TodoItem`, handle in `buildHtmlBlock`; add CSS if needed |
+| Change todo status badge styling | Edit `.todo-status-badge`, `.todo-status-not-started/in-progress/completed` in `static/css/style.css` |
+| Change completed-item visual style | Edit `.todo-completed` and `.todo-completed .todo-summary` in `static/css/style.css` |
+| Change next-state button style | Edit `.todo-next-state-btn` in `static/css/style.css` |
+| Change the status cycle order | Edit `TodoStatusController.nextStatus` |
+| Change the filter-checkbox labels | Edit `TodoBlockTranslator.makeFilterLabel` calls in `buildHtmlBlock` |
+| Change filter visibility logic (e.g. hide items with no status) | Edit `applyTodoFilters` in `static/js/markdown.js` |
 | Change the auto-created-date injection logic | Edit `TodoCreatedDateFiller.injectCreatedDates` |
 | Change rest block HTTP client timeout defaults | Edit `RestCodeblockConfig.timeoutSeconds` default and `RestBlockTranslator.executeHttpRequest` |
 | Add a new HTTP method to rest blocks | Add a `case` to the `switch (method)` in `RestBlockTranslator.executeHttpRequest` |

@@ -768,5 +768,328 @@ items:
         !metaText.contains("Open:")
         metaText.contains("Due in: 35 days")
     }
+
+    // =========================================================================
+    // Status field
+    // =========================================================================
+
+    def "item with status 'not-started' shows Not started badge"() {
+        given:
+        def yaml = """\
+items:
+  - summary: Pending task
+    created: ${LocalDate.now()}
+    status: not-started
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def badge = Jsoup.parse(result.get().literal).select(".todo-status-badge")
+        badge.size() == 1
+        badge[0].text() == "Not started"
+        badge[0].hasClass("todo-status-not-started")
+    }
+
+    def "item with status 'in-progress' shows In progress badge"() {
+        given:
+        def yaml = """\
+items:
+  - summary: Active task
+    created: ${LocalDate.now()}
+    status: in-progress
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def badge = Jsoup.parse(result.get().literal).select(".todo-status-badge")
+        badge.size() == 1
+        badge[0].text() == "In progress"
+        badge[0].hasClass("todo-status-in-progress")
+    }
+
+    def "item with status 'completed' shows Completed badge"() {
+        given:
+        def yaml = """\
+items:
+  - summary: Done task
+    created: ${LocalDate.now()}
+    status: completed
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def badge = Jsoup.parse(result.get().literal).select(".todo-status-badge")
+        badge.size() == 1
+        badge[0].text() == "Completed"
+        badge[0].hasClass("todo-status-completed")
+    }
+
+    def "item with status 'completed' gets todo-completed CSS class on the item div"() {
+        given:
+        def yaml = """\
+items:
+  - summary: Done task
+    created: ${LocalDate.now()}
+    status: completed
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-completed")
+    }
+
+    def "item without status has no status badge"() {
+        given:
+        def yaml = """\
+items:
+  - summary: No status
+    created: ${LocalDate.now()}
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        Jsoup.parse(result.get().literal).select(".todo-status-badge").size() == 0
+    }
+
+    def "item without status does not get todo-completed CSS class"() {
+        given:
+        def yaml = """\
+items:
+  - summary: No status
+    created: ${LocalDate.now()}
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        !Jsoup.parse(result.get().literal).select(".todo-item")[0].hasClass("todo-completed")
+    }
+
+    def "status badge appears even when age is green and no due date (status forces meta div)"() {
+        given:
+        def yaml = """\
+items:
+  - summary: In flight
+    created: ${LocalDate.now()}
+    status: in-progress
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        Jsoup.parse(result.get().literal).select(".todo-meta").size() == 1
+        Jsoup.parse(result.get().literal).select(".todo-status-badge").size() == 1
+    }
+
+    // =========================================================================
+    // Widget structure — filter bar, data attributes, next-state button
+    // =========================================================================
+
+    def "translated block is wrapped in a todo-widget div with a data-todo-id attribute"() {
+        given:
+        def yaml = """\
+items:
+  - summary: A task
+    created: ${LocalDate.now()}
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def widget = Jsoup.parse(result.get().literal).select(".todo-widget")
+        widget.size() == 1
+        !widget[0].attr("data-todo-id").blank
+    }
+
+    def "filter bar contains checkboxes for not-started, in-progress, and completed"() {
+        given:
+        def yaml = """\
+items:
+  - summary: A task
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def checkboxes = Jsoup.parse(result.get().literal).select(".todo-filter-cb")
+        checkboxes.size() == 3
+        checkboxes.collect { it.attr("data-filter-status") }.toSet() ==
+                ["not-started", "in-progress", "completed"].toSet()
+    }
+
+    def "all filter checkboxes are checked by default"() {
+        given:
+        def yaml = """\
+items:
+  - summary: A task
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        Jsoup.parse(result.get().literal).select(".todo-filter-cb").every { it.hasAttr("checked") }
+    }
+
+    def "each todo item carries a data-item-index attribute starting at 0"() {
+        given:
+        def yaml = """\
+items:
+  - summary: First
+  - summary: Second
+  - summary: Third
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def items = Jsoup.parse(result.get().literal).select(".todo-item")
+        items.size() == 3
+        items.collect { it.attr("data-item-index") } == ["0", "1", "2"]
+    }
+
+    def "each todo item carries a data-status attribute matching its status key"() {
+        given:
+        def yaml = """\
+items:
+  - summary: Not started
+    status: not-started
+  - summary: In progress
+    status: in-progress
+  - summary: Completed
+    status: completed
+  - summary: No status
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def items = Jsoup.parse(result.get().literal).select(".todo-item")
+        items[0].attr("data-status") == "not-started"
+        items[1].attr("data-status") == "in-progress"
+        items[2].attr("data-status") == "completed"
+        items[3].attr("data-status") == ""
+    }
+
+    def "each todo item contains exactly one next-state button"() {
+        given:
+        def yaml = """\
+items:
+  - summary: Task one
+  - summary: Task two
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        Jsoup.parse(result.get().literal).select(".todo-next-state-btn").size() == 2
+    }
+
+    def "next-state button title says 'Set to Not started' when item has no status"() {
+        given:
+        def yaml = """\
+items:
+  - summary: New task
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        Jsoup.parse(result.get().literal).select(".todo-next-state-btn")[0].attr("title") == "Set to Not started"
+    }
+
+    def "next-state button title reflects the correct next state for each status"() {
+        given:
+        def yaml = """\
+items:
+  - summary: NS
+    status: not-started
+  - summary: IP
+    status: in-progress
+  - summary: Done
+    status: completed
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def btns = Jsoup.parse(result.get().literal).select(".todo-next-state-btn")
+        btns[0].attr("title") == "Advance to In progress"
+        btns[1].attr("title") == "Advance to Completed"
+        btns[2].attr("title") == "Reset to Not started"
+    }
+
+    def "two blocks with identical YAML get the same data-todo-id"() {
+        given:
+        def yaml = """\
+items:
+  - summary: Identical
+"""
+        when:
+        def r1 = translator.translate(yaml)
+        def r2 = translator.translate(yaml)
+
+        then:
+        Jsoup.parse(r1.get().literal).select(".todo-widget")[0].attr("data-todo-id") ==
+        Jsoup.parse(r2.get().literal).select(".todo-widget")[0].attr("data-todo-id")
+    }
+
+    // =========================================================================
+    // Filter-config persistence in YAML
+    // =========================================================================
+
+    def "all checkboxes are checked when no filters section is present"() {
+        given:
+        def yaml = "items:\n  - summary: A task\n"
+
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def cbs = Jsoup.parse(result.get().literal).select(".todo-filter-cb")
+        cbs.every { it.hasAttr("checked") }
+    }
+
+    def "completed checkbox is unchecked when filters.completed is false in YAML"() {
+        given:
+        def yaml = """\
+filters:
+  completed: false
+items:
+  - summary: A task
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def cbs = Jsoup.parse(result.get().literal).select(".todo-filter-cb")
+        def completedCb = cbs.find { it.attr("data-filter-status") == "completed" }
+        !completedCb.hasAttr("checked")
+        // other two are still checked
+        cbs.findAll { it.attr("data-filter-status") != "completed" }.every { it.hasAttr("checked") }
+    }
+
+    def "not-started and in-progress checkboxes are unchecked when hidden in YAML"() {
+        given:
+        def yaml = """\
+filters:
+  not-started: false
+  in-progress: false
+items:
+  - summary: A task
+"""
+        when:
+        def result = translator.translate(yaml)
+
+        then:
+        def cbs = Jsoup.parse(result.get().literal).select(".todo-filter-cb")
+        !cbs.find { it.attr("data-filter-status") == "not-started" }.hasAttr("checked")
+        !cbs.find { it.attr("data-filter-status") == "in-progress" }.hasAttr("checked")
+        cbs.find  { it.attr("data-filter-status") == "completed"   }.hasAttr("checked")
+    }
 }
 

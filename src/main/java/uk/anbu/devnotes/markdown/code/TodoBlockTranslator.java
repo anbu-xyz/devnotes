@@ -16,15 +16,16 @@ import java.util.List;
 import java.util.Optional;
 
 import static j2html.TagCreator.*;
+import static uk.anbu.devnotes.util.FileBasedCache.generateHash;
 
 @Slf4j
 public class TodoBlockTranslator {
-    
+
     public Optional<HtmlBlock> translate(String yaml) {
         try {
             var mapper = new ObjectMapper(new YAMLFactory()).registerModule(new JavaTimeModule());
             var config = mapper.readValue(yaml, TodoConfig.class);
-            return Optional.of(buildHtmlBlock(config));
+            return Optional.of(buildHtmlBlock(config, yaml));
         } catch (Exception e) {
             log.error("Error parsing todo block", e);
             var errorBlock = new HtmlBlock();
@@ -37,23 +38,63 @@ public class TodoBlockTranslator {
         }
     }
 
-    private HtmlBlock buildHtmlBlock(TodoConfig config) {
-        ContainerTag<?> wrapper = div().withClass("todo-block");
+    private HtmlBlock buildHtmlBlock(TodoConfig config, String rawYaml) {
+        // Strip trailing whitespace so the hash is stable regardless of whether the
+        // source file has a trailing newline before the closing fence.
+        var todoId = generateHash(rawYaml.stripTrailing());
+
+        // ── filter bar ────────────────────────────────────────────────────────
+        var f = config.getFilters();
+        ContainerTag<?> filterBar = div().withClass("todo-filters").with(
+            span().withClass("todo-filters-label").withText("Show:"),
+            makeFilterLabel("not-started", "Not started", f == null || f.isNotStartedVisible()),
+            makeFilterLabel("in-progress", "In progress", f == null || f.isInProgressVisible()),
+            makeFilterLabel("completed",   "Completed",   f == null || f.isCompletedVisible())
+        );
+
+        // ── items ─────────────────────────────────────────────────────────────
+        ContainerTag<?> todoBlock = div().withClass("todo-block");
         List<TodoConfig.TodoItem> items = config.getItems() != null ? config.getItems() : List.of();
-        for (var item : items) {
-            var thresholds = config.getThresholds() != null ? config.getThresholds() : new TodoConfig.ThresholdConfig();
+
+        for (int idx = 0; idx < items.size(); idx++) {
+            var item = items.get(idx);
+            var thresholds = config.getThresholds() != null
+                    ? config.getThresholds() : new TodoConfig.ThresholdConfig();
             String ageClass   = computeAgeClass(thresholds.getAge(), item);
             String dueInClass = computeDueInClass(thresholds.getDueIn(), item);
             String rowClass   = higherCriticality(ageClass, dueInClass);
 
-            ContainerTag<?> itemDiv = div().withClass("todo-item " + rowClass);
-            itemDiv.with(h3().withClass("todo-summary").withText(item.getSummary() != null ? item.getSummary() : ""));
+            boolean isCompleted = item.getStatus() == TodoConfig.TodoStatus.COMPLETED;
+            String itemClass = "todo-item " + rowClass + (isCompleted ? " todo-completed" : "");
+            String statusKey = item.getStatus() != null
+                    ? item.getStatus().name().toLowerCase().replace('_', '-') : "";
+
+            ContainerTag<?> itemDiv = div()
+                    .withClass(itemClass)
+                    .attr("data-status", statusKey)
+                    .attr("data-item-index", String.valueOf(idx));
+
+            // Header row: summary text + next-state button
+            ContainerTag<?> itemHeader = div().withClass("todo-item-header").with(
+                h3().withClass("todo-summary")
+                    .withText(item.getSummary() != null ? item.getSummary() : ""),
+                button().withType("button")
+                        .withClass("todo-next-state-btn")
+                        .withTitle(nextStatusLabel(item.getStatus()))
+                        .withText("→")
+            );
+            itemDiv.with(itemHeader);
 
             boolean showOpenDays = !ageClass.equals("todo-green");
             boolean showDueIn    = item.getDue() != null;
+            boolean showStatus   = item.getStatus() != null;
 
-            if (showOpenDays || showDueIn) {
+            if (showStatus || showOpenDays || showDueIn) {
                 ContainerTag<?> metaDiv = div().withClass("todo-meta");
+                if (showStatus) {
+                    metaDiv.with(span().withClass("todo-status-badge todo-status-" + statusKey)
+                                      .withText(statusLabel(item.getStatus())));
+                }
                 if (showOpenDays) {
                     metaDiv.with(small().withText("Open: " + computeOpenDays(item) + " days"));
                 }
@@ -67,13 +108,44 @@ public class TodoBlockTranslator {
             if (!descHtml.isBlank()) {
                 itemDiv.with(div().withClass("todo-description").with(rawHtml(descHtml)));
             }
-
-            wrapper.with(itemDiv);
+            todoBlock.with(itemDiv);
         }
 
+        ContainerTag<?> widget = div()
+                .withClass("todo-widget")
+                .attr("data-todo-id", todoId)
+                .with(filterBar, todoBlock);
+
         var block = new HtmlBlock();
-        block.setLiteral(wrapper.render());
+        block.setLiteral(widget.render());
         return block;
+    }
+
+    private ContainerTag<?> makeFilterLabel(String statusKey, String labelText, boolean visible) {
+        return label().withClass("todo-filter-label").with(
+            input().withType("checkbox")
+                   .withClass("todo-filter-cb")
+                   .attr("data-filter-status", statusKey)
+                   .condAttr(visible, "checked", "checked"),
+            text(" " + labelText)
+        );
+    }
+
+    private String nextStatusLabel(TodoConfig.TodoStatus current) {
+        if (current == null) return "Set to Not started";
+        return switch (current) {
+            case NOT_STARTED -> "Advance to In progress";
+            case IN_PROGRESS -> "Advance to Completed";
+            case COMPLETED   -> "Reset to Not started";
+        };
+    }
+
+    private String statusLabel(TodoConfig.TodoStatus status) {
+        return switch (status) {
+            case NOT_STARTED -> "Not started";
+            case IN_PROGRESS -> "In progress";
+            case COMPLETED   -> "Completed";
+        };
     }
 
     /**
@@ -123,7 +195,7 @@ public class TodoBlockTranslator {
      * or an em-dash if {@code created} is absent.
      */
     String computeOpenDays(TodoConfig.TodoItem item) {
-        if (item.getCreated() == null) return "\u2014";
+        if (item.getCreated() == null) return "—";
         return String.valueOf(ChronoUnit.DAYS.between(item.getCreated(), LocalDate.now()));
     }
 
@@ -132,7 +204,7 @@ public class TodoBlockTranslator {
      * or an em-dash if {@code due} is absent.
      */
     String computeDueIn(TodoConfig.TodoItem item) {
-        if (item.getDue() == null) return "\u2014";
+        if (item.getDue() == null) return "—";
         return String.valueOf(ChronoUnit.DAYS.between(LocalDate.now(), item.getDue()));
     }
 
