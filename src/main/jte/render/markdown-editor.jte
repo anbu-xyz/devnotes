@@ -13,7 +13,7 @@
     <div id="markdownEditor" x-cloak x-show="editMode">
         <textarea id="easyMdeEditor" style="display: none">$unsafe{originalMarkdown}</textarea>
         <button id="saveButton"
-                @click="await saveContent(); editMode = false; htmx.trigger('#hiddenViewButton', 'click')"
+                @click="await saveContent(); editMode = false; isSlides ? (window.location.href = '/markdown?filename=' + encodeURIComponent(document.getElementById('md-file-path').textContent)) : htmx.trigger('#hiddenViewButton', 'click')"
                 class="btn-blue-glow">
             <i class="fas fa-save"></i>Save
         </button>

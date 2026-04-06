@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus
 import spock.lang.Specification
 import uk.anbu.devnotes.module.GroovyRenderer
 import uk.anbu.devnotes.module.MarkdownRenderer
+import uk.anbu.devnotes.module.SlidesRenderer
 import uk.anbu.devnotes.markdown.code.DatabaseMetadataBlockTranslator
 import uk.anbu.devnotes.module.sql.SqlExecutor
 import uk.anbu.devnotes.service.ConfigService
@@ -38,7 +39,7 @@ class MarkdownControllerSpec extends Specification {
         var codeResolver = new DirectoryCodeResolver(Paths.get("src/main/jte"))
         templateEngine = TemplateEngine.create(codeResolver, Paths.get("src/main/jte"), ContentType.Html)
         configService = Mock(ConfigService)
-        controller = new MarkdownController(markdownRenderer, templateEngine, configService)
+        controller = new MarkdownController(markdownRenderer, templateEngine, configService, new SlidesRenderer(markdownRenderer))
     }
 
     def "markdown() should redirect to index.md when filename is null"() {

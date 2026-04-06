@@ -802,6 +802,74 @@ dependency) via `YamlFrontMatterVisitor`.
 
 ---
 
+### Slides / Presentation (`SlidesParser` / `SlidesRenderer`)
+
+When a markdown file contains `type: slides` in its YAML front-matter, `MarkdownController`
+routes the request through the slides pipeline instead of the normal wiki viewer.
+
+**Detection:** `"slides".equals(frontMatter.type())` — checked in both `markdownViewer` (HTMX
+fragment) and `fetchMarkdownContent` (outer shell).
+
+**Deck-level settings** are read from `FrontMatter.extra` by `DeckMetadata.from(FrontMatter)`:
+
+| extra key | Type | Effect |
+|---|---|---|
+| `theme` | `String` | CSS `data-theme` attribute on `.slide-deck` |
+| `paginate` | `"true"/"false"` | Renders a `.slide-page-number` in each slide |
+| `headingDivider` | `List<String>` (integers) | Heading levels that auto-split slides |
+| `background` | `String` | Default background for all slides |
+| `class` | `String` | Default CSS class added to every slide section |
+| `lang` | `String` | HTML `lang` attribute |
+
+**Per-slide metadata** is parsed from a YAML block that appears as a segment between two `---`
+separators. `SlideMetadata.tryParse(segment)` uses Jackson YAML; returns `Optional.empty()` when
+parsing fails or when no known fields (`title`, `class`, `background`, `notes`, `layout`) are
+found (so unknown-field YAML is treated as slide content, not metadata).
+
+**Parsing algorithm (`SlidesParser.parse`):**
+
+1. Parse front-matter → `DeckMetadata`.
+2. `stripFrontMatter(text)` — remove the `---…---` front-matter block from the raw text.
+3. Split stripped body on `(?m)^---$` → list of segments.
+4. Walk segments with a state machine: if a segment parses as `SlideMetadata`, hold it as
+   `pendingMeta`; otherwise it is slide content. Apply heading-divider splitting within each
+   content segment, then extract `note:` speaker notes.
+5. Combine `pendingMeta.notes()` and reveal-style `note:` section into `Slide.speakerNotes`.
+
+**Rendering (`SlidesRenderer.render`):** For each `Slide`, calls
+`markdownRenderer.convertMarkdown` on `slide.rawMarkdown()`, wraps the HTML in
+`<section class="slide">` via j2html, appends `<aside class="slide-notes">` when speaker notes
+are present, and optionally adds `.slide-page-number`. All sections are wrapped in
+`<div class="slide-deck" data-theme="…">`.
+
+**HTMX shell:** `fetchMarkdownContent` renders `render/slides.jte` (instead of `markdown.jte`)
+which loads `slides.css` + `slides.js` and fires an HTMX trigger to load `slides-viewer.jte`.
+
+**Navigation (`slides.js`):** `window.SlidesController.init(deckEl, totalSlides)` activates
+keyboard navigation (`←↑`/`→↓Space`), note toggle (`n`), fullscreen (`f`), and wires the
+nav bar buttons.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `types/DeckMetadata.java` | Record: `theme`, `paginate`, `headingDivider`, `background`, `cssClass`, `lang`; `from(FrontMatter)` factory |
+| `types/SlideMetadata.java` | Record: `title`, `cssClass`, `background`, `notes`, `layout`; `tryParse(String)` using Jackson YAML |
+| `types/Slide.java` | Record: `slideIndex`, `rawMarkdown`, `metadata`, `speakerNotes` |
+| `types/SlidesDeck.java` | Record: `deckMetadata`, `slides` |
+| `markdown/slides/SlidesParser.java` | `parse(String)` — full pipeline; `stripFrontMatter`, `applyHeadingDivider`, `extractRevealNotes`, `removeRevealNoteLines` (all package-visible for testing) |
+| `module/SlidesRenderer.java` | Renders `SlidesDeck` → HTML string via j2html + `MarkdownRenderer` per slide |
+| `DevnotesContext.java` | `@Bean SlidesRenderer slidesRenderer(MarkdownRenderer)` |
+| `controller/MarkdownController.java` | Branches on `type:slides` in `markdownViewer` and `fetchMarkdownContent` |
+| `jte/render/slides.jte` | Outer HTML shell for presentations (no EasyMDE; loads `slides.css` + `slides.js`) |
+| `jte/render/slides-viewer.jte` | HTMX fragment: `$unsafe{slidesHtml}` + nav bar; triggers `SlidesController.init` |
+| `static/css/slides.css` | `.slide-deck`, `.slide`, `.slide.active`, `.slide-content`, `.slide-notes`, `.slide-navigation`, `.slide-nav-btn`, `.slide-counter`, `.slide-page-number`; data-theme variants |
+| `static/js/slides.js` | `window.SlidesController` — `init`, `goto`, `next`, `prev`, `toggleNotes`, `toggleFullscreen`; keyboard handler |
+| `test/…/SlidesParserSpec.groovy` | 26 Spock feature methods covering parser, heading-divider, speaker notes, canonical example |
+| `test/…/SlidesControllerSpec.groovy` | 6 Spock feature methods — slides shell, viewer, slide count, per-slide class, speaker notes, title override |
+
+---
+
 ### Groovy Execution
 
 Scripts run inside a sandboxed `GroovyShell`. Supported output formats (specified in the code-fence
@@ -998,6 +1066,15 @@ the commit-status API. No deployment step is included.
 | Add a render mode to the groovy playground select | Add a `case` to `GroovyRenderer.convertOutputToNode` and an `<option>` in `groovy-playground.jte` |
 | Add a new front-matter field (e.g. `author`) | Add accessor to `FrontMatter.from()` (extract from `extra` into a named field); update `markdown-viewer.jte` to render it; add test cases to `FrontMatterParserSpec` |
 | Change the default page type | Edit `FrontMatter.empty()` and the `from()` fallback; update `isEmpty()` guard to match |
+| Add a new deck-level metadata field (e.g. `transition`) | Add field to `DeckMetadata`, read it in `DeckMetadata.from()`; propagate in `SlidesRenderer.render` and `slides.jte`/`slides.css` as needed |
+| Change the slide separator regex | Edit `SlidesParser.SEPARATOR` |
+| Change heading-divider splitting logic | Edit `SlidesParser.applyHeadingDivider` |
+| Add a new per-slide metadata field | Add field to `SlideMetadata.Pojo` + record; handle in `SlidesRenderer.renderSlide` |
+| Change speaker-note extraction syntax | Edit `SlidesParser.extractRevealNotes` / `removeRevealNoteLines` |
+| Change slide navigation keyboard shortcuts | Edit the `onKeyDown` switch in `slides.js` |
+| Add a new presentation theme | Add a `.slide-deck[data-theme="…"] .slide` rule to `slides.css`; document in README |
+| Change the slides outer shell (head/scripts) | Edit `jte/render/slides.jte` |
+| Change the slides nav bar layout | Edit `jte/render/slides-viewer.jte` and `.slide-navigation` in `slides.css` |
 | Change front-matter tag badge style | Edit `.fm-tag` in `static/css/style.css` |
 | Change front-matter description style | Edit `.fm-description` in `static/css/style.css` |
 | Change where front-matter metadata is rendered | Edit `markdown-viewer.jte` — the `fm-metadata` div is placed before `$unsafe{htmlContent}` |

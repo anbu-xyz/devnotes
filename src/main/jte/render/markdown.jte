@@ -1,6 +1,7 @@
 @param String markdownFile
 @param String title
 @param boolean editMode
+@param boolean isSlides
 @param String directoryName
 @param java.util.Map<String, Object> urlQueryParams
 <!DOCTYPE html>
@@ -20,7 +21,7 @@
         <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
         <title>${title}</title>
     </head>
-    <body class="p-8" x-data="{ editMode: ${editMode} }">
+        <body class="p-8" x-data="{ editMode: ${editMode}, isSlides: ${isSlides} }">
         <div id="markdownViewer" x-cloak x-show="!editMode">
             Loading...
         </div>

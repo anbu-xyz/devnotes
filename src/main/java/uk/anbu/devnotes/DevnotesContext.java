@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import uk.anbu.devnotes.markdown.code.DatabaseMetadataBlockTranslator;
 import uk.anbu.devnotes.module.GroovyRenderer;
 import uk.anbu.devnotes.module.MarkdownRenderer;
+import uk.anbu.devnotes.module.SlidesRenderer;
 import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.ExchangeRateService;
@@ -24,5 +25,10 @@ public class DevnotesContext {
                 new DatabaseMetadataBlockTranslator(),
                 exchangeRateService
         );
+    }
+
+    @Bean
+    SlidesRenderer slidesRenderer(MarkdownRenderer markdownRenderer) {
+        return new SlidesRenderer(markdownRenderer);
     }
 }

@@ -1,0 +1,144 @@
+/* ── Slides / Presentation ────────────────────────────────────────────────── */
+
+html, body.slides-page {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #0d1117;
+    color: #e6edf3;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+#slidesContainer {
+    width: 100%;
+    height: 100%;
+}
+
+.slide-deck {
+    position: relative;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.slide {
+    display: none;
+    position: absolute;
+    inset: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 4rem;
+    box-sizing: border-box;
+    background: #0d1117;
+    color: #e6edf3;
+}
+
+.slide.active {
+    display: flex;
+}
+
+.slide-content {
+    max-width: 900px;
+    width: 100%;
+    overflow: auto;
+    max-height: calc(100vh - 8rem);
+}
+
+/* ── Themes ────────────────────────────────────────────────────────────────── */
+
+.slide-deck[data-theme="default"] .slide {
+    background: #ffffff;
+    color: #1a1a1a;
+}
+
+.slide-deck[data-theme="dark"] .slide {
+    background: #0d1117;
+    color: #e6edf3;
+}
+
+.slide-deck[data-theme="light"] .slide {
+    background: #f9fafb;
+    color: #111827;
+}
+
+/* ── Speaker notes ─────────────────────────────────────────────────────────── */
+
+.slide-notes {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #1e2535cc;
+    color: #cdd6f4;
+    padding: 0.75rem 1.5rem 3.5rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    z-index: 100;
+    border-top: 1px solid #444;
+    max-height: 25vh;
+    overflow-y: auto;
+}
+
+.slide-notes.visible {
+    display: block;
+}
+
+/* ── Navigation ────────────────────────────────────────────────────────────── */
+
+.slide-navigation {
+    position: fixed;
+    bottom: 1rem;
+    right: 1.25rem;
+    display: flex;
+    gap: 0.4rem;
+    z-index: 110;
+    align-items: center;
+}
+
+.slide-nav-btn {
+    background: #1c2333;
+    color: #8b949e;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.2rem 0.6rem;
+    line-height: 1.6;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    transition: background 0.15s;
+}
+
+.slide-nav-btn:hover {
+    background: #2d3748;
+    color: #e6edf3;
+}
+
+.slide-nav-btn.has-notes {
+    color: #58a6ff;
+    border-color: #388bfd;
+    box-shadow: 0 0 6px 1px #388bfd88;
+}
+
+.slide-counter {
+    font-size: 0.8rem;
+    color: #6b7280;
+    padding: 0 0.25rem;
+    min-width: 3.5rem;
+    text-align: center;
+}
+
+/* ── Pagination number ─────────────────────────────────────────────────────── */
+
+.slide-page-number {
+    position: absolute;
+    bottom: 0.75rem;
+    right: 8rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+}

@@ -31,7 +31,7 @@ class MarkdownControllerReadFileContentSpec extends Specification {
     def "readFileContent renders markdown via the markdown template"() {
         given:
         def templateEngine = Mock(TemplateEngine)
-        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService))
+        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService), null)
         writeFile("page.md", "# Hello")
 
         when:
@@ -46,7 +46,7 @@ class MarkdownControllerReadFileContentSpec extends Specification {
     def "readFileContent redirects image requests"() {
         given:
         def templateEngine = Mock(TemplateEngine)
-        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService))
+        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService), null)
 
         when:
         def response = readFileContent(controller, "diagram.png", "png")
@@ -60,7 +60,7 @@ class MarkdownControllerReadFileContentSpec extends Specification {
     def "readFileContent renders yaml through the yaml template"() {
         given:
         def templateEngine = Mock(TemplateEngine)
-        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService))
+        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService), null)
         writeFile("config.yaml", "value: 1")
 
         when:
@@ -75,7 +75,7 @@ class MarkdownControllerReadFileContentSpec extends Specification {
     def "readFileContent renders groovy scripts"() {
         given:
         def templateEngine = Mock(TemplateEngine)
-        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService))
+        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService), null)
         writeFile("script.groovy", "println 'ok'")
 
         when:
@@ -90,7 +90,7 @@ class MarkdownControllerReadFileContentSpec extends Specification {
     def "readFileContent renders mermaid diagrams"() {
         given:
         def templateEngine = Mock(TemplateEngine)
-        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService))
+        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService), null)
         writeFile("diagram.mermaid", "graph TD")
 
         when:
@@ -105,7 +105,7 @@ class MarkdownControllerReadFileContentSpec extends Specification {
     def "readFileContent renders javascript files"() {
         given:
         def templateEngine = Mock(TemplateEngine)
-        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService))
+        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService), null)
         writeFile("module.js", "console.log('ok')")
 
         when:
@@ -120,7 +120,7 @@ class MarkdownControllerReadFileContentSpec extends Specification {
     def "readFileContent renders sql files"() {
         given:
         def templateEngine = Mock(TemplateEngine)
-        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService))
+        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService), null)
         writeFile("query.sql", "select 1")
 
         when:
@@ -135,7 +135,7 @@ class MarkdownControllerReadFileContentSpec extends Specification {
     def "readFileContent renders plantuml files"() {
         given:
         def templateEngine = Mock(TemplateEngine)
-        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService))
+        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService), null)
 
         when:
         def response = readFileContent(controller, "diagram.puml", "puml")
@@ -149,7 +149,7 @@ class MarkdownControllerReadFileContentSpec extends Specification {
     def "readFileContent serves plain text for unknown extensions"() {
         given:
         def templateEngine = Mock(TemplateEngine)
-        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService))
+        def controller = new MarkdownController(Mock(MarkdownRenderer), templateEngine, Stub(ConfigService), null)
         writeFile("notes.txt", "plain text")
 
         when:

@@ -35,6 +35,7 @@ By a corporate environment, I mean:
 * **Inline Groovy expressions** — evaluate a Groovy expression inside any paragraph, heading, or bold/italic text using `[groovy]expression[/groovy]`; errors render as a ⚠ warning span
 * **Inline red text** — highlight a span of text in red using `[red]text[/red]`
 * **YAML front-matter** — add a `---` delimited YAML block at the top of any `.md` file to set a custom page `title`, tag badges, and a short `description` displayed below the tags
+* **Slides / Presentation mode** — set `type: slides` in front-matter to render a markdown file as a full-screen browser slide deck; supports explicit `---` slide breaks, automatic heading-divider splitting, per-slide metadata, speaker notes, themes, and keyboard navigation
 
 ### Groovy Scripting
 
@@ -260,6 +261,124 @@ of the markdown viewer, before the document body:
 The `title` field also controls the shell `<title>` element, which is computed when the outer
 page HTML is first served (before the HTMX viewer swap).  Files without front-matter continue
 to use the filename-derived title.
+
+### Slides / Presentation mode
+
+Set `type: slides` in YAML front-matter to render a markdown file as a full-screen, keyboard-navigable
+browser slide deck.
+
+#### Canonical example
+
+```markdown
+---
+type: slides
+title: Distributed Systems Notes
+theme: default
+paginate: true
+headingDivider: 2
+---
+
+# Distributed Systems
+
+A practical overview.
+
+---
+layout: center
+background: dark
+notes: Explain why failure is the default assumption.
+---
+
+## Fault tolerance
+
+- Partial failure is normal
+- Timeouts are ambiguous
+- Retries need idempotency
+
+note:
+Mention TCP vs application-level retry behavior.
+```
+
+#### Deck-level front-matter fields
+
+| Field | Type | Description |
+|---|---|---|
+| `type` | `slides` | **Required.** Activates presentation mode. |
+| `title` | string | Page `<title>` tag and browser tab label. |
+| `theme` | string | CSS `data-theme` attribute on the deck wrapper (`default`, `dark`, `light`). |
+| `paginate` | `true`/`false` | Show a page-number counter on each slide (default `false`). |
+| `headingDivider` | integer or list | Heading level(s) that automatically start a new slide (e.g. `2` or `[2, 3]`). |
+| `background` | string | Default background colour or image URL for all slides. |
+| `class` | string | Default CSS class added to every slide `<section>`. |
+| `lang` | string | HTML `lang` attribute (e.g. `en`). |
+
+#### Slide boundaries
+
+Two ways to create slide breaks:
+
+- **Explicit separator** — a line containing only `---` starts a new slide.
+- **Heading divider** — when `headingDivider` is set, a new slide is started automatically before
+  any heading at the specified level(s).  Explicit `---` separators take priority; heading splitting
+  applies within each resulting region.
+
+#### Per-slide metadata
+
+Place a YAML block between two consecutive `---` lines to supply metadata for the **next** slide:
+
+```markdown
+---
+layout: center
+background: "#1e2535"
+class: highlight
+---
+
+## My slide
+```
+
+Supported per-slide fields: `title`, `class`, `background`, `notes`, `layout`.  Unknown fields are
+ignored.  If a segment contains none of these fields it is treated as slide content, not metadata.
+
+#### Speaker notes
+
+Notes are hidden from the visible slide but shown in the notes panel (toggle with **n** or the
+**Notes** button).  Two syntaxes are supported and may be combined:
+
+```markdown
+---
+notes: This comes from per-slide metadata.
+---
+
+## Slide title
+
+Content.
+
+note:
+This comes from the reveal-style note: section.
+Both are concatenated in the presenter view.
+```
+
+#### Keyboard navigation
+
+| Key | Action |
+|---|---|
+| `→` `↓` `Space` | Next slide |
+| `←` `↑` | Previous slide |
+| `n` | Toggle speaker notes panel |
+| `f` | Toggle fullscreen |
+| `Escape` | Exit fullscreen |
+
+The nav bar at the bottom-right also provides clickable **‹** / **›** buttons, a slide counter,
+a **Notes** toggle, and a fullscreen button.  An **✎** edit link navigates back to the normal
+wiki editor for the file.
+
+#### Themes
+
+| Value | Appearance |
+|---|---|
+| `default` (or omitted) | Dark background (`#0d1117`), light text — matches the wiki theme |
+| `dark` | Same dark palette, explicit |
+| `light` | White background, dark text |
+
+Individual slide backgrounds override the deck default via the per-slide `background` field.
 
 ### Playwright Scripting
 

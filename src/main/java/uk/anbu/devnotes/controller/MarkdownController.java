@@ -19,7 +19,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.markdown.FrontMatterParser;
+import uk.anbu.devnotes.markdown.slides.SlidesParser;
 import uk.anbu.devnotes.module.MarkdownRenderer;
+import uk.anbu.devnotes.module.SlidesRenderer;
 import uk.anbu.devnotes.markdown.TodoCreatedDateFiller;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.types.Markdown;
@@ -54,6 +56,8 @@ public class MarkdownController {
 
     private final ConfigService configService;
 
+    private final SlidesRenderer slidesRenderer;
+
     @GetMapping("/markdownViewer")
     public ResponseEntity<String> markdownViewer(@RequestParam String filename,
                                                  @RequestParam Map<String, String> allRequestParams) {
@@ -69,12 +73,24 @@ public class MarkdownController {
 
             TemplateOutput output = new StringOutput();
             var params = new HashMap<String, Object>();
-            params.put("htmlContent", renderResult.html());
-            params.put("title", title);
-            params.put("lastModifiedTime", lastModifiedTime(markdownFile.fullPath()));
-            params.put("markdownFile", filename);
-            params.put("frontMatter", frontMatter);
-            templateEngine.render("render/markdown-viewer.jte", params, output);
+
+            if ("slides".equals(frontMatter.type())) {
+                var deck = SlidesParser.parse(markdown.text());
+                var slidesHtml = slidesRenderer.render(deck, markdownFile, allRequestParams);
+                params.put("slidesHtml", slidesHtml);
+                params.put("title", title);
+                params.put("markdownFile", filename);
+                params.put("lastModifiedTime", lastModifiedTime(markdownFile.fullPath()));
+                params.put("slideCount", deck.slides().size());
+                templateEngine.render("render/slides-viewer.jte", params, output);
+            } else {
+                params.put("htmlContent", renderResult.html());
+                params.put("title", title);
+                params.put("lastModifiedTime", lastModifiedTime(markdownFile.fullPath()));
+                params.put("markdownFile", filename);
+                params.put("frontMatter", frontMatter);
+                templateEngine.render("render/markdown-viewer.jte", params, output);
+            }
 
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_HTML)
@@ -354,9 +370,9 @@ public class MarkdownController {
 
         String title = constructMarkdownTitle(filename, markdownRoot);
         var rawText = Files.readString(markdownRoot.resolve(filename));
-        var frontMatterTitle = FrontMatterParser.parseText(rawText).title();
-        if (frontMatterTitle != null) {
-            title = frontMatterTitle;
+        var parsedFrontMatter = FrontMatterParser.parseText(rawText);
+        if (parsedFrontMatter.title() != null) {
+            title = parsedFrontMatter.title();
         }
 
         TemplateOutput output = new StringOutput();
@@ -365,9 +381,14 @@ public class MarkdownController {
         params.put("editMode", editMode);
         params.put("title", title);
         params.put("urlQueryParams", queryParams);
+        params.put("isSlides", "slides".equals(parsedFrontMatter.type()));
         params.put("directoryName", markdownFile.getParent().equals(markdownRoot) ? "" :
                 markdownRoot.relativize(markdownFile.getParent()).toString().replace("\\", "/"));
-        templateEngine.render("render/markdown.jte", params, output);
+
+        var template = (!editMode && "slides".equals(parsedFrontMatter.type()))
+                ? "render/slides.jte"
+                : "render/markdown.jte";
+        templateEngine.render(template, params, output);
 
         return new ContentWithType(output.toString(), "text/html");
     }
