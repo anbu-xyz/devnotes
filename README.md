@@ -244,6 +244,7 @@ tags:
 | `title` | string | Overrides the browser `<title>` tag and the page heading shown in the tab |
 | `description` | string | Displayed as an italic summary line below the tag badges |
 | `tags` | list of strings | Rendered as teal pill badges above the page content |
+| `type` | string (default: `wiki`) | Page type; defaults to `wiki`; available for conditional rendering or future feature gating |
 
 Any other YAML keys are accepted without error and stored in the `extra` map for future use.
 

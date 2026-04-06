@@ -15,16 +15,18 @@ class FrontMatterParserSpec extends Specification {
         fm.title() == null
         fm.tags().isEmpty()
         fm.description() == null
+        fm.type() == "wiki"
         fm.extra().isEmpty()
         fm.isEmpty()
     }
 
-    def "FrontMatter with at least one field is not empty"() {
+    def "FrontMatter with at least one non-default field is not empty"() {
         expect:
         !FrontMatter.from([title: ["My Title"]]).isEmpty()
         !FrontMatter.from([tags: ["a", "b"]]).isEmpty()
         !FrontMatter.from([description: ["desc"]]).isEmpty()
         !FrontMatter.from([custom: ["value"]]).isEmpty()
+        !FrontMatter.from([type: ["note"]]).isEmpty()
     }
 
     // ─── FrontMatter.from(Map) ───────────────────────────────────────────────
@@ -39,7 +41,7 @@ class FrontMatterParserSpec extends Specification {
         FrontMatter.from([:]) == FrontMatter.empty()
     }
 
-    def "from map with title only populates title, tags empty"() {
+    def "from map with title only populates title, type defaults to wiki"() {
         given:
         def fm = FrontMatter.from([title: ["My Page"]])
 
@@ -47,6 +49,7 @@ class FrontMatterParserSpec extends Specification {
         fm.title() == "My Page"
         fm.tags().isEmpty()
         fm.description() == null
+        fm.type() == "wiki"
         fm.extra().isEmpty()
     }
 
@@ -93,6 +96,33 @@ class FrontMatterParserSpec extends Specification {
 
         expect:
         fm.title() == "First"
+    }
+
+    def "from map with explicit type populates type field"() {
+        given:
+        def fm = FrontMatter.from([type: ["note"]])
+
+        expect:
+        fm.type() == "note"
+        !fm.isEmpty()
+        !fm.extra().containsKey("type")
+    }
+
+    def "from map without type key defaults type to wiki"() {
+        given:
+        def fm = FrontMatter.from([title: ["T"]])
+
+        expect:
+        fm.type() == "wiki"
+    }
+
+    def "type wiki is excluded from extra and isEmpty() is true when all other fields absent"() {
+        given:
+        def fm = FrontMatter.from([type: ["wiki"]])
+
+        expect:
+        fm.type() == "wiki"
+        fm.isEmpty()
     }
 
     // ─── FrontMatterParser.parseText ─────────────────────────────────────────
@@ -150,6 +180,7 @@ Content here.
 ---
 title: Full Page
 description: A page with all fields
+type: note
 tags:
   - foo
   - bar
@@ -163,6 +194,7 @@ Body.
         then:
         fm.title() == "Full Page"
         fm.description() == "A page with all fields"
+        fm.type() == "note"
         fm.tags() == ["foo", "bar"]
         fm.extra().isEmpty()
     }

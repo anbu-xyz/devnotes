@@ -8,11 +8,12 @@ public record FrontMatter(
         String title,
         List<String> tags,
         String description,
+        String type,
         Map<String, List<String>> extra
 ) {
 
     public static FrontMatter empty() {
-        return new FrontMatter(null, List.of(), null, Map.of());
+        return new FrontMatter(null, List.of(), null, "wiki", Map.of());
     }
 
     public static FrontMatter from(Map<String, List<String>> data) {
@@ -22,11 +23,13 @@ public record FrontMatter(
         var title = firstValue(data, "title");
         var tags = List.copyOf(data.getOrDefault("tags", List.of()));
         var description = firstValue(data, "description");
+        var type = data.containsKey("type") ? firstValue(data, "type") : "wiki";
         var extra = new LinkedHashMap<>(data);
         extra.remove("title");
         extra.remove("tags");
         extra.remove("description");
-        return new FrontMatter(title, tags, description, Map.copyOf(extra));
+        extra.remove("type");
+        return new FrontMatter(title, tags, description, type, Map.copyOf(extra));
     }
 
     private static String firstValue(Map<String, List<String>> data, String key) {
@@ -35,6 +38,6 @@ public record FrontMatter(
     }
 
     public boolean isEmpty() {
-        return title == null && tags.isEmpty() && description == null && extra.isEmpty();
+        return title == null && tags.isEmpty() && description == null && "wiki".equals(type) && extra.isEmpty();
     }
 }

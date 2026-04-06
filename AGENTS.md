@@ -768,6 +768,7 @@ dependency) via `YamlFrontMatterVisitor`.
 | `title` | `String` (first value) | Overrides the filename-derived `<title>` tag and the shell page heading |
 | `tags` | `List<String>` | Rendered as `<span class="fm-tag">` pill badges above the document body |
 | `description` | `String` (first value) | Rendered as `<p class="fm-description">` italic summary line below the tags |
+| `type` | `String` (first value, default `"wiki"`) | Page type; does not affect rendering by itself; `isEmpty()` treats `"wiki"` as the default/absent state |
 | *(any other key)* | `List<String>` | Stored in `FrontMatter.extra` — ignored by the renderer, available for future use |
 
 **Processing pipeline:**
@@ -996,6 +997,7 @@ the commit-status API. No deployment step is included.
 | Change the groovy playground autosave paths | Edit `GroovyPlaygroundController.AUTOSAVE_SCRIPT_PATH` / `AUTOSAVE_MODE_PATH` |
 | Add a render mode to the groovy playground select | Add a `case` to `GroovyRenderer.convertOutputToNode` and an `<option>` in `groovy-playground.jte` |
 | Add a new front-matter field (e.g. `author`) | Add accessor to `FrontMatter.from()` (extract from `extra` into a named field); update `markdown-viewer.jte` to render it; add test cases to `FrontMatterParserSpec` |
+| Change the default page type | Edit `FrontMatter.empty()` and the `from()` fallback; update `isEmpty()` guard to match |
 | Change front-matter tag badge style | Edit `.fm-tag` in `static/css/style.css` |
 | Change front-matter description style | Edit `.fm-description` in `static/css/style.css` |
 | Change where front-matter metadata is rendered | Edit `markdown-viewer.jte` — the `fm-metadata` div is placed before `$unsafe{htmlContent}` |
