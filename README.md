@@ -34,6 +34,7 @@ By a corporate environment, I mean:
 * **REST blocks** — call any HTTP endpoint from a `` ```rest `` fence; extract results with JSONPath; render as an HTML table (with nested tables for nested objects/arrays); results are cached to disk and refreshable via a context menu
 * **Inline Groovy expressions** — evaluate a Groovy expression inside any paragraph, heading, or bold/italic text using `[groovy]expression[/groovy]`; errors render as a ⚠ warning span
 * **Inline red text** — highlight a span of text in red using `[red]text[/red]`
+* **YAML front-matter** — add a `---` delimited YAML block at the top of any `.md` file to set a custom page `title`, tag badges, and a short `description` displayed below the tags
 
 ### Groovy Scripting
 
@@ -218,6 +219,46 @@ This is [red]very important[/red] information.
 ```
 
 The span receives the CSS class `color-red`, which is defined in `static/css/style.css`.
+
+### YAML front-matter
+
+Any markdown file can begin with a YAML front-matter block delimited by `---` lines.
+The block is stripped from the rendered output and its fields are used to annotate the page.
+
+```markdown
+---
+title: My Great Page
+description: A concise overview of the topic.
+tags:
+  - java
+  - spring
+---
+
+# Content starts here
+```
+
+#### Supported fields
+
+| Field | Type | Effect |
+|---|---|---|
+| `title` | string | Overrides the browser `<title>` tag and the page heading shown in the tab |
+| `description` | string | Displayed as an italic summary line below the tag badges |
+| `tags` | list of strings | Rendered as teal pill badges above the page content |
+
+Any other YAML keys are accepted without error and stored in the `extra` map for future use.
+
+#### Rendering
+
+When at least one field is present, a `<div class="fm-metadata">` block is injected at the top
+of the markdown viewer, before the document body:
+
+- **Tags** appear as `<span class="fm-tag">` elements in a flex row.
+- **Description** appears as a `<p class="fm-description">` in italic, muted text.
+- If no known fields are populated, the metadata div is omitted entirely.
+
+The `title` field also controls the shell `<title>` element, which is computed when the outer
+page HTML is first served (before the HTMX viewer swap).  Files without front-matter continue
+to use the filename-derived title.
 
 ### Playwright Scripting
 

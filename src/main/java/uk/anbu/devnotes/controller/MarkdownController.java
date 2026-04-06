@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
+import uk.anbu.devnotes.markdown.FrontMatterParser;
 import uk.anbu.devnotes.module.MarkdownRenderer;
 import uk.anbu.devnotes.markdown.TodoCreatedDateFiller;
 import uk.anbu.devnotes.service.ConfigService;
@@ -61,14 +62,18 @@ public class MarkdownController {
             var markdownFile = new MarkdownFile(markdownRoot, filename);
             Assert.isTrue(markdownFile.exists(), "File does not exist " + filename);
             var markdown = new Markdown(Files.readAllBytes(markdownFile.fullPath()));
-            String htmlContent = markdownRenderer.convertMarkdown(markdown, markdownFile, allRequestParams);
+            var renderResult = markdownRenderer.convertMarkdown(markdown, markdownFile, allRequestParams);
+            var frontMatter = renderResult.frontMatter();
+            var baseTitle = constructMarkdownTitle(filename, markdownRoot);
+            var title = (frontMatter.title() != null) ? frontMatter.title() : baseTitle;
 
             TemplateOutput output = new StringOutput();
             var params = new HashMap<String, Object>();
-            params.put("htmlContent", htmlContent);
-            params.put("title", constructMarkdownTitle(filename, markdownRoot));
+            params.put("htmlContent", renderResult.html());
+            params.put("title", title);
             params.put("lastModifiedTime", lastModifiedTime(markdownFile.fullPath()));
             params.put("markdownFile", filename);
+            params.put("frontMatter", frontMatter);
             templateEngine.render("render/markdown-viewer.jte", params, output);
 
             return ResponseEntity.ok()
@@ -348,6 +353,11 @@ public class MarkdownController {
         Assert.isTrue(markdownFile.toFile().exists(), "File does not exist " + filename);
 
         String title = constructMarkdownTitle(filename, markdownRoot);
+        var rawText = Files.readString(markdownRoot.resolve(filename));
+        var frontMatterTitle = FrontMatterParser.parseText(rawText).title();
+        if (frontMatterTitle != null) {
+            title = frontMatterTitle;
+        }
 
         TemplateOutput output = new StringOutput();
         var params = new HashMap<String, Object>();

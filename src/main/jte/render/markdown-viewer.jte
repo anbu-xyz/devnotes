@@ -2,6 +2,7 @@
 @param String htmlContent
 @param String markdownFile
 @param String lastModifiedTime
+@param uk.anbu.devnotes.types.FrontMatter frontMatter
 
 <!DOCTYPE html>
 <html>
@@ -12,6 +13,20 @@
     <!-- Note: only the div is used by the htmx to display the editor. Refer to "markdown.jte"
     for the rest of the code -->
     <div id="markdownViewer" x-cloak x-show="!editMode">
+        @if(!frontMatter.isEmpty())
+        <div class="fm-metadata">
+            @if(frontMatter.tags() != null && !frontMatter.tags().isEmpty())
+            <div class="fm-tags">
+                @for(String tag : frontMatter.tags())
+                <span class="fm-tag">${tag}</span>
+                @endfor
+            </div>
+            @endif
+            @if(frontMatter.description() != null)
+            <p class="fm-description">${frontMatter.description()}</p>
+            @endif
+        </div>
+        @endif
         $unsafe{htmlContent}
         <button id="editButton" @click="editMode = true; htmx.trigger('#hiddenEditButton', 'click')" class="btn-blue-glow">
             <i class="fas fa-edit"></i>Edit

@@ -1070,3 +1070,31 @@ pre:has(> code.language-hidden-rest) {
 .rest-block-menu li a:hover {
     background: #2a2a2a;
 }
+
+/* -- Front-matter metadata --------------------------------------------------- */
+.fm-metadata {
+    margin-bottom: 1rem;
+}
+.fm-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.5rem;
+}
+.fm-tag {
+    display: inline-block;
+    background: #2d3748;
+    color: #81e6d9;
+    border: 1px solid #4a5568;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    padding: 0.15rem 0.65rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+.fm-description {
+    font-style: italic;
+    color: #9ca3af;
+    margin: 0;
+    font-size: 0.9rem;
+}

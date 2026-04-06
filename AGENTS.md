@@ -755,6 +755,52 @@ extension.
 
 ---
 
+### YAML Front-Matter (`FrontMatterParser`)
+
+Any `.md` file may begin with a YAML front-matter block delimited by `---` lines.
+The block is parsed by the `commonmark-ext-yaml-front-matter` extension (already a project
+dependency) via `YamlFrontMatterVisitor`.
+
+**Recognised fields:**
+
+| Field | Type | Effect |
+|---|---|---|
+| `title` | `String` (first value) | Overrides the filename-derived `<title>` tag and the shell page heading |
+| `tags` | `List<String>` | Rendered as `<span class="fm-tag">` pill badges above the document body |
+| `description` | `String` (first value) | Rendered as `<p class="fm-description">` italic summary line below the tags |
+| *(any other key)* | `List<String>` | Stored in `FrontMatter.extra` — ignored by the renderer, available for future use |
+
+**Processing pipeline:**
+
+1. `MarkdownRenderer.convertMarkdown` parses the AST with `YamlFrontMatterExtension` enabled
+   (which suppresses the `---` block from the rendered HTML automatically).
+2. `FrontMatterParser.parse(document)` runs a `YamlFrontMatterVisitor` over the parsed AST and
+   returns a `FrontMatter` record.
+3. The method now returns `MarkdownRenderResult` (wrapping `html` + `frontMatter`) instead of
+   a raw `String`.
+4. `MarkdownController.markdownViewer` unwraps the result, overrides `title` with
+   `frontMatter.title()` when non-null, and passes `frontMatter` to `markdown-viewer.jte`.
+5. `MarkdownController.fetchMarkdownContent` calls `FrontMatterParser.parseText` (cheap —
+   minimal parser, no transformers) on the raw file bytes to override the shell `<title>` tag
+   served in the outer `markdown.jte` page.
+6. `markdown-viewer.jte` renders a `<div class="fm-metadata">` block (tags + description)
+   immediately before `$unsafe{htmlContent}` when `!frontMatter.isEmpty()`.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `types/FrontMatter.java` | Record: `title`, `tags`, `description`, `extra`; `empty()` / `from(Map)` factories; `isEmpty()` |
+| `types/MarkdownRenderResult.java` | Record wrapping `html` (String) and `frontMatter` (FrontMatter) |
+| `markdown/FrontMatterParser.java` | `parse(Node)` — uses `YamlFrontMatterVisitor` on existing AST; `parseText(String)` — builds minimal parser |
+| `module/MarkdownRenderer.java` | `convertMarkdown` now returns `MarkdownRenderResult` |
+| `controller/MarkdownController.java` | Unwraps result; overrides title; passes `frontMatter` to templates |
+| `jte/render/markdown-viewer.jte` | Renders `fm-metadata` div (tags + description) when front-matter is present |
+| `static/css/style.css` | `.fm-metadata`, `.fm-tags`, `.fm-tag` (teal pill), `.fm-description` (italic muted) |
+| `test/…/FrontMatterParserSpec.groovy` | 17 Spock feature methods covering `FrontMatter.from`, `isEmpty`, `parseText` |
+
+---
+
 ### Groovy Execution
 
 Scripts run inside a sandboxed `GroovyShell`. Supported output formats (specified in the code-fence
@@ -949,6 +995,11 @@ the commit-status API. No deployment step is included.
 | Change the groovy playground default script | Edit `GroovyPlaygroundController.DEFAULT_SCRIPT` |
 | Change the groovy playground autosave paths | Edit `GroovyPlaygroundController.AUTOSAVE_SCRIPT_PATH` / `AUTOSAVE_MODE_PATH` |
 | Add a render mode to the groovy playground select | Add a `case` to `GroovyRenderer.convertOutputToNode` and an `<option>` in `groovy-playground.jte` |
+| Add a new front-matter field (e.g. `author`) | Add accessor to `FrontMatter.from()` (extract from `extra` into a named field); update `markdown-viewer.jte` to render it; add test cases to `FrontMatterParserSpec` |
+| Change front-matter tag badge style | Edit `.fm-tag` in `static/css/style.css` |
+| Change front-matter description style | Edit `.fm-description` in `static/css/style.css` |
+| Change where front-matter metadata is rendered | Edit `markdown-viewer.jte` — the `fm-metadata` div is placed before `$unsafe{htmlContent}` |
+| Disable front-matter title override | Remove or guard the `frontMatter.title()` override in `MarkdownController.markdownViewer` and `fetchMarkdownContent` |
 
 ---
 

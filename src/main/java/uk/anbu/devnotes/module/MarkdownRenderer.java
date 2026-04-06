@@ -13,6 +13,7 @@ import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
 import org.commonmark.renderer.html.AttributeProvider;
 import org.commonmark.renderer.html.HtmlRenderer;
+import uk.anbu.devnotes.markdown.FrontMatterParser;
 import uk.anbu.devnotes.markdown.check.SymbolTransformer;
 import uk.anbu.devnotes.markdown.code.CodeBlockTransformer;
 import uk.anbu.devnotes.markdown.code.DatabaseMetadataBlockTranslator;
@@ -29,6 +30,7 @@ import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.service.ExchangeRateService;
 import uk.anbu.devnotes.types.Markdown;
 import uk.anbu.devnotes.types.MarkdownFile;
+import uk.anbu.devnotes.types.MarkdownRenderResult;
 
 import java.util.List;
 import java.util.Map;
@@ -44,7 +46,7 @@ public class MarkdownRenderer {
     private final DatabaseMetadataBlockTranslator databaseMetadataBlockTranslator;
     private final ExchangeRateService exchangeRateService;
 
-    public String convertMarkdown(Markdown markdown, MarkdownFile markdownFile, Map<String, String> queryParams) {
+    public MarkdownRenderResult convertMarkdown(Markdown markdown, MarkdownFile markdownFile, Map<String, String> queryParams) {
         String markdownText = markdown.text();
         List<Extension> extensions = List.of(TablesExtension.create(),
                 StrikethroughExtension.create(),
@@ -55,6 +57,7 @@ public class MarkdownRenderer {
                 .extensions(extensions)
                 .build();
         Node document = parser.parse(markdownText);
+        var frontMatter = FrontMatterParser.parse(document);
         var parameterRegistry = new ParameterRegistry();
         // Seed registry with query params first so they can override later values
         if (queryParams != null && !queryParams.isEmpty()) {
@@ -85,7 +88,7 @@ public class MarkdownRenderer {
                 .nodeRendererFactory(new GroovyInlineNodeRenderer.Factory())
                 .attributeProviderFactory(context -> new ImageAttributeProvider())
                 .build();
-        return renderer.render(document);
+        return new MarkdownRenderResult(renderer.render(document), frontMatter);
     }
 
     public static class ImageAttributeProvider implements AttributeProvider {
