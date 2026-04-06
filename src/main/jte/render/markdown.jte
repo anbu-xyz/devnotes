@@ -92,11 +92,27 @@
         <script type="module">
             import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
 
-            mermaid.initialize({
-                startOnLoad: false,
-                theme: 'neutral'
-            });
-            window.mermaid = mermaid;
+            const MERMAID_THEME_KEY = 'mermaidTheme';
+            const defaultTheme = 'dark';
+
+            function applyTheme(theme) {
+                mermaid.initialize({ startOnLoad: false, theme });
+                window.mermaid = mermaid;
+                window._mermaidTheme = theme;
+            }
+
+            window.setMermaidTheme = function(theme) {
+                localStorage.setItem(MERMAID_THEME_KEY, theme);
+                applyTheme(theme);
+                document.querySelectorAll('.mermaid[data-source]').forEach(el => {
+                    el.textContent = el.dataset.source;
+                    el.removeAttribute('data-processed');
+                });
+                window.mermaid.run({ querySelector: '.mermaid' });
+                document.querySelectorAll('.mermaid-theme-picker').forEach(sel => { sel.value = theme; });
+            };
+
+            applyTheme(localStorage.getItem(MERMAID_THEME_KEY) || defaultTheme);
         </script>
     </body>
 </html>

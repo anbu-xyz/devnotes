@@ -25,6 +25,16 @@
 
 <button id="toggleBtn">Source</button>
 <button id="playgroundBtn" data-filename="${title}">Playground</button>
+<label style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.82rem;color:#6b7280;margin-left:0.4rem;">
+    Theme:
+    <select id="themeSelect" style="font-size:0.82rem;padding:0.15rem 0.35rem;border-radius:3px;">
+        <option value="default">Default</option>
+        <option value="dark">Dark</option>
+        <option value="neutral">Neutral</option>
+        <option value="forest">Forest</option>
+        <option value="base">Base</option>
+    </select>
+</label>
 
 <div id="sourceView">
     <pre><code class="language-mermaid">$unsafe{mermaidCodeContent}</code></pre>
@@ -36,7 +46,18 @@
 
 <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-    mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+
+    const MERMAID_THEME_KEY = 'mermaidTheme';
+    const defaultTheme = 'dark';
+    const themeSelect = document.getElementById('themeSelect');
+
+    function applyTheme(theme) {
+        mermaid.initialize({ startOnLoad: false, theme });
+        themeSelect.value = theme;
+    }
+
+    const initialTheme = localStorage.getItem(MERMAID_THEME_KEY) || defaultTheme;
+    applyTheme(initialTheme);
 
     const toggleBtn = document.getElementById('toggleBtn');
     const sourceView = document.getElementById('sourceView');
@@ -59,6 +80,19 @@
             renderError.textContent = e.str || e.message || String(e);
         }
     })();
+
+    themeSelect.addEventListener('change', async () => {
+        const theme = themeSelect.value;
+        localStorage.setItem(MERMAID_THEME_KEY, theme);
+        applyTheme(theme);
+        renderError.textContent = '';
+        diagram.innerHTML = '<div class="mermaid">' + source + '</div>';
+        try {
+            await mermaid.run({ querySelector: '#diagram .mermaid' });
+        } catch (e) {
+            renderError.textContent = e.str || e.message || String(e);
+        }
+    });
 
     toggleBtn.addEventListener('click', async () => {
         if (!showingDiagram) {

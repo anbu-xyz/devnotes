@@ -56,6 +56,16 @@
             </div>
             <div class="controls">
                 <span id="saveStatus" aria-live="polite"></span>
+                <label style="display:flex;align-items:center;gap:0.3rem;font-size:0.82rem;">
+                    Theme:
+                    <select id="themeSelect" style="font-size:0.82rem;padding:0.15rem 0.35rem;border-radius:3px;">
+                        <option value="default">Default</option>
+                        <option value="dark">Dark</option>
+                        <option value="neutral">Neutral</option>
+                        <option value="forest">Forest</option>
+                        <option value="base">Base</option>
+                    </select>
+                </label>
                 <button id="renderBtn">Render</button>
                 <button id="fullscreenBtn" class="secondary">FullScreen</button>
                 <button id="resetBtn" class="secondary">Reset</button>
@@ -84,7 +94,24 @@
 <script type="module">
     import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
 
-    mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+    const MERMAID_THEME_KEY = 'mermaidTheme';
+    const defaultTheme = 'dark';
+    const themeSelect = document.getElementById('themeSelect');
+
+    function applyTheme(theme) {
+        mermaid.initialize({ startOnLoad: false, theme });
+        themeSelect.value = theme;
+    }
+
+    const initialTheme = localStorage.getItem(MERMAID_THEME_KEY) || defaultTheme;
+    applyTheme(initialTheme);
+
+    themeSelect.addEventListener('change', () => {
+        const theme = themeSelect.value;
+        localStorage.setItem(MERMAID_THEME_KEY, theme);
+        applyTheme(theme);
+        renderMermaid(editor.value);
+    });
 
     const editor = document.getElementById('editor');
     const preview = document.getElementById('preview');
