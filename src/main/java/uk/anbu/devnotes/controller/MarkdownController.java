@@ -89,6 +89,7 @@ public class MarkdownController {
                 params.put("lastModifiedTime", lastModifiedTime(markdownFile.fullPath()));
                 params.put("markdownFile", filename);
                 params.put("frontMatter", frontMatter);
+                params.put("mermaidBlockCount", renderResult.mermaidBlockCount());
                 templateEngine.render("render/markdown-viewer.jte", params, output);
             }
 

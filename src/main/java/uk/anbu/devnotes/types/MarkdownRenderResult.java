@@ -1,4 +1,4 @@
 package uk.anbu.devnotes.types;
 
-public record MarkdownRenderResult(String html, FrontMatter frontMatter) {
+public record MarkdownRenderResult(String html, FrontMatter frontMatter, int mermaidBlockCount) {
 }

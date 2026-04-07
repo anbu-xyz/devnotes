@@ -8,6 +8,8 @@ import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.ext.image.attributes.ImageAttributesExtension;
 import org.commonmark.ext.ins.InsExtension;
+import org.commonmark.node.AbstractVisitor;
+import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.Image;
 import org.commonmark.node.Node;
 import org.commonmark.parser.Parser;
@@ -58,6 +60,7 @@ public class MarkdownRenderer {
                 .build();
         Node document = parser.parse(markdownText);
         var frontMatter = FrontMatterParser.parse(document);
+        var mermaidBlockCount = countMermaidBlocks(document);
         var parameterRegistry = new ParameterRegistry();
         // Seed registry with query params first so they can override later values
         if (queryParams != null && !queryParams.isEmpty()) {
@@ -88,7 +91,22 @@ public class MarkdownRenderer {
                 .nodeRendererFactory(new GroovyInlineNodeRenderer.Factory())
                 .attributeProviderFactory(context -> new ImageAttributeProvider())
                 .build();
-        return new MarkdownRenderResult(renderer.render(document), frontMatter);
+        return new MarkdownRenderResult(renderer.render(document), frontMatter, mermaidBlockCount);
+    }
+
+    private static int countMermaidBlocks(Node document) {
+        var count = new int[]{0};
+        var visitor = new AbstractVisitor() {
+            @Override
+            public void visit(FencedCodeBlock fencedCodeBlock) {
+                if ("mermaid".equals(fencedCodeBlock.getInfo())) {
+                    count[0]++;
+                }
+                visitChildren(fencedCodeBlock);
+            }
+        };
+        document.accept(visitor);
+        return count[0];
     }
 
     public static class ImageAttributeProvider implements AttributeProvider {
