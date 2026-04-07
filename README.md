@@ -796,7 +796,7 @@ green for the due-in dimension.
 Each rendered todo block includes three interactive controls that do not require saving the
 markdown editor:
 
-**Next-state button (→)** — Every item has a small arrow button on its right edge. Clicking it
+**Next-state button (→)** — Every item has a small arrow button on its **left edge**. Clicking it
 advances the item's status through the cycle:
 
 > (none) → `not-started` → `in-progress` → `completed` → `not-started` → …
@@ -822,6 +822,11 @@ opens a dialog where you can fill in:
 The `created` date is always set to today automatically. The new item is prepended at the **top**
 of the list. The endpoint `POST /todo/add-item` updates the YAML in the markdown file on disk and
 returns the re-rendered widget HTML — no page reload needed.
+
+**Edit button (✎)** — Every item has a small pencil button on its **right edge**. Clicking it
+opens the same dialog pre-filled with the item's current values. On submit, `POST /todo/edit-item`
+updates the item in place (preserving its `created` date) and returns the re-rendered widget
+HTML — no page reload needed.
 
 ### REST blocks
 

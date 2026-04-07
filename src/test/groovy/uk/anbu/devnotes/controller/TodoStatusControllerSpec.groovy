@@ -527,4 +527,213 @@ items:
         newId != oldId
         !newId.blank
     }
+
+    // ── edit-item ─────────────────────────────────────────────────────────────
+
+    def "edit-item returns 400 when summary is missing"() {
+        given:
+        def yaml = "items:\n  - summary: Original\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.editItem([markdownFile: filename, todoId: todoId(yaml), itemIndex: 0])
+
+        then:
+        resp.statusCode == HttpStatus.BAD_REQUEST
+    }
+
+    def "edit-item returns 400 when itemIndex is not an integer"() {
+        given:
+        def yaml = "items:\n  - summary: Task\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.editItem([
+            markdownFile: filename, todoId: todoId(yaml),
+            summary: "New summary", itemIndex: "notanumber"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.BAD_REQUEST
+    }
+
+    def "edit-item returns 404 when markdown file does not exist"() {
+        when:
+        def resp = controller.editItem([markdownFile: "missing.md", todoId: "deadbeef",
+                                        summary: "Task", itemIndex: 0])
+
+        then:
+        resp.statusCode == HttpStatus.NOT_FOUND
+    }
+
+    def "edit-item returns 404 when todoId does not match any block"() {
+        given:
+        def yaml = "items:\n  - summary: Existing\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.editItem([markdownFile: filename, todoId: "00000000wrongid0",
+                                        summary: "Task", itemIndex: 0])
+
+        then:
+        resp.statusCode == HttpStatus.NOT_FOUND
+    }
+
+    def "edit-item updates summary and returns re-rendered widget"() {
+        given:
+        def yaml = "items:\n  - summary: Old summary\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.editItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            itemIndex: 0,
+            summary: "Updated summary"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        Jsoup.parse(resp.body).select(".todo-summary")[0].text() == "Updated summary"
+    }
+
+    def "edit-item preserves created date of the item"() {
+        given:
+        def yaml = "items:\n  - summary: Task\n    created: 2026-01-15\n"
+        def filename = writeMd(yaml)
+
+        when:
+        controller.editItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            itemIndex: 0,
+            summary: "Renamed task"
+        ])
+
+        then:
+        Files.readString(tempDir.resolve(filename)).contains("2026-01-15")
+    }
+
+    def "edit-item updates status when provided"() {
+        given:
+        def yaml = "items:\n  - summary: Task\n    status: not-started\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.editItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            itemIndex: 0,
+            summary: "Task",
+            status: "in-progress"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        Jsoup.parse(resp.body).select(".todo-status-badge")[0].text() == "In progress"
+    }
+
+    def "edit-item updates due date when provided"() {
+        given:
+        def yaml = "items:\n  - summary: Task\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.editItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            itemIndex: 0,
+            summary: "Task",
+            due: "2027-06-30"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        Files.readString(tempDir.resolve(filename)).contains("2027-06-30")
+    }
+
+    def "edit-item clears due date when not provided"() {
+        given:
+        def yaml = "items:\n  - summary: Task\n    due: 2026-12-01\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.editItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            itemIndex: 0,
+            summary: "Task"
+            // no due field
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        !Files.readString(tempDir.resolve(filename)).contains("due:")
+    }
+
+    def "edit-item updates description when provided"() {
+        given:
+        def yaml = "items:\n  - summary: Task\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.editItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            itemIndex: 0,
+            summary: "Task",
+            description: "New **detail**"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        Files.readString(tempDir.resolve(filename)).contains("New **detail**")
+    }
+
+    def "edit-item updates the correct item when multiple items present"() {
+        given:
+        def yaml = """\
+items:
+  - summary: First
+  - summary: Second
+  - summary: Third
+"""
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.editItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            itemIndex: 1,
+            summary: "Second (edited)"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        def summaries = Jsoup.parse(resp.body).select(".todo-summary")*.text()
+        summaries[0] == "First"
+        summaries[1] == "Second (edited)"
+        summaries[2] == "Third"
+    }
+
+    def "edit-item returns new data-todo-id reflecting updated YAML"() {
+        given:
+        def yaml = "items:\n  - summary: Original\n"
+        def filename = writeMd(yaml)
+        def oldId = todoId(yaml)
+
+        when:
+        def resp = controller.editItem([
+            markdownFile: filename,
+            todoId: oldId,
+            itemIndex: 0,
+            summary: "Renamed"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        def newId = Jsoup.parse(resp.body).select(".todo-widget")[0].attr("data-todo-id")
+        newId != oldId
+        !newId.blank
+    }
 }

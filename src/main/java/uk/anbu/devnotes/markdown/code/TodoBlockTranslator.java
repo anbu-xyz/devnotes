@@ -13,6 +13,7 @@ import uk.anbu.devnotes.markdown.code.todo.TodoConfig;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static j2html.TagCreator.*;
@@ -20,6 +21,8 @@ import static uk.anbu.devnotes.util.FileBasedCache.generateHash;
 
 @Slf4j
 public class TodoBlockTranslator {
+
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper();
 
     public Optional<HtmlBlock> translate(String yaml) {
         try {
@@ -76,16 +79,21 @@ public class TodoBlockTranslator {
             ContainerTag<?> itemDiv = div()
                     .withClass(itemClass)
                     .attr("data-status", statusKey)
-                    .attr("data-item-index", String.valueOf(idx));
+                    .attr("data-item-index", String.valueOf(idx))
+                    .attr("data-item", toItemJson(item, statusKey));
 
-            // Header row: summary text + next-state button
+            // Header row: advance button (left) | summary (middle) | edit button (right)
             ContainerTag<?> itemHeader = div().withClass("todo-item-header").with(
-                h3().withClass("todo-summary")
-                    .withText(item.getSummary() != null ? item.getSummary() : ""),
                 button().withType("button")
                         .withClass("todo-next-state-btn")
                         .withTitle(nextStatusLabel(item.getStatus()))
-                        .withText("→")
+                        .withText("→"),
+                h3().withClass("todo-summary")
+                    .withText(item.getSummary() != null ? item.getSummary() : ""),
+                button().withType("button")
+                        .withClass("todo-edit-btn")
+                        .withTitle("Edit task")
+                        .withText("✎")
             );
             itemDiv.with(itemHeader);
 
@@ -210,6 +218,26 @@ public class TodoBlockTranslator {
     String computeDueIn(TodoConfig.TodoItem item) {
         if (item.getDue() == null) return "—";
         return String.valueOf(ChronoUnit.DAYS.between(LocalDate.now(), item.getDue()));
+    }
+
+    /**
+     * Serialises the editable fields of {@code item} to a compact JSON string suitable
+     * for the {@code data-item} HTML attribute.  The browser will decode any HTML entities
+     * (e.g. {@code &quot;} → {@code "}) when JavaScript reads {@code el.dataset.item},
+     * yielding valid JSON for {@code JSON.parse}.
+     */
+    private static String toItemJson(TodoConfig.TodoItem item, String statusKey) {
+        try {
+            return JSON_MAPPER.writeValueAsString(Map.of(
+                    "summary",     item.getSummary()     != null ? item.getSummary()     : "",
+                    "due",         item.getDue()         != null ? item.getDue().toString() : "",
+                    "status",      statusKey,
+                    "description", item.getDescription() != null ? item.getDescription() : ""
+            ));
+        } catch (Exception e) {
+            log.warn("Failed to serialize todo item data for data-item attribute", e);
+            return "{}";
+        }
     }
 
     /**

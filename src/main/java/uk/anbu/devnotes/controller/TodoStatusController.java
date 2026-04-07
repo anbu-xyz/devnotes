@@ -278,6 +278,125 @@ public class TodoStatusController {
         return mapper.writeValueAsString(config);
     }
 
+    // ── edit-item ─────────────────────────────────────────────────────────────
+
+    /**
+     * Updates an existing todo item in place and returns the re-rendered widget HTML.
+     * Body: {@code { markdownFile, todoId, itemIndex, summary, due?, description?, status? }}.
+     * The {@code created} date of the item is preserved unchanged.
+     */
+    @PostMapping(value = "/edit-item",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> editItem(@RequestBody Map<String, Object> body) {
+        var markdownFileOpt = Optional.ofNullable(body.get("markdownFile"))
+                .map(Object::toString).filter(s -> !s.isBlank());
+        var todoIdOpt = Optional.ofNullable(body.get("todoId"))
+                .map(Object::toString).filter(s -> !s.isBlank());
+        var summaryOpt = Optional.ofNullable(body.get("summary"))
+                .map(Object::toString).filter(s -> !s.isBlank());
+        var itemIndexOpt = Optional.ofNullable(body.get("itemIndex"))
+                .map(Object::toString);
+
+        if (markdownFileOpt.isEmpty() || todoIdOpt.isEmpty() || summaryOpt.isEmpty() || itemIndexOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body("missing markdownFile, todoId, summary, or itemIndex");
+        }
+
+        int itemIndex;
+        try {
+            itemIndex = Integer.parseInt(itemIndexOpt.get());
+        } catch (NumberFormatException e) {
+            return ResponseEntity.badRequest().body("itemIndex must be an integer");
+        }
+
+        var dueStr = Optional.ofNullable(body.get("due"))
+                .map(Object::toString).filter(s -> !s.isBlank()).orElse(null);
+        var description = Optional.ofNullable(body.get("description"))
+                .map(Object::toString).filter(s -> !s.isBlank()).orElse(null);
+        var statusStr = Optional.ofNullable(body.get("status"))
+                .map(Object::toString).filter(s -> !s.isBlank()).orElse(null);
+
+        try {
+            var mdPathOpt = resolveMdPath(markdownFileOpt.get());
+            if (mdPathOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("markdown file not found: " + markdownFileOpt.get());
+            }
+
+            var content = Files.readString(mdPathOpt.get());
+            var result = updateTodoItem(content, todoIdOpt.get(), itemIndex,
+                    summaryOpt.get(), dueStr, description, statusStr);
+            if (result.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("todo block not found: " + todoIdOpt.get());
+            }
+
+            Files.writeString(mdPathOpt.get(), result.get().updatedMarkdown());
+
+            var html = new TodoBlockTranslator()
+                    .translate(result.get().newYaml())
+                    .map(HtmlBlock::getLiteral);
+
+            return html.map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.internalServerError().body("failed to re-render todo block"));
+        } catch (Exception e) {
+            log.error("Error editing todo item", e);
+            return ResponseEntity.internalServerError().body("error: " + e.getMessage());
+        }
+    }
+
+    private Optional<UpdateResult> updateTodoItem(String content, String todoId, int itemIndex,
+                                                   String summary, String dueStr,
+                                                   String description, String statusStr)
+            throws Exception {
+        var matcher = TODO_FENCE.matcher(content);
+        var sb = new StringBuilder();
+        String newYaml = null;
+
+        while (matcher.find()) {
+            var yamlBody = matcher.group(2);
+            if (generateHash(yamlBody.stripTrailing()).equals(todoId)) {
+                newYaml = buildItemEditedYaml(yamlBody, itemIndex, summary, dueStr, description, statusStr);
+                matcher.appendReplacement(sb,
+                        Matcher.quoteReplacement(matcher.group(1) + newYaml.stripTrailing() + matcher.group(3)));
+            } else {
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group()));
+            }
+        }
+        matcher.appendTail(sb);
+
+        return newYaml != null ? Optional.of(new UpdateResult(sb.toString(), newYaml)) : Optional.empty();
+    }
+
+    private String buildItemEditedYaml(String yamlBody, int itemIndex, String summary,
+                                        String dueStr, String description,
+                                        String statusStr) throws Exception {
+        var mapper = buildMapper();
+        var config = mapper.readValue(yamlBody, TodoConfig.class);
+        var items = config.getItems();
+
+        if (itemIndex < 0 || itemIndex >= items.size()) {
+            throw new IllegalArgumentException("itemIndex out of range: " + itemIndex);
+        }
+
+        var item = items.get(itemIndex);
+        item.setSummary(summary);
+        item.setDue(dueStr != null ? LocalDate.parse(dueStr) : null);
+        item.setDescription(description);
+        if (statusStr != null) {
+            TodoConfig.TodoStatus status = switch (statusStr) {
+                case "in-progress" -> TodoConfig.TodoStatus.IN_PROGRESS;
+                case "completed"   -> TodoConfig.TodoStatus.COMPLETED;
+                default            -> TodoConfig.TodoStatus.NOT_STARTED;
+            };
+            item.setStatus(status);
+        } else {
+            item.setStatus(null);
+        }
+
+        return mapper.writeValueAsString(config);
+    }
+
     // ── save-filters ──────────────────────────────────────────────────────────
 
     /**

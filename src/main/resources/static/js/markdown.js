@@ -158,7 +158,7 @@ document.body.addEventListener('htmx:afterSwap', evt => {
             setupRestBlockActionHandler()
             setupTodoBlockControls()
             setupTodoStatusHandler()
-            setupTodoAddHandler()
+            setupTodoItemDialogHandler()
             document.querySelectorAll('.todo-widget').forEach(w => applyTodoFilters(w))
         },
         markdownEditor: () => {
@@ -1047,85 +1047,88 @@ function setupTodoStatusHandler() {
 }
 
 //-----------------------------------------------------------------------------
-// Todo Add Item
+// Todo Add / Edit Item Dialog
 //-----------------------------------------------------------------------------
 
 /**
- * Creates a shared <dialog> for adding a todo item and wires up the "+ Add" button
- * on every .todo-widget via event delegation.
+ * Creates a single shared <dialog> used for both adding and editing todo items.
+ * The dialog's dataset.mode ('add' | 'edit') drives which endpoint is called and
+ * whether the form fields are blank (add) or pre-filled (edit).
  * Safe to call multiple times — setup runs only once per page load.
  */
-function setupTodoAddHandler() {
-    if (window._todoAddHandlerAttached) return;
-    window._todoAddHandlerAttached = true;
+function setupTodoItemDialogHandler() {
+    if (window._todoItemDialogAttached) return;
+    window._todoItemDialogAttached = true;
 
-    // ── create the shared dialog once ─────────────────────────────────────────
-    if (!document.getElementById('todo-add-dialog')) {
+    // ── create the shared dialog once ────────────────────────────────────────
+    if (!document.getElementById('todo-item-dialog')) {
         const dlg = document.createElement('dialog');
-        dlg.id = 'todo-add-dialog';
+        dlg.id = 'todo-item-dialog';
         dlg.innerHTML = `
-            <h3 class="todo-add-dialog-title">Add Task</h3>
-            <form id="todo-add-form" novalidate>
+            <h3 class="todo-add-dialog-title" id="todo-item-dialog-title">Add Task</h3>
+            <form id="todo-item-form" novalidate>
                 <div class="todo-add-dialog-field">
-                    <label for="todo-add-summary">Summary <span style="color:#f85149">*</span></label>
-                    <input type="text" id="todo-add-summary" name="summary" required
-                           placeholder="Task summary..." autocomplete="off">
+                    <label for="todo-item-summary">Summary <span style="color:#f85149">*</span></label>
+                    <input type="text" id="todo-item-summary" name="summary" required
+                           placeholder="Task summary…" autocomplete="off">
                 </div>
                 <div class="todo-add-dialog-field">
-                    <label for="todo-add-status">Status</label>
-                    <select id="todo-add-status" name="status">
+                    <label for="todo-item-status">Status</label>
+                    <select id="todo-item-status" name="status">
                         <option value="not-started">Not started</option>
                         <option value="in-progress">In progress</option>
                         <option value="completed">Completed</option>
                     </select>
                 </div>
                 <div class="todo-add-dialog-field">
-                    <label for="todo-add-due">Due date (optional)</label>
-                    <input type="date" id="todo-add-due" name="due">
+                    <label for="todo-item-due">Due date (optional)</label>
+                    <input type="date" id="todo-item-due" name="due">
                 </div>
                 <div class="todo-add-dialog-field">
-                    <label for="todo-add-description">Description (optional - markdown)</label>
-                    <textarea id="todo-add-description" name="description"
-                              placeholder="Additional details..."></textarea>
+                    <label for="todo-item-description">Description (optional — markdown)</label>
+                    <textarea id="todo-item-description" name="description"
+                              placeholder="Additional details…"></textarea>
                 </div>
                 <div class="todo-add-dialog-actions">
-                    <button type="button" class="todo-add-dialog-cancel" id="todo-add-cancel">Cancel</button>
-                    <button type="submit" class="btn-blue-glow">Add Task</button>
+                    <button type="button" class="todo-add-dialog-cancel" id="todo-item-cancel">Cancel</button>
+                    <button type="submit" class="btn-blue-glow" id="todo-item-submit">Add Task</button>
                 </div>
             </form>
         `;
         document.body.appendChild(dlg);
 
-        document.getElementById('todo-add-cancel').addEventListener('click', () => dlg.close());
-
-        // Close on backdrop click
+        document.getElementById('todo-item-cancel').addEventListener('click', () => dlg.close());
         dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
 
-        document.getElementById('todo-add-form').addEventListener('submit', async function (ev) {
+        document.getElementById('todo-item-form').addEventListener('submit', async function (ev) {
             ev.preventDefault();
-            const dialog = document.getElementById('todo-add-dialog');
-            const summaryEl = document.getElementById('todo-add-summary');
-            const summary = summaryEl.value.trim();
+            const dialog    = document.getElementById('todo-item-dialog');
+            const summaryEl = document.getElementById('todo-item-summary');
+            const summary   = summaryEl.value.trim();
             if (!summary) { summaryEl.focus(); return; }
 
-            const due         = document.getElementById('todo-add-due').value.trim();
-            const status      = document.getElementById('todo-add-status').value;
-            const description = document.getElementById('todo-add-description').value.trim();
+            const due         = document.getElementById('todo-item-due').value.trim();
+            const status      = document.getElementById('todo-item-status').value;
+            const description = document.getElementById('todo-item-description').value.trim();
 
-            const mdEl = document.getElementById('md-file-path');
+            const mdEl         = document.getElementById('md-file-path');
             const markdownFile = mdEl ? mdEl.textContent.trim() : '';
-            const todoId = dialog.dataset.todoId;
+            const todoId       = dialog.dataset.todoId;
+            const mode         = dialog.dataset.mode;  // 'add' | 'edit'
 
-            const submitBtn = this.querySelector('[type="submit"]');
-            submitBtn.disabled = true;
+            const submitBtn = document.getElementById('todo-item-submit');
+            const originalLabel = submitBtn.textContent;
+            submitBtn.disabled  = true;
             submitBtn.textContent = '⏳';
 
             try {
-                const payload = { markdownFile, todoId, summary, status };
+                const endpoint = mode === 'edit' ? '/todo/edit-item' : '/todo/add-item';
+                const payload  = { markdownFile, todoId, summary, status };
                 if (due)         payload.due         = due;
                 if (description) payload.description = description;
+                if (mode === 'edit') payload.itemIndex = parseInt(dialog.dataset.itemIndex, 10);
 
-                const resp = await fetch('/todo/add-item', {
+                const resp = await fetch(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'same-origin',
@@ -1137,8 +1140,8 @@ function setupTodoAddHandler() {
                     throw new Error(txt || resp.statusText);
                 }
 
-                const html = await resp.text();
-                const activeWidget = document.querySelector('.todo-widget[data-todo-adding]');
+                const html         = await resp.text();
+                const activeWidget = document.querySelector('.todo-widget[data-todo-acting]');
                 if (activeWidget) {
                     const container = document.createElement('div');
                     container.innerHTML = html;
@@ -1150,35 +1153,70 @@ function setupTodoAddHandler() {
                 }
                 dialog.close();
             } catch (err) {
-                console.error('Todo add-item failed', err);
-                alert('Failed to add task: ' + err.message);
+                console.error(`Todo ${mode}-item failed`, err);
+                alert(`Failed to ${mode === 'edit' ? 'save' : 'add'} task: ` + err.message);
             } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Add Task';
+                submitBtn.disabled    = false;
+                submitBtn.textContent = originalLabel;
             }
         });
     }
 
-    // ── delegate clicks on .todo-add-btn ─────────────────────────────────────
+    // ── + Add button ─────────────────────────────────────────────────────────
     document.body.addEventListener('click', function (e) {
         const btn = e.target.closest('.todo-add-btn');
         if (!btn) return;
-
         const widget = btn.closest('.todo-widget');
         if (!widget) return;
 
-        // Mark the opening widget so the submit handler can find it after async work
-        document.querySelectorAll('.todo-widget[data-todo-adding]')
-                .forEach(el => delete el.dataset.todoAdding);
-        widget.dataset.todoAdding = 'true';
+        document.querySelectorAll('.todo-widget[data-todo-acting]')
+                .forEach(el => delete el.dataset.todoActing);
+        widget.dataset.todoActing = 'true';
 
-        const dlg = document.getElementById('todo-add-dialog');
+        const dlg = document.getElementById('todo-item-dialog');
+        dlg.dataset.mode   = 'add';
         dlg.dataset.todoId = widget.dataset.todoId;
-
-        // Reset the form fields each time the dialog opens
-        document.getElementById('todo-add-form').reset();
+        document.getElementById('todo-item-dialog-title').textContent = 'Add Task';
+        document.getElementById('todo-item-submit').textContent = 'Add Task';
+        document.getElementById('todo-item-form').reset();
         dlg.showModal();
-        document.getElementById('todo-add-summary').focus();
+        document.getElementById('todo-item-summary').focus();
+    });
+
+    // ── Edit button ──────────────────────────────────────────────────────────
+    document.body.addEventListener('click', function (e) {
+        const btn = e.target.closest('.todo-edit-btn');
+        if (!btn) return;
+        const item   = btn.closest('.todo-item');
+        const widget = btn.closest('.todo-widget');
+        if (!item || !widget) return;
+
+        document.querySelectorAll('.todo-widget[data-todo-acting]')
+                .forEach(el => delete el.dataset.todoActing);
+        widget.dataset.todoActing = 'true';
+
+        const dlg = document.getElementById('todo-item-dialog');
+        dlg.dataset.mode      = 'edit';
+        dlg.dataset.todoId    = widget.dataset.todoId;
+        dlg.dataset.itemIndex = item.dataset.itemIndex;
+        document.getElementById('todo-item-dialog-title').textContent = 'Edit Task';
+        document.getElementById('todo-item-submit').textContent = 'Save Changes';
+
+        // Pre-fill from data-item JSON
+        try {
+            const data = JSON.parse(item.dataset.item || '{}');
+            document.getElementById('todo-item-form').reset();
+            document.getElementById('todo-item-summary').value     = data.summary     || '';
+            document.getElementById('todo-item-status').value      = data.status      || 'not-started';
+            document.getElementById('todo-item-due').value         = data.due         || '';
+            document.getElementById('todo-item-description').value = data.description || '';
+        } catch (err) {
+            console.warn('Could not parse todo item data', err);
+            document.getElementById('todo-item-form').reset();
+        }
+
+        dlg.showModal();
+        document.getElementById('todo-item-summary').focus();
     });
 }
 

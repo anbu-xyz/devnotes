@@ -955,6 +955,26 @@ table.sortable .btn-blue-glow i {
     cursor: not-allowed;
 }
 
+.todo-edit-btn {
+    flex-shrink: 0;
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    color: #888;
+    border-radius: 4px;
+    padding: 0.1em 0.55em;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+    line-height: 1.5;
+    margin-top: 0.1em;
+}
+
+.todo-edit-btn:hover {
+    background-color: rgba(139, 148, 158, 0.15);
+    border-color: #8b949e;
+    color: #e6edf3;
+}
+
 .todo-block {
     border: 1px solid #444;
     background-color: #1a1a2e;
@@ -976,6 +996,8 @@ table.sortable .btn-blue-glow i {
 .todo-summary {
     margin: 0 0 0.2em 0;
     font-size: 1.05em;
+    flex: 1;          /* fill the space between advance and edit buttons */
+    min-width: 0;     /* allow text truncation in very narrow containers */
 }
 
 .todo-meta {
