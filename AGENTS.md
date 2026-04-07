@@ -847,6 +847,16 @@ found (so unknown-field YAML is treated as slide content, not metadata).
 are present, and optionally adds `.slide-page-number`. All sections are wrapped in
 `<div class="slide-deck" data-theme="…">`.
 
+Because `SlidesRenderer` calls the full `MarkdownRenderer` pipeline for every slide, all standard
+code fences work inside slides — including `` ```mermaid ``.  The rendered `<div class="mermaid">`
+element is processed by the Mermaid ESM library loaded in `slides.jte`.
+
+**Mermaid in slides — timing:** `slides.jte` imports the Mermaid ESM module and, once it is
+initialised, dispatches a `mermaidReady` custom event on `window`.  The inline script in
+`slides-viewer.jte` calls `mermaid.run()` immediately if the library is already available, or
+registers a one-shot `mermaidReady` listener if the CDN import is still in-flight.  This
+eliminates the race condition that would otherwise cause diagrams to render as blank divs.
+
 **HTMX shell:** `fetchMarkdownContent` renders `render/slides.jte` (instead of `markdown.jte`)
 which loads `slides.css` + `slides.js` and fires an HTMX trigger to load `slides-viewer.jte`.
 
@@ -868,10 +878,10 @@ nav bar buttons.
 | `controller/MarkdownController.java` | Branches on `type:slides` in `markdownViewer` and `fetchMarkdownContent` |
 | `jte/render/slides.jte` | Outer HTML shell for presentations (no EasyMDE; loads `slides.css` + `slides.js`) |
 | `jte/render/slides-viewer.jte` | HTMX fragment: `$unsafe{slidesHtml}` + nav bar; triggers `SlidesController.init` |
-| `static/css/slides.css` | `.slide-deck`, `.slide`, `.slide.active`, `.slide-content`, `.slide-notes`, `.slide-navigation`, `.slide-nav-btn`, `.slide-counter`, `.slide-page-number`; data-theme variants |
+| `static/css/slides.css` | `.slide-deck`, `.slide`, `.slide.active`, `.slide-content`, `.slide-notes`, `.slide-navigation`, `.slide-nav-btn`, `.slide-counter`, `.slide-page-number`; data-theme variants; `.slide .mermaid` and `.slide .mermaid svg` for diagram layout |
 | `static/js/slides.js` | `window.SlidesController` — `init`, `goto`, `next`, `prev`, `toggleNotes`, `toggleFullscreen`; keyboard handler |
 | `test/…/SlidesParserSpec.groovy` | 26 Spock feature methods covering parser, heading-divider, speaker notes, canonical example |
-| `test/…/SlidesControllerSpec.groovy` | 6 Spock feature methods — slides shell, viewer, slide count, per-slide class, speaker notes, title override |
+| `test/…/SlidesControllerSpec.groovy` | 8 Spock feature methods — slides shell, viewer, slide count, per-slide class, speaker notes, title override, mermaid rendering |
 
 ---
 
@@ -1084,6 +1094,7 @@ the commit-status API. No deployment step is included.
 | Change speaker-note extraction syntax | Edit `SlidesParser.extractRevealNotes` / `removeRevealNoteLines` |
 | Change slide navigation keyboard shortcuts | Edit the `onKeyDown` switch in `slides.js` |
 | Add a new presentation theme | Add a `.slide-deck[data-theme="…"] .slide` rule to `slides.css`; document in README |
+| Change the mermaid theme used in slides | Edit `mermaid.initialize({ theme: … })` in `slides.jte`; the value is intentionally separate from the wiki-page theme picker |
 | Change the slides outer shell (head/scripts) | Edit `jte/render/slides.jte` |
 | Change the slides nav bar layout | Edit `jte/render/slides-viewer.jte` and `.slide-navigation` in `slides.css` |
 | Change front-matter tag badge style | Edit `.fm-tag` in `static/css/style.css` |

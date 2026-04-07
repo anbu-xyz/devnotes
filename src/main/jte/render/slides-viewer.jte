@@ -29,11 +29,30 @@
             if (deck && window.SlidesController) {
                 window.SlidesController.init(deck, ${slideCount});
             }
-            document.querySelectorAll('.mermaid').forEach(function (el) {
-                el.dataset.source = el.textContent;
-            });
+            function runMermaid() {
+                var mermaidEls = document.querySelectorAll('.mermaid');
+                if (mermaidEls.length === 0) return;
+                // Use mermaid.render() instead of mermaid.run() so that diagrams inside
+                // hidden slides (display:none → zero dimensions) render without producing
+                // the "translate(undefined, NaN)" SVG error that run() causes when it reads
+                // offsetWidth/offsetHeight of invisible elements.
+                mermaidEls.forEach(function (el, i) {
+                    var source = (el.dataset.source || el.textContent).trim();
+                    el.dataset.source = source;
+                    window.mermaid.render('mermaid-slide-' + i, source)
+                        .then(function (result) {
+                            el.innerHTML = result.svg;
+                        })
+                        .catch(function (err) {
+                            console.warn('Mermaid render error on slide ' + i + ':', err);
+                        });
+                });
+            }
             if (window.mermaid) {
-                window.mermaid.run({ querySelector: '.mermaid' });
+                runMermaid();
+            } else {
+                // ESM module is still loading from CDN — wait for the ready signal
+                window.addEventListener('mermaidReady', runMermaid, { once: true });
             }
         })();
     </script>

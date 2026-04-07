@@ -203,6 +203,36 @@ This is hidden.
         Files.deleteIfExists(tempFile)
     }
 
+    def "markdownViewer renders mermaid code fence as .mermaid div inside slide"() {
+        given:
+        def tempFile = Files.createTempFile("slides-", ".md")
+        configService.getDocsDirectory() >> tempFile.parent.toAbsolutePath().toString()
+        Files.writeString(tempFile, """\
+---
+type: slides
+---
+
+# Diagram Slide
+
+```mermaid
+graph TD
+    A[Start] --> B[End]
+```
+""")
+        when:
+        def response = controller.markdownViewer(tempFile.fileName.toString(), [:])
+
+        then:
+        response.statusCode == HttpStatus.OK
+        def doc = Jsoup.parse(response.body.toString())
+        def mermaidDiv = doc.select(".slide .mermaid")
+        mermaidDiv.size() == 1
+        mermaidDiv.text().contains("graph TD")
+
+        cleanup:
+        Files.deleteIfExists(tempFile)
+    }
+
     def "fetchMarkdownContent renders markdown.jte editor shell when editMode=true for a slides file"() {
         given:
         def tempFile = Files.createTempFile("slides-", ".md")

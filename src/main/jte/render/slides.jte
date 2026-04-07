@@ -41,6 +41,9 @@
             import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
             mermaid.initialize({ startOnLoad: false, theme: 'dark' });
             window.mermaid = mermaid;
+            // Signal that mermaid is ready so slides-viewer.jte can render diagrams
+            // even when the HTMX fragment loads before this module finishes.
+            window.dispatchEvent(new CustomEvent('mermaidReady'));
         </script>
         <script src="/js/slides.js"></script>
         <script>

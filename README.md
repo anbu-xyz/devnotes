@@ -397,7 +397,30 @@ wiki editor for the file.
 
 Individual slide backgrounds override the deck default via the per-slide `background` field.
 
-### Playwright Scripting
+#### Mermaid diagrams in slides
+
+Mermaid diagrams work inside slides using the standard `` ```mermaid `` code fence — the same
+syntax as the normal wiki view.  The Mermaid ESM library is loaded from CDN in the slides shell,
+and diagrams are rendered automatically once the slides content is swapped in by HTMX.
+
+```markdown
+---
+type: slides
+---
+
+# Architecture Overview
+
+```mermaid
+graph LR
+    Client -->|HTTPS| Server
+    Server --> DB[(PostgreSQL)]
+```
+```
+
+Diagrams are centred inside the slide and scaled to fit the viewport.  The Mermaid theme is
+fixed to `dark` in presentation mode regardless of the wiki-page theme preference.
+
+
 
 To embed executable sql code in a markdown file, use the following syntax:
 

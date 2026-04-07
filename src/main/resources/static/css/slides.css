@@ -142,3 +142,28 @@ html, body.slides-page {
     font-size: 0.75rem;
     color: #6b7280;
 }
+
+/* ── Mermaid diagrams inside slides ────────────────────────────────────────── */
+
+.slide .mermaid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1rem auto;
+    max-width: 100%;
+    overflow: auto;
+}
+
+/* Keep SVG from overflowing the slide viewport */
+.slide .mermaid svg {
+    max-width: 100%;
+    max-height: calc(100vh - 12rem);
+    height: auto;
+}
+
+/* Transparent background so diagrams blend with any slide theme */
+.slide .mermaid svg,
+.slide .mermaid rect.background {
+    background: transparent !important;
+    fill: transparent !important;
+}
