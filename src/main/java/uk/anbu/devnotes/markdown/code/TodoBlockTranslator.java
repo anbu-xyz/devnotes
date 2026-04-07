@@ -49,7 +49,11 @@ public class TodoBlockTranslator {
             span().withClass("todo-filters-label").withText("Show:"),
             makeFilterLabel("not-started", "Not started", f == null || f.isNotStartedVisible()),
             makeFilterLabel("in-progress", "In progress", f == null || f.isInProgressVisible()),
-            makeFilterLabel("completed",   "Completed",   f == null || f.isCompletedVisible())
+            makeFilterLabel("completed",   "Completed",   f == null || f.isCompletedVisible()),
+            button().withType("button")
+                    .withClass("todo-add-btn")
+                    .withTitle("Add a new task")
+                    .withText("+ Add")
         );
 
         // ── items ─────────────────────────────────────────────────────────────

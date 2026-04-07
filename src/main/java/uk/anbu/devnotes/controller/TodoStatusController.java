@@ -23,6 +23,8 @@ import uk.anbu.devnotes.service.ConfigService;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -161,6 +163,119 @@ public class TodoStatusController {
             case IN_PROGRESS -> TodoConfig.TodoStatus.COMPLETED;
             case COMPLETED   -> TodoConfig.TodoStatus.NOT_STARTED;
         };
+    }
+
+    // ── add-item ──────────────────────────────────────────────────────────────
+
+    /**
+     * Prepends a new item to the top of a todo block and returns the re-rendered widget HTML.
+     * Body: {@code { markdownFile, todoId, summary, due?, description?, status? }}.
+     * The {@code created} date is always set to today (UTC).
+     */
+    @PostMapping(value = "/add-item",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> addItem(@RequestBody Map<String, Object> body) {
+        var markdownFileOpt = Optional.ofNullable(body.get("markdownFile"))
+                .map(Object::toString).filter(s -> !s.isBlank());
+        var todoIdOpt = Optional.ofNullable(body.get("todoId"))
+                .map(Object::toString).filter(s -> !s.isBlank());
+        var summaryOpt = Optional.ofNullable(body.get("summary"))
+                .map(Object::toString).filter(s -> !s.isBlank());
+
+        if (markdownFileOpt.isEmpty() || todoIdOpt.isEmpty() || summaryOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body("missing markdownFile, todoId, or summary");
+        }
+
+        var dueStr = Optional.ofNullable(body.get("due"))
+                .map(Object::toString).filter(s -> !s.isBlank()).orElse(null);
+        var description = Optional.ofNullable(body.get("description"))
+                .map(Object::toString).filter(s -> !s.isBlank()).orElse(null);
+        var statusStr = Optional.ofNullable(body.get("status"))
+                .map(Object::toString).filter(s -> !s.isBlank()).orElse(null);
+
+        try {
+            var mdPathOpt = resolveMdPath(markdownFileOpt.get());
+            if (mdPathOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("markdown file not found: " + markdownFileOpt.get());
+            }
+
+            var content = Files.readString(mdPathOpt.get());
+            var result = prependTodoItem(content, todoIdOpt.get(),
+                    summaryOpt.get(), dueStr, description, statusStr);
+            if (result.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body("todo block not found: " + todoIdOpt.get());
+            }
+
+            Files.writeString(mdPathOpt.get(), result.get().updatedMarkdown());
+
+            var html = new TodoBlockTranslator()
+                    .translate(result.get().newYaml())
+                    .map(HtmlBlock::getLiteral);
+
+            return html.map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.internalServerError().body("failed to re-render todo block"));
+        } catch (Exception e) {
+            log.error("Error adding todo item", e);
+            return ResponseEntity.internalServerError().body("error: " + e.getMessage());
+        }
+    }
+
+    private Optional<UpdateResult> prependTodoItem(String content, String todoId,
+                                                    String summary, String dueStr,
+                                                    String description, String statusStr)
+            throws Exception {
+        var matcher = TODO_FENCE.matcher(content);
+        var sb = new StringBuilder();
+        String newYaml = null;
+
+        while (matcher.find()) {
+            var yamlBody = matcher.group(2);
+            if (generateHash(yamlBody.stripTrailing()).equals(todoId)) {
+                newYaml = buildItemPrependedYaml(yamlBody, summary, dueStr, description, statusStr);
+                matcher.appendReplacement(sb,
+                        Matcher.quoteReplacement(matcher.group(1) + newYaml.stripTrailing() + matcher.group(3)));
+            } else {
+                matcher.appendReplacement(sb, Matcher.quoteReplacement(matcher.group()));
+            }
+        }
+        matcher.appendTail(sb);
+
+        return newYaml != null ? Optional.of(new UpdateResult(sb.toString(), newYaml)) : Optional.empty();
+    }
+
+    private String buildItemPrependedYaml(String yamlBody, String summary, String dueStr,
+                                           String description, String statusStr) throws Exception {
+        var mapper = buildMapper();
+        var config = mapper.readValue(yamlBody, TodoConfig.class);
+
+        var newItem = new TodoConfig.TodoItem();
+        newItem.setSummary(summary);
+        newItem.setCreated(LocalDate.now());
+        if (dueStr != null) {
+            newItem.setDue(LocalDate.parse(dueStr));
+        }
+        if (description != null) {
+            newItem.setDescription(description);
+        }
+        if (statusStr != null) {
+            TodoConfig.TodoStatus status = switch (statusStr) {
+                case "in-progress" -> TodoConfig.TodoStatus.IN_PROGRESS;
+                case "completed"   -> TodoConfig.TodoStatus.COMPLETED;
+                default            -> TodoConfig.TodoStatus.NOT_STARTED;
+            };
+            newItem.setStatus(status);
+        }
+
+        var items = new ArrayList<TodoConfig.TodoItem>();
+        items.add(newItem);
+        if (config.getItems() != null) {
+            items.addAll(config.getItems());
+        }
+        config.setItems(items);
+        return mapper.writeValueAsString(config);
     }
 
     // ── save-filters ──────────────────────────────────────────────────────────

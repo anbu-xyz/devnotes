@@ -793,7 +793,7 @@ green for the due-in dimension.
 
 #### Interactive controls
 
-Each rendered todo block includes two interactive controls that do not require saving the
+Each rendered todo block includes three interactive controls that do not require saving the
 markdown editor:
 
 **Next-state button (→)** — Every item has a small arrow button on its right edge. Clicking it
@@ -808,6 +808,20 @@ and replaces the widget with the freshly re-rendered HTML — no page reload nee
 `Completed`) let you show or hide items by status. Items without an explicit `status` are always
 visible. The filter state resets to all-checked whenever the widget is re-rendered after a
 status advance.
+
+**Add button (`+ Add`)** — A `+ Add` button sits at the right end of the filter bar. Clicking it
+opens a dialog where you can fill in:
+
+| Field | Required | Notes |
+|---|---|---|
+| Summary | yes | Plain text, displayed as the item heading |
+| Status | yes | `not-started` (default), `in-progress`, or `completed` |
+| Due date | no | ISO date picker; drives the due-in colour dimension |
+| Description | no | CommonMark markdown; rendered as HTML below the summary |
+
+The `created` date is always set to today automatically. The new item is prepended at the **top**
+of the list. The endpoint `POST /todo/add-item` updates the YAML in the markdown file on disk and
+returns the re-rendered widget HTML — no page reload needed.
 
 ### REST blocks
 
@@ -1166,6 +1180,11 @@ java -Ddevnotes.docsDirectory=/path/to/docs -jar target/devnotes-0.0.1-SNAPSHOT.
 
 Use the `` ```todo `` fenced code block directly in any markdown file — see the
 [Todo blocks](#todo-blocks) section above for the full YAML schema and colour-threshold reference.
+
+You can also add items without editing the markdown source: every rendered todo block has a
+**`+ Add`** button at the right end of the filter bar. Clicking it opens a dialog where you
+enter the summary, status, an optional due date, and an optional markdown description. The new
+item is inserted at the **top** of the list and the file is saved automatically.
 
 When you save a markdown file, any todo item that is missing a `created` date is automatically
 given today's date.

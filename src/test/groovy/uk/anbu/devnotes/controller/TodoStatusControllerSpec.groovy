@@ -358,4 +358,173 @@ items:
                 .find { it.attr("data-filter-status") == "completed" }
         !completedCb.hasAttr("checked")
     }
+
+    // ── add-item ──────────────────────────────────────────────────────────────
+
+    def "add-item returns 400 when markdownFile is missing"() {
+        when:
+        def resp = controller.addItem([todoId: "abc", summary: "New task"])
+
+        then:
+        resp.statusCode == HttpStatus.BAD_REQUEST
+    }
+
+    def "add-item returns 400 when summary is missing"() {
+        given:
+        def yaml = "items:\n  - summary: Existing\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.addItem([markdownFile: filename, todoId: todoId(yaml)])
+
+        then:
+        resp.statusCode == HttpStatus.BAD_REQUEST
+    }
+
+    def "add-item returns 404 when markdown file does not exist"() {
+        when:
+        def resp = controller.addItem([markdownFile: "missing.md", todoId: "deadbeef", summary: "Task"])
+
+        then:
+        resp.statusCode == HttpStatus.NOT_FOUND
+    }
+
+    def "add-item returns 404 when todoId does not match any block"() {
+        given:
+        def yaml = "items:\n  - summary: Existing\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.addItem([markdownFile: filename, todoId: "00000000wrongid0", summary: "Task"])
+
+        then:
+        resp.statusCode == HttpStatus.NOT_FOUND
+    }
+
+    def "add-item prepends new item at top of the list and returns HTML widget"() {
+        given:
+        def yaml = "items:\n  - summary: Existing task\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.addItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            summary: "Brand new task"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        def items = Jsoup.parse(resp.body).select(".todo-summary")
+        items[0].text() == "Brand new task"
+        items[1].text() == "Existing task"
+    }
+
+    def "add-item persists new item to the markdown file"() {
+        given:
+        def yaml = "items:\n  - summary: Original\n"
+        def filename = writeMd(yaml)
+
+        when:
+        controller.addItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            summary: "Persisted task"
+        ])
+
+        then:
+        def saved = Files.readString(tempDir.resolve(filename))
+        saved.contains("Persisted task")
+    }
+
+    def "add-item sets created date to today"() {
+        given:
+        def yaml = "items:\n  - summary: Old task\n"
+        def filename = writeMd(yaml)
+
+        when:
+        controller.addItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            summary: "Dated task"
+        ])
+
+        then:
+        def saved = Files.readString(tempDir.resolve(filename))
+        saved.contains(java.time.LocalDate.now().toString())
+    }
+
+    def "add-item stores optional due date when provided"() {
+        given:
+        def yaml = "items:\n  - summary: Existing\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.addItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            summary: "Task with due",
+            due: "2026-12-31"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        Files.readString(tempDir.resolve(filename)).contains("2026-12-31")
+    }
+
+    def "add-item stores optional description when provided"() {
+        given:
+        def yaml = "items:\n  - summary: Existing\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.addItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            summary: "Described task",
+            description: "Some **detail** here"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        Files.readString(tempDir.resolve(filename)).contains("Some **detail** here")
+    }
+
+    def "add-item stores status when provided"() {
+        given:
+        def yaml = "items:\n  - summary: Existing\n"
+        def filename = writeMd(yaml)
+
+        when:
+        def resp = controller.addItem([
+            markdownFile: filename,
+            todoId: todoId(yaml),
+            summary: "In-progress task",
+            status: "in-progress"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        Jsoup.parse(resp.body).select(".todo-status-badge")[0].text() == "In progress"
+    }
+
+    def "add-item returns new data-todo-id reflecting updated YAML"() {
+        given:
+        def yaml = "items:\n  - summary: Original\n"
+        def filename = writeMd(yaml)
+        def oldId = todoId(yaml)
+
+        when:
+        def resp = controller.addItem([
+            markdownFile: filename,
+            todoId: oldId,
+            summary: "New task"
+        ])
+
+        then:
+        resp.statusCode == HttpStatus.OK
+        def newId = Jsoup.parse(resp.body).select(".todo-widget")[0].attr("data-todo-id")
+        newId != oldId
+        !newId.blank
+    }
 }

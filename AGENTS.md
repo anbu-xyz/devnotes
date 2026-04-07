@@ -402,18 +402,37 @@ The optional `description` field is rendered as **CommonMark HTML** inline in th
 `TodoBlockTranslator` is stateless and has no Spring dependencies — it is instantiated inline in
 `CodeBlockTransformer`, consistent with `MermaidBlockTranslator`.
 
+**Interactive controls rendered by every widget:**
+
+| Control | Trigger | Endpoint | Behaviour |
+|---|---|---|---|
+| **→ (next-state button)** | Click arrow on item | `POST /todo/advance-status` | Advances item status through `(none)→not-started→in-progress→completed→not-started`; persists YAML; returns re-rendered widget |
+| **Filter checkboxes** | Change checkbox | `POST /todo/save-filters` | Shows/hides items by status; persists visibility flags to YAML; returns new `data-todo-id` hash |
+| **+ Add button** | Click in filter bar | `POST /todo/add-item` | Opens a `<dialog>` for summary (required), status, optional due date, optional markdown description; new item is **prepended** at top; `created` set to today; persists YAML; returns re-rendered widget |
+
+**`POST /todo/add-item` request body:**
+
+| Field | Required | Description |
+|---|---|---|
+| `markdownFile` | yes | Relative path of the markdown file |
+| `todoId` | yes | `data-todo-id` hash of the target widget |
+| `summary` | yes | Plain text task summary |
+| `status` | no | `not-started` (default) / `in-progress` / `completed` |
+| `due` | no | ISO date string `yyyy-MM-dd` |
+| `description` | no | CommonMark markdown |
+
 **Key files:**
 
 | File | Role |
 |---|---|
 | `markdown/code/todo/TodoConfig.java` | Jackson POJO: top-level config, `ThresholdConfig` (age `ThresholdValues` + due-in `DueInThresholdValues`), `TodoItem`, `TodoStatus` enum (`not-started` / `in-progress` / `completed`) |
-| `markdown/code/TodoBlockTranslator.java` | Translates YAML fence → `HtmlBlock`; `computeRowClass`, `computeOpenDays`, `computeDueIn`, `renderDescriptionMarkdown`, `statusLabel`, `nextStatusLabel`, `makeFilterLabel` |
-| `controller/TodoStatusController.java` | `POST /todo/advance-status` — finds block by hash, advances item status, persists file, returns updated widget HTML |
+| `markdown/code/TodoBlockTranslator.java` | Translates YAML fence → `HtmlBlock`; `computeRowClass`, `computeOpenDays`, `computeDueIn`, `renderDescriptionMarkdown`, `statusLabel`, `nextStatusLabel`, `makeFilterLabel`; renders `+ Add` button in filter bar |
+| `controller/TodoStatusController.java` | `POST /todo/advance-status` — status cycle; `POST /todo/save-filters` — persist filter state; `POST /todo/add-item` — prepend new item, set `created=today`, persist, return widget HTML |
 | `markdown/TodoCreatedDateFiller.java` | Scans all `` ```todo `` fences in a markdown string; injects `created: <today>` into every item that lacks a `created:` field; called by `MarkdownController.saveMarkdown` |
-| `static/css/style.css` | `.todo-widget`, `.todo-filters`, `.todo-filter-label`, `.todo-block`, `.todo-green/amber/red/overdue`, `.todo-completed`, `.todo-status-badge`, `.todo-status-not-started/in-progress/completed`, `.todo-item-header`, `.todo-next-state-btn`, `.todo-error` |
-| `static/js/markdown.js` | `setupTodoBlockControls`, `applyTodoFilters`, `setupTodoStatusHandler` |
+| `static/css/style.css` | `.todo-widget`, `.todo-filters`, `.todo-filter-label`, `.todo-add-btn`, `.todo-block`, `.todo-green/amber/red/overdue`, `.todo-completed`, `.todo-status-badge`, `.todo-status-not-started/in-progress/completed`, `.todo-item-header`, `.todo-next-state-btn`, `.todo-error`; `dialog#todo-add-dialog` and `.todo-add-dialog-*` classes |
+| `static/js/markdown.js` | `setupTodoBlockControls`, `applyTodoFilters`, `setupTodoStatusHandler`, `setupTodoAddHandler` (creates shared `<dialog>`, delegates `.todo-add-btn` clicks, POSTs to `/todo/add-item`, swaps widget) |
 | `test/…/TodoBlockTranslatorSpec.groovy` | 81 Spock feature methods (dual-threshold colouring, highest-criticality selection, Open(days)/Due-in columns, markdown descriptions, status badges, widget structure, filter bar, next-state button) |
-| `test/…/TodoStatusControllerSpec.groovy` | 12 Spock feature methods (status transitions, multi-item update, file persistence, 404/400 error cases) |
+| `test/…/TodoStatusControllerSpec.groovy` | 29 Spock feature methods (status transitions, multi-item update, file persistence, save-filters, 404/400 error cases, add-item: prepend order, created date, due/description/status fields, hash update) |
 | `test/…/TodoCreatedDateFillerSpec.groovy` | 17 Spock feature methods (fence detection, per-item injection, CRLF preservation, nested-key false-positive guard) |
 
 ### REST Blocks (`RestBlockTranslator`)
@@ -1072,6 +1091,10 @@ the commit-status API. No deployment step is included.
 | Change the filter-checkbox labels | Edit `TodoBlockTranslator.makeFilterLabel` calls in `buildHtmlBlock` |
 | Change filter visibility logic (e.g. hide items with no status) | Edit `applyTodoFilters` in `static/js/markdown.js` |
 | Change the auto-created-date injection logic | Edit `TodoCreatedDateFiller.injectCreatedDates` |
+| Change the "+ Add" button position or label | Edit `TodoBlockTranslator.buildHtmlBlock` — the button is appended last inside `.todo-filters` |
+| Change the add-item dialog fields or layout | Edit `setupTodoAddHandler` in `static/js/markdown.js` |
+| Change add-item dialog styling | Edit `dialog#todo-add-dialog` and `.todo-add-dialog-*` rules in `static/css/style.css` |
+| Change which fields are sent to `POST /todo/add-item` | Edit the `payload` object in `setupTodoAddHandler` and the `addItem` method in `TodoStatusController` |
 | Change rest block HTTP client timeout defaults | Edit `RestCodeblockConfig.timeoutSeconds` default and `RestBlockTranslator.executeHttpRequest` |
 | Add a new HTTP method to rest blocks | Add a `case` to the `switch (method)` in `RestBlockTranslator.executeHttpRequest` |
 | Change rest block cache key logic | Edit `RestCodeblockConfig.checksum()` |
