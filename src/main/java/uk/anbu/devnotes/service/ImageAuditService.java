@@ -112,5 +112,35 @@ public class ImageAuditService {
 
         return new ImageAuditResult(orphanedList, brokenLinks);
     }
+
+    /**
+     * Deletes an orphaned image file identified by its path relative to the docs directory.
+     * Rejects paths that attempt to escape the docs directory via {@code ..} segments.
+     *
+     * @param relativePath path relative to the docs directory, using {@code /} separators
+     * @throws IllegalArgumentException if the path is unsafe or not an image
+     * @throws IOException              if the file cannot be deleted
+     */
+    public void deleteOrphanedImage(String relativePath) throws IOException {
+        if (relativePath == null || relativePath.isBlank()) {
+            throw new IllegalArgumentException("Image path must not be blank");
+        }
+
+        Path docsDir = Path.of(configService.getDocsDirectory()).toAbsolutePath().normalize();
+        Path target = docsDir.resolve(relativePath).normalize();
+
+        // Path-traversal guard
+        if (!target.startsWith(docsDir)) {
+            throw new IllegalArgumentException("Refusing to delete file outside docs directory");
+        }
+
+        String ext = uk.anbu.devnotes.util.FileUtil.getFileExtension(target.getFileName().toString()).toLowerCase();
+        if (!ImageController.isImage(ext)) {
+            throw new IllegalArgumentException("Path does not point to a recognised image file: " + relativePath);
+        }
+
+        Files.delete(target);
+        log.info("Deleted orphaned image: {}", target);
+    }
 }
 

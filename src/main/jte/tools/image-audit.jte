@@ -10,6 +10,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
     <link rel="stylesheet" type="text/css" href="/css/style.css">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <title>Image Audit</title>
 </head>
 <body class="p-8">
@@ -27,13 +28,30 @@
     <table class="db-meta-table">
         <thead>
             <tr>
+                <th>Preview</th>
                 <th>Image File (relative to docs directory)</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             @for(String img : orphanedImages)
                 <tr>
+                    <td class="audit-thumbnail-cell">
+                        <img src="/image?filename=${img}" class="audit-thumbnail" alt="${img}" loading="lazy">
+                    </td>
                     <td>${img}</td>
+                    <td>
+                        <form hx-post="/tools/image-audit/delete"
+                              hx-target="closest tr"
+                              hx-swap="delete"
+                              hx-confirm="Delete this image? This cannot be undone."
+                              style="margin:0">
+                            <input type="hidden" name="imagePath" value="${img}">
+                            <button type="submit" class="btn-delete-image" title="Delete image">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </td>
                 </tr>
             @endfor
         </tbody>

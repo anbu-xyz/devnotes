@@ -8,6 +8,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.service.ImageAuditService;
 
@@ -37,6 +39,20 @@ public class ImageAuditController {
             log.error("Error performing image audit", e);
             return ResponseEntity.internalServerError()
                     .body("Error performing image audit: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/tools/image-audit/delete")
+    public ResponseEntity<String> deleteOrphanedImage(@RequestParam String imagePath) {
+        try {
+            imageAuditService.deleteOrphanedImage(imagePath);
+            return ResponseEntity.ok().body("");
+        } catch (IllegalArgumentException e) {
+            log.warn("Rejected image delete request for path '{}': {}", imagePath, e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            log.error("Error deleting orphaned image '{}'", imagePath, e);
+            return ResponseEntity.internalServerError().body("Error deleting image: " + e.getMessage());
         }
     }
 }

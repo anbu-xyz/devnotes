@@ -181,5 +181,69 @@ class ImageAuditControllerSpec extends Specification {
         response.body.contains("nowhere.png")
         response.body.contains("doc.md")
     }
+
+    // -------------------------------------------------------------------------
+    // DELETE endpoint tests
+    // -------------------------------------------------------------------------
+
+    def "POST /tools/image-audit/delete removes the image file and returns 200"() {
+        given:
+        Files.createFile(tempDir.resolve("orphan.png"))
+
+        when:
+        def response = controller.deleteOrphanedImage("orphan.png")
+
+        then:
+        response.statusCode == HttpStatus.OK
+        !Files.exists(tempDir.resolve("orphan.png"))
+    }
+
+    def "POST /tools/image-audit/delete removes an image in a subdirectory"() {
+        given:
+        def sub = Files.createDirectory(tempDir.resolve("subdir"))
+        Files.createFile(sub.resolve("unused.jpg"))
+
+        when:
+        def response = controller.deleteOrphanedImage("subdir/unused.jpg")
+
+        then:
+        response.statusCode == HttpStatus.OK
+        !Files.exists(sub.resolve("unused.jpg"))
+    }
+
+    def "POST /tools/image-audit/delete returns 400 for a path traversal attempt"() {
+        when:
+        def response = controller.deleteOrphanedImage("../../etc/passwd")
+
+        then:
+        response.statusCode == HttpStatus.BAD_REQUEST
+    }
+
+    def "POST /tools/image-audit/delete returns 400 for a non-image file"() {
+        given:
+        Files.createFile(tempDir.resolve("script.sh"))
+
+        when:
+        def response = controller.deleteOrphanedImage("script.sh")
+
+        then:
+        response.statusCode == HttpStatus.BAD_REQUEST
+    }
+
+    def "POST /tools/image-audit/delete returns 400 for a blank path"() {
+        when:
+        def response = controller.deleteOrphanedImage("   ")
+
+        then:
+        response.statusCode == HttpStatus.BAD_REQUEST
+    }
+
+    def "POST /tools/image-audit/delete returns 500 when file does not exist"() {
+        when:
+        def response = controller.deleteOrphanedImage("nonexistent.png")
+
+        then:
+        response.statusCode == HttpStatus.INTERNAL_SERVER_ERROR
+    }
 }
 
