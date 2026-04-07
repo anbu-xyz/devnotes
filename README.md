@@ -1231,6 +1231,46 @@ This is one way to work around this issue by looping until the variable is defin
 </script> 
 ```
 
+## Building the CodeMirror bundle
+
+The markdown editor uses a self-hosted CodeMirror 6 bundle located at
+`src/main/resources/static/js/codemirror-bundle.js`.  This file is generated from the
+sources in `src/main/js/` and is **not** committed to the repository.
+
+**The bundle is built automatically** by `mvn package` (and any phase that includes
+`generate-resources`).  The `exec-maven-plugin` runs two steps:
+
+1. `npm install` — installs packages declared in `src/main/js/package.json` into
+   `src/main/js/node_modules/`.
+2. `esbuild` via Node.js — bundles `src/main/js/entry.js` into
+   `src/main/resources/static/js/codemirror-bundle.js`.
+
+Node.js and npm must be available on `PATH`.
+
+### Rebuilding manually
+
+If you need to regenerate the bundle without a full Maven build:
+
+```bash
+cd src/main/js
+npm install --prefer-offline
+node node_modules/esbuild/bin/esbuild entry.js \
+  --bundle \
+  --format=esm \
+  --minify \
+  --outfile=../resources/static/js/codemirror-bundle.js
+```
+
+On Windows (PowerShell):
+
+```powershell
+Set-Location src\main\js
+npm install --prefer-offline
+node node_modules\esbuild\bin\esbuild entry.js `
+    --bundle --format=esm --minify `
+    --outfile=..\resources\static\js\codemirror-bundle.js
+```
+
 ## SSL Certificate config
 
 To generate local SSL certificates for testing purposes, you can use the following command:

@@ -64,10 +64,6 @@ pre, code {
     text-indent: -.4em; /* To indent the first line of code and make it alight with the rest of the code */
 }
 
-.CodeMirror-wrap pre {
-    text-indent: 0; /* To remove the indentation of the first line of code in CodeMirror (markdown editor) */
-}
-
 pre[class*="language-"] {
     padding: 0.25em 0;
     overflow-x: hidden;
@@ -292,83 +288,24 @@ img {
 }
 
 /* ==========================================================================
-                       SimpleMDE overrides
+                       CodeMirror 6 editor
    ========================================================================== */
 
-.editor-toolbar, .editor-toolbar.fullscreen {
-    background-color: #1e1e1e;
-    border-color: #333;
+#codeMirrorEditor {
+    height: calc(100vh - 100px);
+    min-height: 400px;
+    font-size: 0.9em;
 }
 
-.editor-toolbar button {
-    color: #e0e0e0 !important;
+.cm-editor {
+    height: 100%;
+    border: 1px solid #333;
 }
 
-.editor-toolbar button:hover,
-.editor-toolbar button.active {
-    background: #29b4fd;
-    color: #121212 !important;
+.cm-editor.cm-focused {
+    outline: none;
+    border-color: #29b4fd;
 }
-
-.editor-toolbar i.separator {
-    border-left: 1px solid #444;
-    border-right: 1px solid #444;
-}
-
-.CodeMirror {
-    background-color: #1e1e1e;
-    color: #e0e0e0;
-    border-color: #333;
-}
-
-.editor-preview {
-    background-color: #121212;
-    color: #e0e0e0;
-}
-
-.editor-preview pre {
-    background-color: #1e1e1e;
-}
-
-.editor-preview table td,
-.editor-preview table th {
-    border-color: #333;
-}
-
-/* Adjust SimpleMDE icon font */
-.editor-toolbar button:before {
-    font-family: 'Font Awesome 5 Free';
-    font-weight: 900;
-}
-
-/* Make the cursor more visible */
-.CodeMirror-cursor {
-    border-left: 1px solid #e0e0e0 !important; /* Light grey color */
-}
-
-/* Improve visibility of selected text */
-.CodeMirror-selected {
-    background: #3a3a3a !important; /* Darker grey for selection */
-}
-.CodeMirror-selectedtext {
-    color: #ffffff !important; /* White text for better contrast */
-}
-/* Improve visibility of the active line */
-.CodeMirror-activeline-background {
-    background: #2a2a2a !important; /* Slightly lighter than the background */
-}
-
-.editor-toolbar button[title="Bold"]:before { content: "\f032"; }
-.editor-toolbar button[title="Italic"]:before { content: "\f033"; }
-.editor-toolbar button[title="Heading"]:before { content: "\f1dc"; }
-.editor-toolbar button[title="Quote"]:before { content: "\f10d"; }
-.editor-toolbar button[title="Generic List"]:before { content: "\f0ca"; }
-.editor-toolbar button[title="Numbered List"]:before { content: "\f0cb"; }
-.editor-toolbar button[title="Create Link"]:before { content: "\f0c1"; }
-.editor-toolbar button[title="Insert Image"]:before { content: "\f03e"; }
-.editor-toolbar button[title="Toggle Preview"]:before { content: "\f1e0"; }
-.editor-toolbar button[title="Toggle Side by Side"]:before { content: "\f0db"; }
-.editor-toolbar button[title="Toggle Fullscreen"]:before { content: "\f31e"; }
 
 /* ==========================================================================
                        Directory listing

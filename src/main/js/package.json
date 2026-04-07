@@ -1,0 +1,12 @@
+{
+  "name": "devnotes-cm6",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CodeMirror 6 bundle for the devnotes markdown editor",
+  "dependencies": {
+    "@codemirror/lang-markdown": "6.5.0",
+    "@codemirror/theme-one-dark": "6.1.3",
+    "codemirror": "6.0.2",
+    "esbuild": "0.28.0"
+  }
+}

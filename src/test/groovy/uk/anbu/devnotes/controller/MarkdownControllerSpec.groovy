@@ -130,7 +130,7 @@ class MarkdownControllerSpec extends Specification {
         then:
         response.statusCode == HttpStatus.OK
         Document doc = Jsoup.parse(response.body.toString())
-        doc.select("#easyMdeEditor").text() == content
+        doc.select("#cmInitialContent").text() == content
         doc.select("#md-last-modified-time-editor").text() == expectedTimestamp
 
         cleanup:

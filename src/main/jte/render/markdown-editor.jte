@@ -11,7 +11,8 @@
     <!-- Note: only the text area is used by the htmx to display the editor. Refer to "markdown.jte"
     for the rest of the code -->
     <div id="markdownEditor" x-cloak x-show="editMode">
-        <textarea id="easyMdeEditor" style="display: none">$unsafe{originalMarkdown}</textarea>
+        <textarea id="cmInitialContent" hidden>$unsafe{originalMarkdown}</textarea>
+        <div id="codeMirrorEditor"></div>
         <button id="saveButton"
                 @click="await saveContent(); editMode = false; isSlides ? (window.location.href = '/markdown?filename=' + encodeURIComponent(document.getElementById('md-file-path').textContent)) : htmx.trigger('#hiddenViewButton', 'click')"
                 class="btn-blue-glow">

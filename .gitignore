@@ -34,3 +34,8 @@ build/
 
 ## Jte
 jte-classes/
+
+## Generated bundles
+src/main/resources/static/js/codemirror-bundle.js
+src/main/js/node_modules/
+src/main/js/package-lock.json

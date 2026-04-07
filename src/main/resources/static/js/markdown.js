@@ -1,10 +1,9 @@
-let easyMDE;
 const currentDirectoryName = document.getElementById('dl-current-directory-name').textContent;
 
 // Core functions
 async function saveContent() {
-    if (!easyMDE) {
-        console.error('easyMDE is not defined');
+    if (!window.editorView) {
+        console.error('CodeMirror editor is not initialised');
         return;
     }
 
@@ -26,7 +25,7 @@ async function saveContent() {
     const result = await fetch(uri, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: easyMDE.value()
+        body: window.editorView.state.doc.toString()
     });
 
     // if result was CONFLICT, don't save the file
@@ -91,13 +90,15 @@ function createLinkElement(iconName, href, onClick) {
     return link;
 }
 
-function attachEasyMdeOn(elementId) {
-    const element = document.getElementById(elementId);
-    if (!element) {
-        console.error(`Editor element not found: ${elementId}`);
-        return;
+function attachCodeMirrorEditor() {
+    const contentEl = document.getElementById('cmInitialContent');
+    const initialContent = contentEl ? contentEl.value : '';
+    const doInit = () => window.initCodeMirrorEditor('codeMirrorEditor', initialContent);
+    if (typeof window.initCodeMirrorEditor === 'function') {
+        doInit();
+    } else {
+        window.addEventListener('cm6ready', doInit, { once: true });
     }
-    easyMDE = new EasyMDE({ element });
 }
 
 function invokePrismHighlighting() {
@@ -112,9 +113,15 @@ async function uploadFile(file) {
     const response = await fetch('/uploadFile', {method: 'POST', body: formData});
     if (response.ok) {
         console.log("File uploaded successfully");
-        if (navigator.clipboard) {
+        const markdownLink = `![](${file.name})`;
+        if (window.editorView) {
+            const pos = window.editorView.state.selection.main.from;
+            window.editorView.dispatch({
+                changes: { from: pos, insert: markdownLink }
+            });
+        } else if (navigator.clipboard) {
             try {
-                await navigator.clipboard.writeText(`![](${file.name})`);
+                await navigator.clipboard.writeText(markdownLink);
                 console.log("File name copied to clipboard");
             } catch (err) {
                 console.error("Failed to copy file name to clipboard", err);
@@ -162,7 +169,7 @@ document.body.addEventListener('htmx:afterSwap', evt => {
             document.querySelectorAll('.todo-widget').forEach(w => applyTodoFilters(w))
         },
         markdownEditor: () => {
-            attachEasyMdeOn('easyMdeEditor')
+            attachCodeMirrorEditor()
         }
     };
 

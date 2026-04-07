@@ -27,6 +27,8 @@
         <jsoup.version>1.18.1</jsoup.version>
         <jsonpath.version>2.9.0</jsonpath.version>
         <wiremock.version>3.13.0</wiremock.version>
+
+        <npm.cmd>npm</npm.cmd> <!-- npm executable name; overridden to npm.cmd on Windows via the windows-npm profile -->
     </properties>
     <dependencies>
         <dependency>
@@ -260,6 +262,44 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <!-- Step 1: install npm dependencies into src/main/js/node_modules -->
+                    <execution>
+                        <id>cm6-npm-install</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <executable>${npm.cmd}</executable>
+                            <arguments>
+                                <argument>install</argument>
+                                <argument>--prefer-offline</argument>
+                            </arguments>
+                            <workingDirectory>${project.basedir}/src/main/js</workingDirectory>
+                        </configuration>
+                    </execution>
+                    <!-- Step 2: bundle into a single self-hosted ES module -->
+                    <execution>
+                        <id>cm6-bundle</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <executable>node</executable>
+                            <arguments>
+                                <argument>${project.basedir}/src/main/js/node_modules/esbuild/bin/esbuild</argument>
+                                <argument>${project.basedir}/src/main/js/entry.js</argument>
+                                <argument>--bundle</argument>
+                                <argument>--format=esm</argument>
+                                <argument>--minify</argument>
+                                <argument>--outfile=${project.basedir}/src/main/resources/static/js/codemirror-bundle.js</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
@@ -388,5 +428,18 @@
         </plugins>
 
     </build>
+
+    <profiles>
+        <profile>
+            <!-- On Windows, npm is npm.cmd; on Unix it is just npm -->
+            <id>windows-npm</id>
+            <activation>
+                <os><family>windows</family></os>
+            </activation>
+            <properties>
+                <npm.cmd>npm.cmd</npm.cmd>
+            </properties>
+        </profile>
+    </profiles>
 
 </project>

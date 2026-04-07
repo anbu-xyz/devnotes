@@ -8,7 +8,6 @@
 <html lang="en">
     <head>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.css">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css">
         <link rel="stylesheet" type="text/css" href="/css/style.css">
         <style>
@@ -76,7 +75,30 @@
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-javascript.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-java.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-sql.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/easymde/dist/easymde.min.js"></script>
+        <script type="module">
+            import { basicSetup, EditorView, markdown, oneDark } from '/js/codemirror-bundle.js';
+
+            window.initCodeMirrorEditor = function(mountId, initialContent) {
+                const mountEl = document.getElementById(mountId);
+                if (!mountEl) return;
+                if (window.editorView) {
+                    window.editorView.destroy();
+                    window.editorView = null;
+                }
+                window.editorView = new EditorView({
+                    doc: initialContent || '',
+                    extensions: [
+                        basicSetup,
+                        markdown(),
+                        oneDark,
+                        EditorView.lineWrapping,
+                    ],
+                    parent: mountEl,
+                });
+            };
+            window._cm6ready = true;
+            window.dispatchEvent(new Event('cm6ready'));
+        </script>
         <script src="/js/paste-image.js"></script>
         <script src="/js/markdown.js"></script>
         <script>
