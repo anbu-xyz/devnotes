@@ -4,6 +4,7 @@
 @param String lastModifiedTime
 @param uk.anbu.devnotes.types.FrontMatter frontMatter
 @param int mermaidBlockCount
+@param int cacheFileCount
 
 <!DOCTYPE html>
 <html>
@@ -29,6 +30,15 @@
         </div>
         @endif
         $unsafe{htmlContent}
+        @if(cacheFileCount > 0)
+        <dialog id="cache-clear-dialog" class="cache-clear-dialog">
+            <p class="cache-clear-dialog-message">Clear <strong>${cacheFileCount}</strong> cached output file${cacheFileCount == 1 ? "" : "s"} for this page?</p>
+            <div class="cache-clear-dialog-actions">
+                <button id="clearCacheCancel" class="cache-clear-cancel-btn">Cancel</button>
+                <button id="clearCacheConfirm" class="cache-clear-confirm-btn">Clear</button>
+            </div>
+        </dialog>
+        @endif
         <button id="editButton" @click="editMode = true; htmx.trigger('#hiddenEditButton', 'click')" class="btn-blue-glow">
             <i class="fas fa-edit"></i>Edit
         </button>
@@ -61,6 +71,31 @@
             document.querySelectorAll('.mermaid-theme-picker').forEach(sel => {
                 sel.value = window._mermaidTheme || localStorage.getItem('mermaidTheme') || 'dark';
             });
+            @if(cacheFileCount > 0)
+            (function() {
+                const h1 = document.querySelector('#markdownViewer h1');
+                if (h1) {
+                    const badge = document.createElement('button');
+                    badge.className = 'cache-files-badge';
+                    badge.title = 'This page has ${cacheFileCount} cached output file${cacheFileCount == 1 ? "" : "s"} \u2014 click to clear';
+                    badge.innerHTML = '<i class="fas fa-database"></i>\u00a0${cacheFileCount}';
+                    badge.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        document.getElementById('cache-clear-dialog').showModal();
+                    });
+                    h1.appendChild(badge);
+                }
+                document.getElementById('clearCacheConfirm').addEventListener('click', async function() {
+                    document.getElementById('cache-clear-dialog').close();
+                    const mdFile = document.getElementById('md-file-path').textContent;
+                    await fetch('/markdown/clear-cache?' + new URLSearchParams({ filename: mdFile }), { method: 'POST' });
+                    htmx.trigger('#hiddenViewButton', 'click');
+                });
+                document.getElementById('clearCacheCancel').addEventListener('click', function() {
+                    document.getElementById('cache-clear-dialog').close();
+                });
+            })();
+            @endif
         </script>
     </div>
 </body>

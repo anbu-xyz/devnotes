@@ -90,6 +90,7 @@ public class MarkdownController {
                 params.put("markdownFile", filename);
                 params.put("frontMatter", frontMatter);
                 params.put("mermaidBlockCount", renderResult.mermaidBlockCount());
+                params.put("cacheFileCount", countOutputFiles(markdownFile));
                 templateEngine.render("render/markdown-viewer.jte", params, output);
             }
 
@@ -132,6 +133,56 @@ public class MarkdownController {
                 .atZone(ZoneId.systemDefault())
                 .toLocalDateTime()
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    }
+
+    private static int countOutputFiles(MarkdownFile markdownFile) {
+        try {
+            var dir = markdownFile.fullPath().getParent();
+            var baseName = Paths.get(markdownFile.fileName()).getFileName().toString()
+                    .replaceFirst("[.][^.]+$", "");
+            try (var stream = Files.list(dir)) {
+                return (int) stream
+                        .filter(p -> {
+                            var name = p.getFileName().toString();
+                            return name.startsWith(baseName + ".") && name.endsWith(".output");
+                        })
+                        .count();
+            }
+        } catch (Exception e) {
+            log.error("Error counting output cache files for {}", markdownFile.fileName(), e);
+            return 0;
+        }
+    }
+
+    @PostMapping("/markdown/clear-cache")
+    public ResponseEntity<String> clearMarkdownCache(@RequestParam String filename) {
+        try {
+            Path markdownRoot = Paths.get(configService.getDocsDirectory());
+            var markdownFile = new MarkdownFile(markdownRoot, filename);
+            if (!markdownFile.exists()) {
+                return ResponseEntity.notFound().build();
+            }
+            var dir = markdownFile.fullPath().getParent();
+            var baseName = Paths.get(filename).getFileName().toString()
+                    .replaceFirst("[.][^.]+$", "");
+            final java.util.List<Path> toDelete;
+            try (var stream = Files.list(dir)) {
+                toDelete = stream
+                        .filter(p -> {
+                            var name = p.getFileName().toString();
+                            return name.startsWith(baseName + ".") && name.endsWith(".output");
+                        })
+                        .toList();
+            }
+            for (var f : toDelete) {
+                Files.delete(f);
+            }
+            log.info("Cleared {} cache files for {}", toDelete.size(), filename);
+            return ResponseEntity.ok(String.valueOf(toDelete.size()));
+        } catch (Exception e) {
+            log.error("Error clearing cache files for {}", filename, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());
+        }
     }
 
     @GetMapping("/markdown")
