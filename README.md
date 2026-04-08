@@ -574,12 +574,10 @@ datasource1:
   url: "jdbc:h2:tcp://localhost:4000/./testdb"
   username: "sa"
   password: ""
-  driverClassName: "org.h2.Driver"
 datasource2:
   url: "jdbc:postgresql://localhost:5432/db2"
   username: "user2"
   password: "pass2"
-  driverClassName: "org.postgresql.Driver"
 ```
 
 #### Encrypting datasource passwords
@@ -604,7 +602,6 @@ datasource2:
   url: "jdbc:postgresql://localhost:5432/db2"
   username: "user2"
   password: "ENC(abc123…)"
-  driverClassName: "org.postgresql.Driver"
 ```
 
 **On every server restart** you must re-enter the passphrase at `/config/encryption-key`

@@ -28,8 +28,6 @@ class DataBlockTranslatorCurrencySpec extends Specification {
     @Shared
     String password = ""
     @Shared
-    String driver = "org.h2.Driver"
-    @Shared
     Connection conn
 
     DataBlockTranslator translator
@@ -75,7 +73,7 @@ class DataBlockTranslatorCurrencySpec extends Specification {
         exchangeRateService.init()
 
         def dsResolver = { String name ->
-            new ConfigService.DataSourceConfig(name, url, username, password, driver)
+            new ConfigService.DataSourceConfig(name, url, username, password)
         } as DatasourceConfigResolver
 
         def cs = Mock(ConfigService)

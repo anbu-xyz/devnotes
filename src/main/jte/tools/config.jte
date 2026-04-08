@@ -104,13 +104,6 @@
                                value="********" class="config-input"
                                :disabled="deleted['${entry.getKey()}']">
                     </div>
-                    <div class="form-group">
-                        <label for="${entry.getKey()}-driverClassName">Driver Class Name:</label>
-                        <input type="text" id="${entry.getKey()}-driverClassName"
-                               name="datasources[${entry.getKey()}].driverClassName"
-                               value="${entry.getValue().driverClassName()}" class="config-input"
-                               :disabled="deleted['${entry.getKey()}']">
-                    </div>
                 </div>
             </div>
         @endfor
@@ -142,12 +135,6 @@
                     <label :for="newName + '-new-password'">Password:</label>
                     <input type="password" :id="newName + '-new-password'"
                            :name="newName ? 'datasources[' + newName + '].password' : ''"
-                           class="config-input" :disabled="!newName">
-                </div>
-                <div class="form-group">
-                    <label :for="newName + '-new-driverClassName'">Driver Class Name:</label>
-                    <input type="text" :id="newName + '-new-driverClassName'"
-                           :name="newName ? 'datasources[' + newName + '].driverClassName' : ''"
                            class="config-input" :disabled="!newName">
                 </div>
             </div>

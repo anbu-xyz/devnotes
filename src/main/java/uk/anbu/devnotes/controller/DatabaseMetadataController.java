@@ -63,7 +63,6 @@ public class DatabaseMetadataController {
         // Open JDBC connection
         try {
             DriverManagerDataSource ds = new DriverManagerDataSource();
-            ds.setDriverClassName(dsConfig.driverClassName());
             ds.setUrl(dsConfig.url());
             ds.setUsername(dsConfig.username());
             ds.setPassword(dsConfig.password());

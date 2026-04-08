@@ -26,7 +26,7 @@ class SlidesControllerSpec extends Specification {
     def setup() {
         def sqlExecutor = Mock(SqlExecutor)
         def groovyRenderer = new GroovyRenderer((r) -> Optional.empty())
-        def dataSourceConfigResolver = { x -> new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "u", "p", "org.test.Driver") }
+        def dataSourceConfigResolver = { x -> new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "u", "p") }
         markdownRenderer = new MarkdownRenderer(groovyRenderer, dataSourceConfigResolver, sqlExecutor, null, new DatabaseMetadataBlockTranslator(), null)
         def codeResolver = new DirectoryCodeResolver(Paths.get("src/main/jte"))
         templateEngine = TemplateEngine.create(codeResolver, Paths.get("src/main/jte"), ContentType.Html)

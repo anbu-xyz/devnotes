@@ -346,7 +346,6 @@ public class DataBlockTranslator {
                                                               YamlCodeblockConfig config, int limit,
                                                               Map<String, Object> sharedParams) {
         DriverManagerDataSource ds = new DriverManagerDataSource();
-        ds.setDriverClassName(dsConfig.driverClassName());
         ds.setUrl(dsConfig.url());
         ds.setUsername(dsConfig.username());
         ds.setPassword(dsConfig.password());
@@ -842,7 +841,6 @@ public class DataBlockTranslator {
             throw new IllegalArgumentException("DataSource '" + dataSourceName + "' not configured.");
         }
         DriverManagerDataSource ds = new DriverManagerDataSource();
-        ds.setDriverClassName(dsConfig.driverClassName());
         ds.setUrl(dsConfig.url());
         ds.setUsername(dsConfig.username());
         ds.setPassword(dsConfig.password());

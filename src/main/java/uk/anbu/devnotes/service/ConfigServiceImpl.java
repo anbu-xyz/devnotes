@@ -60,7 +60,7 @@ public class ConfigServiceImpl implements ConfigService {
                             String rawPassword = e.getValue().password();
                             String password = decryptPassword(e.getKey(), rawPassword);
                             return new DataSourceConfig(e.getKey(), e.getValue().url(),
-                                    e.getValue().username(), password, e.getValue().driverClassName());
+                                    e.getValue().username(), password);
                         })
                         .collect(Collectors.toMap(DataSourceConfig::name, v -> v));
                 this.dataSources.putAll(x);
@@ -99,13 +99,12 @@ public class ConfigServiceImpl implements ConfigService {
             if (parts.length == 2 && parts[0].startsWith("datasources[") && parts[0].endsWith("]")) {
                 String dataSourceName = parts[0].substring(12, parts[0].length() - 1);
                 String property = parts[1];
-                DataSourceConfig config = updatedDataSources.getOrDefault(dataSourceName, new DataSourceConfig(dataSourceName, "", "", "", ""));
+                DataSourceConfig config = updatedDataSources.getOrDefault(dataSourceName, new DataSourceConfig(dataSourceName, "", "", ""));
 
                 config = switch (property) {
-                    case "url" -> new DataSourceConfig(dataSourceName, entry.getValue(), config.username(), config.password(), config.driverClassName());
-                    case "username" -> new DataSourceConfig(dataSourceName, config.url(), entry.getValue(), config.password(), config.driverClassName());
-                    case "password" -> !entry.getValue().equals("********") ? new DataSourceConfig(dataSourceName, config.url(), config.username(), entry.getValue(), config.driverClassName()) : config;
-                    case "driverClassName" -> new DataSourceConfig(dataSourceName, config.url(), config.username(), config.password(), entry.getValue());
+                    case "url" -> new DataSourceConfig(dataSourceName, entry.getValue(), config.username(), config.password());
+                    case "username" -> new DataSourceConfig(dataSourceName, config.url(), entry.getValue(), config.password());
+                    case "password" -> !entry.getValue().equals("********") ? new DataSourceConfig(dataSourceName, config.url(), config.username(), entry.getValue()) : config;
                     default -> config;
                 };
 
@@ -187,7 +186,7 @@ public class ConfigServiceImpl implements ConfigService {
                     String pwd = e.getValue().password();
                     String stored = EncryptionService.isEncrypted(pwd) ? pwd : encryptionService.encrypt(pwd);
                     return new DataSourceConfig(e.getKey(), e.getValue().url(),
-                            e.getValue().username(), stored, e.getValue().driverClassName());
+                            e.getValue().username(), stored);
                 })
                 .collect(Collectors.toMap(DataSourceConfig::name, v -> v));
     }

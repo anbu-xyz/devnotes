@@ -26,7 +26,6 @@ class DataBlockExportControllerSpec extends Specification {
     @Shared String h2Url    = "jdbc:h2:mem:exportspec;DB_CLOSE_DELAY=-1"
     @Shared String h2User   = "sa"
     @Shared String h2Pass   = ""
-    @Shared String h2Driver = "org.h2.Driver"
     @Shared Connection conn
 
     def setupSpec() {
@@ -115,7 +114,7 @@ class DataBlockExportControllerSpec extends Specification {
         def cs = Mock(ConfigService)
         cs.getDocsDirectory()           >> tempDir.toString()
         cs.getDataSourceConfig(dsName)  >> new ConfigService.DataSourceConfig(
-                dsName, h2Url, h2User, h2Pass, h2Driver)
+                dsName, h2Url, h2User, h2Pass)
         cs.isEncryptionKeySet()         >> keySet
         cs
     }
@@ -203,7 +202,7 @@ class DataBlockExportControllerSpec extends Specification {
         def cs = Mock(ConfigService)
         cs.getDocsDirectory()              >> tempDir.toString()
         cs.getDataSourceConfig("secureDs") >> new ConfigService.DataSourceConfig(
-                "secureDs", "jdbc:h2:mem:x", "sa", "ENC(aaaa==)", "org.h2.Driver")
+                "secureDs", "jdbc:h2:mem:x", "sa", "ENC(aaaa==)")
         cs.isEncryptionKeySet()            >> false
         def ctrl = newController(cs)
 

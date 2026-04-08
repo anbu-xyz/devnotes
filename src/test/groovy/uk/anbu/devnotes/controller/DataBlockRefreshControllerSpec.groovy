@@ -19,7 +19,7 @@ class DataBlockRefreshControllerSpec extends Specification {
         configService.isEncryptionKeySet() >> false
         configService.getDocsDirectory() >> tempDir.toString()
         configService.getDataSourceConfig("myDs") >> new ConfigService.DataSourceConfig(
-                "myDs", "jdbc:h2:mem:", "sa", "ENC(abc123==)", "org.h2.Driver")
+                "myDs", "jdbc:h2:mem:", "sa", "ENC(abc123==)")
 
         // Write a minimal markdown file with a data block
         def mdFile = tempDir.resolve("test.md")

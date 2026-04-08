@@ -32,6 +32,31 @@ java -Ddevnotes.docsDirectory=/path/to/your/docs \
 > The app requires TLS certificates at `tls/localtls.crt` and `tls/localtls.key`. See README for
 > the `openssl` command that generates them.
 
+### Reading the final build status (PowerShell)
+
+Maven produces a lot of log output (application logs from tests, etc.) that can bury the
+`BUILD SUCCESS` / `BUILD FAILURE` summary.  On the Windows PowerShell shell used in this
+workspace, piping to `Select-String` is unreliable because the pattern filter also discards the
+final summary lines.  **Capture output first, then filter:**
+
+```powershell
+$out = mvn clean test 2>&1; $out | Select-Object -Last 20
+```
+
+The last ~10 lines always contain:
+
+```
+[INFO] Tests run: <N>, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] BUILD SUCCESS   (or BUILD FAILURE)
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  ...
+```
+
+Do **not** use `mvn … | Select-String …` in a single pipeline — the pattern match causes
+intermediate lines to be dropped and the `BUILD SUCCESS/FAILURE` line is often lost, requiring
+multiple attempts to determine the outcome.
+
 ### Dev profile (hot-reload of jte templates)
 
 ```bash
@@ -102,7 +127,6 @@ myDatasource:
   url: "jdbc:postgresql://host:5432/db"
   username: "user"
   password: "pass"
-  driverClassName: "org.postgresql.Driver"
 ```
 
 When password encryption is active, the `password` field holds an `ENC(…)` token instead

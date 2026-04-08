@@ -59,7 +59,7 @@ class SqlExecutionControllerSpec extends Specification {
                 maxRows: 10,
                 forceExecute: true
         )
-        def dataSourceConfig = new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "user", "pass", "driver")
+        def dataSourceConfig = new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "user", "pass")
         def tempDir = Files.createTempDirectory("test")
         def jsonFile = tempDir.resolve("output.json")
 
@@ -157,7 +157,7 @@ SELECT * FROM old
 ```
 """.bytes)
         configService.getDocsDirectory() >> tempDir.toString()
-        def dataSourceConfig = new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "user", "pass", "driver")
+        def dataSourceConfig = new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "user", "pass")
         configService.getDataSourceConfig("testDB") >> dataSourceConfig
         sqlExecutor.renderResultAsJsonFile(_ as SqlExecutor.JsonGenerationRequest) >> tempDir.resolve("output.json")
         sqlExecutor.convertToHtmlTable(_ as SqlExecutor.HtmlTableRequest) >> "<table>Updated Result</table>"

@@ -38,7 +38,6 @@ class SqlExecutorResultReadWriteSpec extends Specification {
 
         // Set up H2 in-memory database
         dataSource = new DriverManagerDataSource()
-        dataSource.driverClassName = "org.h2.Driver"
         dataSource.url = "jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1"
         dataSource.username = "sa"
         dataSource.password = ""
@@ -46,8 +45,7 @@ class SqlExecutorResultReadWriteSpec extends Specification {
         dataSourceConfig = new ConfigService.DataSourceConfig("testDB",
                 dataSource.url,
                 dataSource.username,
-                dataSource.password,
-                "org.h2.Driver")
+                dataSource.password)
         configService.dataSources.put("testDB", dataSourceConfig)
 
         setupTestData()

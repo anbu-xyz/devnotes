@@ -34,7 +34,7 @@ class MarkdownControllerSpec extends Specification {
         sqlExecutor.renderResultAsJsonFile(_ as SqlExecutor.JsonGenerationRequest) >> Paths.get("src/test/resources/sql-result.json")
         sqlExecutor.convertToHtmlTable(_ as SqlExecutor.HtmlTableRequest) >> "html-table"
         groovyRenderer = new GroovyRenderer((r) -> Optional.empty())
-        dataSourceConfigResolver = x -> new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "testUser", "testPass", "org.test.Driver")
+        dataSourceConfigResolver = x -> new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "testUser", "testPass")
         markdownRenderer = new MarkdownRenderer(groovyRenderer, dataSourceConfigResolver, sqlExecutor, configService, new DatabaseMetadataBlockTranslator(), null)
         var codeResolver = new DirectoryCodeResolver(Paths.get("src/main/jte"))
         templateEngine = TemplateEngine.create(codeResolver, Paths.get("src/main/jte"), ContentType.Html)

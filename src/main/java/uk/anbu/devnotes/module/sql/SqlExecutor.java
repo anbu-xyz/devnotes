@@ -190,7 +190,6 @@ public class SqlExecutor {
                                                                   int maxRowsConfig) {
 
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName(dataSourceConfig.driverClassName());
         dataSource.setUrl(dataSourceConfig.url());
         dataSource.setUsername(dataSourceConfig.username());
         dataSource.setPassword(dataSourceConfig.password());

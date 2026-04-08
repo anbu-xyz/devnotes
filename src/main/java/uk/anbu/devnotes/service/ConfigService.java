@@ -1,5 +1,6 @@
 package uk.anbu.devnotes.service;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.Optional;
 
 public interface ConfigService {
@@ -27,7 +28,8 @@ public interface ConfigService {
      */
     void reEncryptAndSave();
 
-    record DataSourceConfig(String name, String url, String username, String password, String driverClassName) {
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record DataSourceConfig(String name, String url, String username, String password) {
     }
 
     record OtherConfigs(int sqlMaxRows, String chromeDriverLocation) {

@@ -29,8 +29,6 @@ class JdbcDatabaseControllerSpec extends Specification {
     @Shared
     String password = ""
     @Shared
-    String driver = "org.h2.Driver"
-    @Shared
     Connection conn
 
     // Per-test temp directory and controller
@@ -65,11 +63,11 @@ class JdbcDatabaseControllerSpec extends Specification {
 
         ConfigService mockConfig = Mock(ConfigService)
         mockConfig.getDataSourceConfig("testds") >> new ConfigService.DataSourceConfig(
-                "testds", dbUrl, username, password, driver)
+                "testds", dbUrl, username, password)
         mockConfig.getDataSourceConfig(_) >> null
         mockConfig.getDocsDirectory() >> tempDir.toString()
         mockConfig.getDataSources() >> [testds: new ConfigService.DataSourceConfig(
-                "testds", dbUrl, username, password, driver)]
+                "testds", dbUrl, username, password)]
 
         def codeResolver = new DirectoryCodeResolver(Paths.get("src/main/jte"))
         def te = TemplateEngine.create(codeResolver, Paths.get("src/main/jte"), ContentType.Html)

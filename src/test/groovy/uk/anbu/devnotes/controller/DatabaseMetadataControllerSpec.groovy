@@ -25,8 +25,6 @@ class DatabaseMetadataControllerSpec extends Specification {
     @Shared
     String password = ""
     @Shared
-    String driver = "org.h2.Driver"
-    @Shared
     Connection conn
     @Shared
     DatabaseMetadataController controller
@@ -51,7 +49,7 @@ class DatabaseMetadataControllerSpec extends Specification {
         // ConfigService stub: "testds" resolves to the shared H2 URL
         ConfigService mockConfig = Mock(ConfigService)
         mockConfig.getDataSourceConfig("testds") >> new ConfigService.DataSourceConfig(
-                "testds", url, username, password, driver)
+                "testds", url, username, password)
         mockConfig.getDataSourceConfig(_) >> null   // everything else → unknown
 
         // Real TemplateEngine pointing at src/main/jte (same pattern as SqlExecutionControllerSpec)

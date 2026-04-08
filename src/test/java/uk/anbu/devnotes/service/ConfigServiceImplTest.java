@@ -22,7 +22,7 @@ class ConfigServiceImplTest {
         // Initialize with a sample data source
         Map<String, ConfigServiceImpl.DataSourceConfig> initialDataSources = new HashMap<>();
         initialDataSources.put("testDB", new ConfigServiceImpl.DataSourceConfig("testDB", "jdbc:test:url",
-                "testUser", "testPass", "org.test.Driver"));
+                "testUser", "testPass"));
         configService.setDataSources(initialDataSources);
     }
 
@@ -38,7 +38,6 @@ class ConfigServiceImplTest {
         assertEquals("jdbc:new:url", updatedConfig.url());
         assertEquals("newUser", updatedConfig.username());
         assertEquals("testPass", updatedConfig.password()); // Should remain unchanged
-        assertEquals("org.test.Driver", updatedConfig.driverClassName()); // Should remain unchanged
     }
 
     @Test
@@ -47,7 +46,6 @@ class ConfigServiceImplTest {
         newConfigs.put("datasources[newDB].url", "jdbc:new:url");
         newConfigs.put("datasources[newDB].username", "newUser");
         newConfigs.put("datasources[newDB].password", "newPass");
-        newConfigs.put("datasources[newDB].driverClassName", "org.new.Driver");
 
         configService.updateDataSources(newConfigs);
 
@@ -56,7 +54,6 @@ class ConfigServiceImplTest {
         assertEquals("jdbc:new:url", newConfig.url());
         assertEquals("newUser", newConfig.username());
         assertEquals("newPass", newConfig.password());
-        assertEquals("org.new.Driver", newConfig.driverClassName());
     }
 
     @Test
@@ -161,8 +158,7 @@ class ConfigServiceImplTest {
                 + "  name: testDB\n"
                 + "  url: jdbc:test:url\n"
                 + "  username: testUser\n"
-                + "  password: \"" + encryptedToken + "\"\n"
-                + "  driverClassName: org.test.Driver\n";
+                + "  password: \"" + encryptedToken + "\"\n";
         Files.writeString(tempDir.resolve("config/datasource.yaml"), yaml);
 
         // Give the service an EncryptionService with the same passphrase + salt
@@ -191,7 +187,7 @@ class ConfigServiceImplTest {
         // Pre-populate in-memory with a plain-text password (no ENC token)
         Map<String, ConfigServiceImpl.DataSourceConfig> ds = new HashMap<>();
         ds.put("legacyDB", new ConfigServiceImpl.DataSourceConfig(
-                "legacyDB", "jdbc:legacy:url", "legacyUser", "legacyPass", "org.legacy.Driver"));
+                "legacyDB", "jdbc:legacy:url", "legacyUser", "legacyPass"));
         configService.setDataSources(ds);
 
         // Act — saveAndReloadConfig: saves (encrypting legacyPass), then reloads (decrypting)

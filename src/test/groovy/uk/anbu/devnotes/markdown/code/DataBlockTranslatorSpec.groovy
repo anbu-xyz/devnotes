@@ -28,8 +28,6 @@ class DataBlockTranslatorSpec extends Specification {
     @Shared
     String password = ""
     @Shared
-    String driver = "org.h2.Driver"
-    @Shared
     Connection conn
     @Shared
     def resolver
@@ -55,7 +53,7 @@ class DataBlockTranslatorSpec extends Specification {
         conn.createStatement().execute("INSERT INTO events VALUES (1, 'Alpha', DATE '2025-03-01', TIMESTAMP '2025-03-01 09:00:00', 1000, 3.14, true)")
         conn.createStatement().execute("INSERT INTO events VALUES (2, 'Beta',  DATE '2025-06-15', TIMESTAMP '2025-06-15 18:30:00', 2000, 2.71, false)")
 
-        resolver = ({ String name -> new ConfigService.DataSourceConfig(name, url, username, password, driver) } as DatasourceConfigResolver)
+        resolver = ({ String name -> new ConfigService.DataSourceConfig(name, url, username, password) } as DatasourceConfigResolver)
         configService = Mock(ConfigService)
         configService.getSqlMaxRows() >> 100
         registry = new ParameterRegistry()
@@ -471,7 +469,7 @@ column-formats:
         def mockConfigService = Mock(ConfigService)
         mockConfigService.isEncryptionKeySet() >> false
         mockConfigService.getSqlMaxRows() >> 100
-        def ds = new ConfigService.DataSourceConfig("myDs", "jdbc:h2:mem:", "sa", "ENC(abc123==)", "org.h2.Driver")
+        def ds = new ConfigService.DataSourceConfig("myDs", "jdbc:h2:mem:", "sa", "ENC(abc123==)")
         def encResolver = { String name -> ds } as DatasourceConfigResolver
         def encTranslator = new DataBlockTranslator(encResolver, mockConfigService, null, null)
         def yaml = '''
@@ -992,7 +990,7 @@ parameters:
         def mockConfigService = Mock(ConfigService)
         mockConfigService.isEncryptionKeySet() >> false
         mockConfigService.getSqlMaxRows() >> 100
-        def ds = new ConfigService.DataSourceConfig("secured", "jdbc:h2:mem:", "sa", "ENC(xyz==)", "org.h2.Driver")
+        def ds = new ConfigService.DataSourceConfig("secured", "jdbc:h2:mem:", "sa", "ENC(xyz==)")
         def encResolver = { String name -> ds } as DatasourceConfigResolver
         def encTranslator = new DataBlockTranslator(encResolver, mockConfigService, null, null)
         String yaml = '''
