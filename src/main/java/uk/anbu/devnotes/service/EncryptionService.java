@@ -175,9 +175,10 @@ public class EncryptionService {
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(TAG_LEN_BITS, iv));
             return new String(cipher.doFinal(ciphertext), StandardCharsets.UTF_8);
+        } catch (BadPaddingException | IllegalBlockSizeException e) {
+            throw new DecryptionFailedException(e);
         } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidKeyException
-                 | InvalidAlgorithmParameterException | IllegalBlockSizeException
-                 | BadPaddingException e) {
+                 | InvalidAlgorithmParameterException e) {
             throw new RuntimeException("Decryption failed", e);
         }
     }
@@ -185,6 +186,25 @@ public class EncryptionService {
     /** Returns {@code true} if {@code value} is an {@code ENC(...)} token. */
     public static boolean isEncrypted(String value) {
         return value != null && value.startsWith(ENC_PREFIX) && value.endsWith(ENC_SUFFIX);
+    }
+
+    /**
+     * Clears the active encryption key so that {@link #isKeySet()} returns {@code false}.
+     * Called by the controller when a decryption attempt fails (wrong passphrase supplied),
+     * so the activation form is shown again instead of the "key active" state.
+     */
+    public void clearKey() {
+        secretKey = null;
+    }
+
+    /**
+     * Thrown by {@link #decrypt(String)} when the ciphertext cannot be authenticated —
+     * typically because the active passphrase differs from the one used to encrypt.
+     */
+    public static class DecryptionFailedException extends RuntimeException {
+        public DecryptionFailedException(Throwable cause) {
+            super("Decryption failed — the passphrase may be incorrect", cause);
+        }
     }
 }
 

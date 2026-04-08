@@ -1,5 +1,6 @@
 @param boolean keySet
 @param String errorMessage
+@param boolean decryptionFailed
 @param String returnTo
 
 <!DOCTYPE html>
@@ -40,6 +41,26 @@
         <div class="encryption-error">
             <i class="fas fa-exclamation-triangle"></i> ${errorMessage}
         </div>
+    @endif
+
+    @if(decryptionFailed)
+    <dialog id="decryption-failed-dialog" x-data x-init="$el.showModal()">
+        <h2 class="decryption-failed-dialog-title">
+            <i class="fas fa-exclamation-circle"></i> Incorrect Passphrase
+        </h2>
+        <p class="decryption-failed-dialog-body">
+            The passphrase you entered could not decrypt the existing encrypted passwords on disk.
+            This usually means a different passphrase was used when the passwords were originally encrypted.
+        </p>
+        <p class="decryption-failed-dialog-body">
+            Please enter the correct passphrase to unlock your datasource configurations.
+        </p>
+        <div class="decryption-failed-dialog-actions">
+            <button class="btn-blue-glow" @click="$el.closest('dialog').close()">
+                <i class="fas fa-redo"></i> Try Again
+            </button>
+        </div>
+    </dialog>
     @endif
 
     <form action="/config/encryption-key"

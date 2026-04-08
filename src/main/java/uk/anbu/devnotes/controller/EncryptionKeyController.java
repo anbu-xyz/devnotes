@@ -31,7 +31,7 @@ public class EncryptionKeyController {
     @GetMapping("/config/encryption-key")
     public ResponseEntity<String> encryptionKeyPage(
             @RequestParam(required = false) String returnTo) {
-        return renderPage(null, returnTo);
+        return renderPage(null, false, returnTo);
     }
 
     /**
@@ -53,10 +53,14 @@ public class EncryptionKeyController {
                 .header(HttpHeaders.LOCATION, redirect)
                 .build();
         } catch (IllegalArgumentException e) {
-            return renderPage(e.getMessage(), returnTo);
+            return renderPage(e.getMessage(), false, returnTo);
+        } catch (EncryptionService.DecryptionFailedException e) {
+            encryptionService.clearKey();
+            log.warn("Passphrase rejected — could not decrypt existing passwords: {}", e.getMessage());
+            return renderPage("The passphrase is incorrect — existing encrypted passwords could not be decrypted. Please try again.", true, returnTo);
         } catch (Exception e) {
             log.error("Failed to activate encryption passphrase", e);
-            return renderPage("Failed to activate passphrase: " + e.getMessage(), returnTo);
+            return renderPage("Failed to activate passphrase: " + e.getMessage(), false, returnTo);
         }
     }
 
@@ -64,7 +68,7 @@ public class EncryptionKeyController {
     @GetMapping("/config/encryption-key/change")
     public ResponseEntity<String> changeEncryptionKeyPage(
             @RequestParam(required = false) String returnTo) {
-        return renderChangePage(null, returnTo);
+        return renderChangePage(null, false, returnTo);
     }
 
     /**
@@ -84,10 +88,14 @@ public class EncryptionKeyController {
                 .header(HttpHeaders.LOCATION, "/config/encryption-key")
                 .build();
         } catch (IllegalArgumentException e) {
-            return renderChangePage(e.getMessage(), returnTo);
+            return renderChangePage(e.getMessage(), false, returnTo);
+        } catch (EncryptionService.DecryptionFailedException e) {
+            encryptionService.clearKey();
+            log.warn("Passphrase change rejected — could not decrypt existing passwords: {}", e.getMessage());
+            return renderChangePage("The passphrase is incorrect — existing encrypted passwords could not be decrypted. Please try again.", true, returnTo);
         } catch (Exception e) {
             log.error("Failed to change encryption passphrase", e);
-            return renderChangePage("Failed to change passphrase: " + e.getMessage(), returnTo);
+            return renderChangePage("Failed to change passphrase: " + e.getMessage(), false, returnTo);
         }
     }
 
@@ -96,19 +104,21 @@ public class EncryptionKeyController {
         return returnTo != null && returnTo.startsWith("/") && !returnTo.contains("://");
     }
 
-    private ResponseEntity<String> renderPage(String errorMessage, String returnTo) {
+    private ResponseEntity<String> renderPage(String errorMessage, boolean decryptionFailed, String returnTo) {
         var model = new HashMap<String, Object>();
         model.put("keySet", encryptionService.isKeySet());
         model.put("errorMessage", errorMessage);
+        model.put("decryptionFailed", decryptionFailed);
         model.put("returnTo", returnTo != null ? returnTo : "");
         TemplateOutput output = new StringOutput();
         templateEngine.render("tools/encryption-key.jte", model, output);
         return ResponseEntity.status(HttpStatus.OK).body(output.toString());
     }
 
-    private ResponseEntity<String> renderChangePage(String errorMessage, String returnTo) {
+    private ResponseEntity<String> renderChangePage(String errorMessage, boolean decryptionFailed, String returnTo) {
         var model = new HashMap<String, Object>();
         model.put("errorMessage", errorMessage);
+        model.put("decryptionFailed", decryptionFailed);
         model.put("returnTo", returnTo != null ? returnTo : "");
         TemplateOutput output = new StringOutput();
         templateEngine.render("tools/encryption-key-change.jte", model, output);

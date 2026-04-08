@@ -799,6 +799,40 @@ table.sortable .btn-blue-glow i {
     margin-top: 0.25rem;
 }
 
+/* ── Decryption-failed dialog ─────────────────────────────────────────────── */
+
+dialog#decryption-failed-dialog {
+    background: #1a1a2e;
+    border: 1px solid #f85149;
+    border-radius: 8px;
+    padding: 1.5em 1.8em;
+    color: #e6edf3;
+    width: min(440px, 92vw);
+}
+
+dialog#decryption-failed-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.70);
+}
+
+.decryption-failed-dialog-title {
+    margin: 0 0 0.8em;
+    font-size: 1.05em;
+    color: #f85149;
+}
+
+.decryption-failed-dialog-body {
+    margin: 0 0 0.7em;
+    font-size: 0.9em;
+    color: #c9d1d9;
+    line-height: 1.5;
+}
+
+.decryption-failed-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1.2em;
+}
+
 .config-input-error {
     border-color: #f85149 !important;
     outline-color: #f85149;
