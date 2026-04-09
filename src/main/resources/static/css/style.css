@@ -1226,3 +1226,94 @@ dialog.edit-lock-dialog::backdrop {
     background: #e3b341;
     color: #1a1a2e;
 }
+
+/* ── Cache-files badge & clear dialog ───────────────────────────────────── */
+
+.cache-files-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    margin-left: 0.6em;
+    padding: 0.18em 0.5em;
+    font-size: 0.62em;
+    font-weight: 600;
+    color: #29b4fd;
+    background: rgba(41, 180, 253, 0.08);
+    border: 1px solid #29b4fd;
+    border-radius: 4px;
+    cursor: pointer;
+    vertical-align: middle;
+    line-height: 1.6;
+    font-family: 'Montserrat', sans-serif;
+    transition: background 0.15s;
+}
+
+.cache-files-badge:hover {
+    background: rgba(41, 180, 253, 0.22);
+}
+
+dialog.cache-clear-dialog {
+    background: #121212;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    width: min(380px, 92vw);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    color: #29b4fd;
+}
+
+dialog.cache-clear-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.cache-clear-dialog-message {
+    margin: 0 0 1.3em;
+    font-size: 0.93em;
+    color: #e6edf3;
+    line-height: 1.5;
+}
+
+.cache-clear-dialog-message strong {
+    color: #29b4fd;
+}
+
+.cache-clear-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6em;
+}
+
+.cache-clear-cancel-btn {
+    background: none;
+    border: 1px solid #555;
+    color: #8b949e;
+    border-radius: 4px;
+    padding: 0.35em 0.9em;
+    font-size: 0.88em;
+    font-family: inherit;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+}
+
+.cache-clear-cancel-btn:hover {
+    border-color: #888;
+    color: #ccc;
+}
+
+.cache-clear-confirm-btn {
+    background: none;
+    border: 1px solid #29b4fd;
+    color: #29b4fd;
+    border-radius: 4px;
+    padding: 0.35em 0.9em;
+    font-size: 0.88em;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.cache-clear-confirm-btn:hover {
+    background: #29b4fd;
+    color: #121212;
+}
+
