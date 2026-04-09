@@ -200,7 +200,8 @@ public class DataBlockTranslator {
         try {
             if (markdownFile != null) {
                 String checksum = config.checksum(sharedParams);
-                String fileNameNoExt = markdownFile.fileName().replaceFirst("[.][^.]+$", "");
+                String baseFileName = markdownFile.fullPath().getFileName().toString();
+                String fileNameNoExt = baseFileName.replaceFirst("[.][^.]+$", "");
                 String generatedFileName = fileNameNoExt + "." + checksum + ".output";
                 Path outputFile = markdownFile.fullPath().getParent().resolve(generatedFileName);
                 if (outputFile.toFile().exists()) {
@@ -227,7 +228,8 @@ public class DataBlockTranslator {
         }
         try {
             String checksum = config.checksum(sharedParams);
-            String fileNameNoExt = markdownFile.fileName().replaceFirst("[.][^.]+$", "");
+            String baseFileName = markdownFile.fullPath().getFileName().toString();
+            String fileNameNoExt = baseFileName.replaceFirst("[.][^.]+$", "");
             String generatedFileName = fileNameNoExt + "." + checksum + ".output";
             Path outputFile = markdownFile.fullPath().getParent().resolve(generatedFileName);
             FileBasedCache.saveOutput(outputFile, ((HtmlBlock) node).getLiteral());
