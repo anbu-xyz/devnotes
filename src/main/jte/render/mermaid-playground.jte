@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <link rel="stylesheet" type="text/css" href="/css/render.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="/css/prism-tomorrow.min.css">
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Mermaid playground</title>
@@ -91,8 +91,9 @@
     </div>
 </div>
 
-<script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+<script src="/js/mermaid.min.js"></script>
+<script>
+    // mermaid is available as a global from mermaid.min.js
 
     const MERMAID_THEME_KEY = 'mermaidTheme';
     const defaultTheme = 'dark';

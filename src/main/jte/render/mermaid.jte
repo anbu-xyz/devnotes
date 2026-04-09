@@ -5,10 +5,9 @@
 <html lang="en">
 <head>
     <link rel="stylesheet" type="text/css" href="/css/render.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="/css/prism-tomorrow.min.css">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-mermaid.min.js"></script>
+    <script src="/js/prism-bundle.js"></script>
 
     <title>${title}</title>
     <style>
@@ -44,8 +43,9 @@
     <div id="renderError"></div>
 </div>
 
-<script type="module">
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+<script src="/js/mermaid.min.js"></script>
+<script>
+    // mermaid is available as a global from mermaid.min.js
 
     const MERMAID_THEME_KEY = 'mermaidTheme';
     const defaultTheme = 'dark';

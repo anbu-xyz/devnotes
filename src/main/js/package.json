@@ -1,12 +1,17 @@
 {
-  "name": "devnotes-cm6",
+  "name": "devnotes-js",
   "version": "1.0.0",
   "private": true,
-  "description": "CodeMirror 6 bundle for the devnotes markdown editor",
+  "description": "CodeMirror 6 bundle and vendor assets for devnotes",
   "dependencies": {
     "@codemirror/lang-markdown": "6.5.0",
     "@codemirror/theme-one-dark": "6.1.3",
+    "@fortawesome/fontawesome-free": "5.15.3",
+    "alpinejs": "^3.0.0",
     "codemirror": "6.0.2",
-    "esbuild": "0.28.0"
+    "esbuild": "0.28.0",
+    "htmx.org": "1.9.12",
+    "mermaid": "^11.0.0",
+    "prismjs": "1.25.0"
   }
 }

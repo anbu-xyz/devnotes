@@ -6,7 +6,7 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="/css/prism-tomorrow.min.css">
     <title>File Not Found - ${data.get("filename")}</title>
 </head>
 <body class="p-8">
@@ -21,9 +21,6 @@
 </form>
 <a href="/" class="text-blue-500 hover:text-blue-700">No, return to home</a>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-javascript.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-java.min.js"></script>
+<script src="/js/prism-bundle.js"></script>
 </body>
 </html>

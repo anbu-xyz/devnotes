@@ -6,11 +6,11 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css">
+        <link rel="stylesheet" href="/css/font-awesome.min.css">
+        <link rel="stylesheet" href="/css/prism-tomorrow.min.css">
         <link rel="stylesheet" type="text/css" href="/css/style.css">
         <link rel="stylesheet" type="text/css" href="/css/slides.css">
-        <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+        <script src="/js/htmx.min.js"></script>
         <title>${title}</title>
     </head>
     <body class="slides-page">
@@ -33,12 +33,10 @@
                 }">
         </button>
         <div hidden id="dl-current-directory-name">${directoryName}</div>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-java.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-sql.min.js"></script>
-        <script type="module">
-            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+        <script src="/js/prism-bundle.js"></script>
+        <script src="/js/mermaid.min.js"></script>
+        <script>
+            // mermaid is available as a global from mermaid.min.js
             mermaid.initialize({ startOnLoad: false, theme: 'dark' });
             window.mermaid = mermaid;
             // Signal that mermaid is ready so slides-viewer.jte can render diagrams

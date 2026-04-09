@@ -6,10 +6,10 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+    <link rel="stylesheet" href="/css/font-awesome.min.css">
+    <script defer src="/js/alpine.min.js"></script>
+    <script src="/js/htmx.min.js"></script>
+    <script src="/js/htmx-json-enc.js"></script>
     <title>Configuration</title>
 </head>
 <body class="p-8" x-data="{ showNewDataSourceForm: false, newDataSourceName: '' }">

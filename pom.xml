@@ -297,6 +297,19 @@
                             </arguments>
                         </configuration>
                     </execution>
+                    <!-- Step 3: copy / bundle vendor assets (htmx, Alpine, FA, Prism, Mermaid) -->
+                    <execution>
+                        <id>vendor-bundle</id>
+                        <phase>generate-resources</phase>
+                        <goals><goal>exec</goal></goals>
+                        <configuration>
+                            <executable>node</executable>
+                            <arguments>
+                                <argument>${project.basedir}/src/main/js/build-vendor.js</argument>
+                            </arguments>
+                            <workingDirectory>${project.basedir}/src/main/js</workingDirectory>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             <plugin>

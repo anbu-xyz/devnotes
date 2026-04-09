@@ -5,10 +5,9 @@
 <html lang="en">
 <head>
     <link rel="stylesheet" type="text/css" href="/css/render.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="/css/prism-tomorrow.min.css">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-groovy.min.js"></script>
+    <script src="/js/prism-bundle.js"></script>
 
     <title>${title}</title>
     <style>

@@ -6,9 +6,9 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
-    <script src="https://unpkg.com/htmx.org/dist/ext/json-enc.js"></script>
+    <link rel="stylesheet" href="/css/font-awesome.min.css">
+    <script src="/js/htmx.min.js"></script>
+    <script src="/js/htmx-json-enc.js"></script>
     <title>Database Metadata Fetcher</title>
 </head>
 <body class="p-8">

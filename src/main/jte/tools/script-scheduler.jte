@@ -11,7 +11,7 @@
     <title>Groovy Script Scheduler</title>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
     <link rel="stylesheet" type="text/css" href="/css/script-scheduler.css">
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="/js/htmx.min.js"></script>
 </head>
 <body>
 <div class="container">

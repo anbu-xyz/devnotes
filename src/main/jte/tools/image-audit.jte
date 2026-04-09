@@ -8,9 +8,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <link rel="stylesheet" href="/css/font-awesome.min.css">
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="/js/htmx.min.js"></script>
     <title>Image Audit</title>
 </head>
 <body class="p-8">

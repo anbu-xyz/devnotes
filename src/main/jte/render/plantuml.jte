@@ -5,10 +5,10 @@
 <html lang="en">
 <head>
     <link rel="stylesheet" type="text/css" href="/css/render.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/css/prism-tomorrow.min.css">
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
+    <script src="/js/prism-bundle.js"></script>
     <!-- TODO: add support for plantuml -->
 <%--    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-plant-uml.min.js"></script>--%>
     <title>${title}</title>
