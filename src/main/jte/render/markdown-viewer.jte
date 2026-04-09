@@ -39,7 +39,7 @@
             </div>
         </dialog>
         @endif
-        <button id="editButton" @click="if (await acquireEditLock()) { editMode = true; htmx.trigger('#hiddenEditButton', 'click') } else { document.getElementById('edit-lock-dialog').showModal() }" class="btn-blue-glow">
+        <button id="editButton" @click="if (await acquireEditLock()) { editMode = true; setEditModeUrl(true); htmx.trigger('#hiddenEditButton', 'click') } else { document.getElementById('edit-lock-dialog').showModal() }" class="btn-blue-glow">
             <i class="fas fa-edit"></i>Edit
         </button>
         <hr>

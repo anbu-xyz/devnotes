@@ -72,6 +72,21 @@ function stopEditLockHeartbeat() {
     }
 }
 
+/**
+ * Updates the browser URL to reflect the current edit/view mode without
+ * triggering a page reload. This ensures that a browser refresh keeps the
+ * user in the same mode they were in.
+ */
+function setEditModeUrl(editing) {
+    const url = new URL(window.location.href);
+    if (editing) {
+        url.searchParams.set('edit', 'true');
+    } else {
+        url.searchParams.delete('edit');
+    }
+    history.replaceState(null, '', url.toString());
+}
+
 /** Called by the "Force Edit" button in the lock dialog. */
 async function openEditModeForce() {
     const acquired = await acquireEditLock(true);
@@ -81,6 +96,7 @@ async function openEditModeForce() {
         if (body && body._x_dataStack && body._x_dataStack[0]) {
             body._x_dataStack[0].editMode = true;
         }
+        setEditModeUrl(true);
         htmx.trigger('#hiddenEditButton', 'click');
     } else {
         alert('Could not acquire edit lock even with force. Please try again.');

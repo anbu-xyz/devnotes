@@ -117,8 +117,20 @@
         <script src="/js/markdown.js"></script>
         <script>
             if (${editMode}) {
-                document.addEventListener('DOMContentLoaded', function() {
-                    htmx.trigger('#hiddenEditButton', 'click');
+                document.addEventListener('DOMContentLoaded', async function() {
+                    const acquired = await acquireEditLock();
+                    if (!acquired) {
+                        // Another session holds the lock — revert to view mode
+                        const body = document.querySelector('[x-data]');
+                        if (body && body._x_dataStack && body._x_dataStack[0]) {
+                            body._x_dataStack[0].editMode = false;
+                        }
+                        setEditModeUrl(false);
+                        document.getElementById('edit-lock-dialog').showModal();
+                        htmx.trigger('#hiddenViewButton', 'click');
+                    } else {
+                        htmx.trigger('#hiddenEditButton', 'click');
+                    }
                 });
             } else {
                 document.addEventListener('DOMContentLoaded', function() {

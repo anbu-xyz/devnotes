@@ -14,7 +14,7 @@
         <textarea id="cmInitialContent" hidden>$unsafe{originalMarkdown}</textarea>
         <div id="codeMirrorEditor"></div>
         <button id="saveButton"
-                @click="await saveContent(); await releaseEditLock(); editMode = false; isSlides ? (window.location.href = '/markdown?filename=' + encodeURIComponent(document.getElementById('md-file-path').textContent)) : htmx.trigger('#hiddenViewButton', 'click')"
+                @click="await saveContent(); await releaseEditLock(); editMode = false; setEditModeUrl(false); isSlides ? (window.location.href = '/markdown?filename=' + encodeURIComponent(document.getElementById('md-file-path').textContent)) : htmx.trigger('#hiddenViewButton', 'click')"
                 class="btn-blue-glow">
             <i class="fas fa-save"></i>Save
         </button>
