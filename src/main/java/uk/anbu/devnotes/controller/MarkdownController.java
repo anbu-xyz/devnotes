@@ -289,7 +289,11 @@ public class MarkdownController {
                     .body(content.content());
         } else {
             // For other text files, set content type to plain text
-            String content = Files.readString(markdownRoot.resolve(filename), StandardCharsets.UTF_8);
+            var resolvedPath = markdownRoot.resolve(filename);
+            if (!resolvedPath.toFile().exists()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("File not found: " + filename);
+            }
+            String content = Files.readString(resolvedPath, StandardCharsets.UTF_8);
             return ResponseEntity.ok()
                     .contentType(org.springframework.http.MediaType.TEXT_PLAIN)
                     .body(content);

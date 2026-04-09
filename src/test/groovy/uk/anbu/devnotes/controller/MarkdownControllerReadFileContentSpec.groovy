@@ -162,6 +162,18 @@ class MarkdownControllerReadFileContentSpec extends Specification {
         0 * templateEngine.render(_, _, _)
     }
 
+    def "readFileContent returns 404 for a missing plain text file"() {
+        given:
+        def controller = new MarkdownController(Mock(MarkdownRenderer), Mock(TemplateEngine), Stub(ConfigService), null)
+
+        when:
+        def response = readFileContent(controller, "missing.txt", "txt")
+
+        then:
+        response.statusCode == HttpStatus.NOT_FOUND
+        response.body.toString().contains("missing.txt")
+    }
+
     private ResponseEntity<?> readFileContent(MarkdownController controller, String filename, String fileExtension) {
         (ResponseEntity<?>) READ_FILE_CONTENT.invoke(controller, filename, fileExtension, docsDir, false, new HashMap<>())
     }
