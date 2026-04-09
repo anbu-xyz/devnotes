@@ -47,6 +47,9 @@ By a corporate environment, I mean:
 * **Slides / Presentation mode** — set `type: slides` in front-matter to render a markdown file as a full-screen browser
   slide deck; supports explicit `---` slide breaks, automatic heading-divider splitting, per-slide metadata, speaker
   notes, themes, and keyboard navigation
+* **Exclusive edit locking** — opening a file for editing takes a server-side exclusive lock so the same file cannot be
+  edited simultaneously from another window or tab; the lock is kept alive by automatic heartbeats and expires after
+  60 seconds of inactivity; a **Force Edit** option lets you take over an apparently abandoned session
 
 ### Groovy Scripting
 
@@ -403,7 +406,7 @@ Mermaid diagrams work inside slides using the standard `` ```mermaid `` code fen
 syntax as the normal wiki view.  The Mermaid ESM library is loaded from CDN in the slides shell,
 and diagrams are rendered automatically once the slides content is swapped in by HTMX.
 
-```markdown
+````markdown
 ---
 type: slides
 ---
@@ -415,7 +418,7 @@ graph LR
     Client -->|HTTPS| Server
     Server --> DB[(PostgreSQL)]
 ```
-```
+````
 
 Diagrams are centred inside the slide and scaled to fit the viewport.  The Mermaid theme is
 fixed to `dark` in presentation mode regardless of the wiki-page theme preference.
@@ -1083,6 +1086,32 @@ then the next due card is shown automatically.
 Dropping plain YAML files (with only `question` and `answer`) into the `config/flashcards/`
 directory is enough to create new cards. Missing SM-2 fields default to
 `easeFactor=2.5`, `interval=1`, and all counts to `0`.
+
+### Exclusive Edit Locking
+
+When you open a markdown file for editing, the server takes an **exclusive edit lock** for that
+file.  If you (or anyone else using the same server) tries to open the same file for editing in
+another browser window or tab, a dialog is shown explaining that the file is already open:
+
+> 🔒 **File Already Open for Editing**
+> This file is currently open for editing in another window or browser tab.
+> Close that editor first, or wait — the lock expires automatically after 60 seconds of inactivity.
+
+**How it works:**
+
+- Each editor session generates a unique token when the page loads.
+- While the editor is open, the browser sends a **heartbeat** to the server every 20 seconds to
+  keep the lock alive.
+- When you save and close the editor, the lock is released immediately.
+- If you close the browser tab or navigate away without saving, the lock is released on page
+  unload.  If the unload beacon fails for any reason, the lock expires automatically after
+  **60 seconds** of inactivity — so an abandoned tab never permanently blocks editing.
+
+**Force Edit:**  If you are confident the other editor session is gone (e.g. a crashed browser),
+click the **Force Edit** button in the dialog.  This immediately takes over the lock and opens
+the editor.  Use this with care — if the other session is still active, both sessions will be
+editing the same file simultaneously and the last save wins (the normal conflict-detection
+mechanism still applies).
 
 ### Exchange Rate Manager
 

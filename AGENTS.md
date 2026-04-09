@@ -86,6 +86,7 @@ src/
         link/              # Link transformers
       module/              # Business-logic modules (search, SQL executor, Groovy renderer …)
       service/             # Spring services (config, git, pomodoro, scheduler, datasource, encryption)
+                           #   EditLockService.java       — in-memory exclusive edit-lock registry; heartbeat TTL; force release
                            #   FlashCardService.java      — load/save/query cards; delegates SM-2 to Sm2Algorithm
                            #   Sm2Algorithm.java          — pure stateless SM-2 computation (no I/O, no Spring)
                            #   ExchangeRateService.java   — load/save exchange-rates.yaml; populates ExchangeRates on startup
@@ -729,6 +730,56 @@ new cards slugifies the first 40 chars of the question; duplicates get `-2`, `-3
 
 ---
 
+### Exclusive Edit Locking (`EditLockService` / `EditLockController`)
+
+When a user opens a markdown file for editing, the server grants that browser session an
+**exclusive edit lock** for the file.  Any subsequent attempt to edit the same file from a
+different window or browser tab is blocked until the lock is released or expires.
+
+**Lock lifecycle:**
+
+1. User clicks the **Edit** button → the browser calls `POST /edit-lock/acquire` with a
+   `lockToken` (`crypto.randomUUID()`, unique per page load) and the relative `filename`.
+2. If the lock is granted (`{"acquired":true}`), the editor loads and a **heartbeat** interval
+   (every 20 s) starts via `POST /edit-lock/heartbeat`.
+3. If the lock is denied (`{"acquired":false}`), a modal dialog is shown instead of the editor:
+   - **OK** — dismisses the dialog, user stays in view mode.
+   - **Force Edit** — calls `POST /edit-lock/acquire` with `force=true`, which releases any
+     existing lock (even from another token) and immediately grants the new one.
+4. When the user saves and returns to view mode, `POST /edit-lock/release` is called (via
+   `navigator.sendBeacon`) and the heartbeat interval stops.
+5. On page unload (`beforeunload`), `sendBeacon` releases the lock automatically.
+
+**Server-side expiry:**  A lock with no heartbeat for **60 seconds** is considered stale and
+is auto-released on the next acquire or heartbeat call.  This ensures an abandoned browser tab
+never blocks editing indefinitely.
+
+**Token:** The `pageLockToken` is a UUID generated once per page load in `markdown.js`.  It
+is never stored server-side beyond the in-memory `ConcurrentHashMap<String, EditLock>`.
+
+**REST API:**
+
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/edit-lock/acquire` | Params: `filename`, `lockToken`, `force` (default `false`). Returns `{"acquired": true/false}`. |
+| `POST` | `/edit-lock/heartbeat` | Params: `filename`, `lockToken`. Returns `{"alive": true/false}`. |
+| `POST` | `/edit-lock/release` | Params: `filename`, `lockToken`. Always returns `200 OK`. |
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `service/EditLockService.java` | In-memory `ConcurrentHashMap<String, EditLock>`; `tryAcquireLock(filename, lockToken, force)`, `heartbeat`, `releaseLock`; auto-expiry on access |
+| `controller/EditLockController.java` | Three `POST` endpoints; `AcquireResult` and `HeartbeatResult` records |
+| `jte/render/markdown.jte` | `<dialog id="edit-lock-dialog">` with **Force Edit** and **OK** buttons |
+| `jte/render/markdown-viewer.jte` | Edit button `@click` calls `acquireEditLock()` before entering edit mode |
+| `jte/render/markdown-editor.jte` | Save button calls `await releaseEditLock()` before switching to view mode |
+| `static/js/markdown.js` | `pageLockToken`; `acquireEditLock(force)`, `releaseEditLock()`, `startEditLockHeartbeat()`, `stopEditLockHeartbeat()`, `openEditModeForce()`; `beforeunload` cleanup |
+| `static/css/style.css` | `dialog.edit-lock-dialog` (amber border); `.edit-lock-force-btn` |
+| `test/…/EditLockServiceSpec.groovy` | 14 Spock feature methods (acquire, re-acquire, deny, force, heartbeat, release, expiry) |
+
+---
+
 ### Exchange Rates (`ExchangeRateService`)
 
 Exchange rates are persisted to `<docsDirectory>/config/exchange-rates.yaml` as a flat YAML map:
@@ -1111,6 +1162,11 @@ the commit-status API. No deployment step is included.
 | Add a new flash card endpoint | Add handler to `FlashCardController`; add a jte template if needed |
 | Change flash card storage location | Edit `FlashCardService.flashcardsRoot()` |
 | Change flash card filename generation | Edit `FlashCardController.slugify` |
+| Change the edit-lock heartbeat interval (client) | Edit the `setInterval` period in `startEditLockHeartbeat()` in `static/js/markdown.js` |
+| Change the edit-lock expiry timeout (server) | Edit `EditLockService.LOCK_TIMEOUT`; update `EditLockServiceSpec` expiry tests |
+| Change the edit-lock dialog message or buttons | Edit `<dialog id="edit-lock-dialog">` in `jte/render/markdown.jte` |
+| Change the edit-lock dialog style | Edit `dialog.edit-lock-dialog` and `.edit-lock-force-btn` in `static/css/style.css` |
+| Disable the Force Edit button | Remove the `.edit-lock-force-btn` button and `openEditModeForce()` from `markdown.js` |
 | Add a new exchange-rate currency symbol | Add a `case` to `DataBlockTranslator.resolveTargetCurrency`; document in README |
 | Change exchange-rate storage location | Edit `ExchangeRateService.ratesFile()` |
 | Change exchange-rate YAML format | Edit `ExchangeRateService.save()` and `init()`; update tests |

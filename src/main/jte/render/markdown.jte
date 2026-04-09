@@ -69,6 +69,24 @@
             Paste image here
         </div>
         <div hidden id="dl-current-directory-name">${directoryName}</div>
+        <!-- Edit-lock dialog: shown when another session holds the edit lock -->
+        <dialog id="edit-lock-dialog" class="edit-lock-dialog">
+            <h2 class="edit-lock-dialog-title">&#128274; File Already Open for Editing</h2>
+            <p class="edit-lock-dialog-body">
+                This file is currently open for editing in another window or browser tab.
+                Close that editor first, or wait — the lock expires automatically after 60 seconds of inactivity.
+            </p>
+            <div class="edit-lock-dialog-actions">
+                <button class="edit-lock-force-btn"
+                        onclick="document.getElementById('edit-lock-dialog').close(); openEditModeForce()">
+                    Force Edit
+                </button>
+                <button class="btn-blue-glow"
+                        onclick="document.getElementById('edit-lock-dialog').close()">
+                    OK
+                </button>
+            </div>
+        </dialog>
         <!-- JavaScript -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/prism.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-python.min.js"></script>

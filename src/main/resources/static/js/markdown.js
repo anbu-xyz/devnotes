@@ -1,5 +1,100 @@
 const currentDirectoryName = document.getElementById('dl-current-directory-name').textContent;
 
+//-----------------------------------------------------------------------------
+// Edit-lock management
+// Each page load gets a unique token. The server tracks which token holds the
+// exclusive edit lock for each file. Open editors must send a heartbeat every
+// 20 s; locks with no heartbeat for 60 s are released automatically.
+//-----------------------------------------------------------------------------
+const pageLockToken = crypto.randomUUID();
+let _editLockHeartbeatId = null;
+
+function _editLockFilename() {
+    return document.getElementById('md-file-path').textContent.trim();
+}
+
+async function acquireEditLock(force = false) {
+    try {
+        const resp = await fetch('/edit-lock/acquire', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ filename: _editLockFilename(), lockToken: pageLockToken, force })
+        });
+        if (!resp.ok) return false;
+        const data = await resp.json();
+        return data.acquired === true;
+    } catch (err) {
+        console.error('Edit-lock acquire failed', err);
+        return false;
+    }
+}
+
+async function releaseEditLock() {
+    stopEditLockHeartbeat();
+    try {
+        navigator.sendBeacon('/edit-lock/release',
+            new URLSearchParams({ filename: _editLockFilename(), lockToken: pageLockToken }));
+    } catch (err) {
+        console.warn('Edit-lock release failed', err);
+    }
+}
+
+async function _sendEditLockHeartbeat() {
+    try {
+        const resp = await fetch('/edit-lock/heartbeat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ filename: _editLockFilename(), lockToken: pageLockToken })
+        });
+        if (resp.ok) {
+            const data = await resp.json();
+            if (!data.alive) {
+                console.warn('Edit-lock heartbeat rejected — lock lost');
+                stopEditLockHeartbeat();
+            }
+        }
+    } catch (err) {
+        console.warn('Edit-lock heartbeat error', err);
+    }
+}
+
+function startEditLockHeartbeat() {
+    stopEditLockHeartbeat();
+    _editLockHeartbeatId = setInterval(_sendEditLockHeartbeat, 20000);
+    console.debug('Edit-lock heartbeat started');
+}
+
+function stopEditLockHeartbeat() {
+    if (_editLockHeartbeatId !== null) {
+        clearInterval(_editLockHeartbeatId);
+        _editLockHeartbeatId = null;
+        console.debug('Edit-lock heartbeat stopped');
+    }
+}
+
+/** Called by the "Force Edit" button in the lock dialog. */
+async function openEditModeForce() {
+    const acquired = await acquireEditLock(true);
+    if (acquired) {
+        // Locate the Alpine component and set editMode = true
+        const body = document.querySelector('[x-data]');
+        if (body && body._x_dataStack && body._x_dataStack[0]) {
+            body._x_dataStack[0].editMode = true;
+        }
+        htmx.trigger('#hiddenEditButton', 'click');
+    } else {
+        alert('Could not acquire edit lock even with force. Please try again.');
+    }
+}
+
+// Release lock if user navigates away while editor is open
+window.addEventListener('beforeunload', () => {
+    if (_editLockHeartbeatId !== null) {
+        navigator.sendBeacon('/edit-lock/release',
+            new URLSearchParams({ filename: _editLockFilename(), lockToken: pageLockToken }));
+    }
+});
+
 // Core functions
 async function saveContent() {
     if (!window.editorView) {
@@ -150,6 +245,7 @@ document.addEventListener('keydown', e => {
 document.body.addEventListener('htmx:afterSwap', evt => {
     const actions = {
         markdownViewer: () => {
+            stopEditLockHeartbeat();
             createHomeLink("markdownViewer")
             invokePrismHighlighting()
             setupCodeBlockModals()
@@ -170,6 +266,7 @@ document.body.addEventListener('htmx:afterSwap', evt => {
         },
         markdownEditor: () => {
             attachCodeMirrorEditor()
+            startEditLockHeartbeat()
         }
     };
 

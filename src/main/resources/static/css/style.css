@@ -1137,269 +1137,53 @@ dialog#todo-add-dialog::backdrop {
     color: #ccc;
 }
 
-/* ==========================================================================
-                       Groovy Inline Expressions  [groovy] ... [/groovy]
-   ========================================================================== */
+/* ── Edit-lock dialog ─────────────────────────────────────────────────────── */
 
-.groovy-inline {
-    font-family: 'Courier New', Courier, monospace;
-    background-color: rgba(100, 160, 255, 0.08);
-    border-radius: 3px;
-    padding: 0.1em 0.3em;
-}
-
-.groovy-inline-error {
-    color: #f0a030;
-    cursor: help;
-    border-bottom: 1px dotted #f0a030;
-}
-
-/* ==========================================================================
-                       REST Blocks
-   ========================================================================== */
-.rest-block {
-    position: relative;
-    margin: 1em 0;
-}
-pre:has(> code.language-hidden-rest) {
-    display: none;
-}
-.rest-block-table {
-    border-collapse: collapse;
-    width: 100%;
-    font-size: 0.9em;
-}
-.rest-block-table th,
-.rest-block-table td {
-    border: 1px solid #444;
-    padding: 4px 8px;
-    vertical-align: top;
-}
-.rest-block-table th {
-    background-color: #333;
-    text-align: left;
-}
-.rest-block-number {
-    text-align: right;
-}
-.rest-block-status-row td {
-    border: none;
-    text-align: right;
-    color: gray;
-    font-size: 0.8em;
-    padding-top: 2px;
-}
-.rest-block-error {
-    color: #e57373;
-    background-color: #1e1a1a;
-    border-left: 3px solid #c62828;
-    padding: 8px 12px;
-    margin: 4px 0;
-    border-radius: 2px;
-    font-family: 'Courier New', Courier, monospace;
-    white-space: pre-wrap;
-}
-.rest-block-nested-table {
-    border-collapse: collapse;
-    font-size: 0.85em;
-    margin: 0;
-}
-.rest-block-nested-table td,
-.rest-block-nested-table th {
-    border: 1px solid #555;
-    padding: 2px 6px;
-}
-.rest-block-controls {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-.rest-block-more-btn {
-    background: #0b1220;
-    color: gray;
-    border: 1px solid #444;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 1.1em;
-    padding: 0 6px;
-    line-height: 1.4;
-}
-.rest-block-more-btn:hover {
-    background: #1a2535;
-}
-.rest-block-menu {
-    display: none;
-    position: absolute;
-    right: 0;
-    top: 100%;
-    background: #1e1e1e;
-    border: 1px solid #444;
-    border-radius: 3px;
-    list-style: none;
-    margin: 0;
-    padding: 4px 0;
-    min-width: 120px;
-    z-index: 20;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-}
-.rest-block-menu li a {
-    display: block;
-    padding: 5px 12px;
-    cursor: pointer;
-    color: #e0e0e0;
-    text-decoration: none;
-    white-space: nowrap;
-}
-.rest-block-menu li a:hover {
-    background: #2a2a2a;
-}
-
-/* -- Front-matter metadata --------------------------------------------------- */
-.fm-metadata {
-    margin-bottom: 1rem;
-}
-.fm-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-bottom: 0.5rem;
-}
-.fm-tag {
-    display: inline-block;
-    background: #2d3748;
-    color: #81e6d9;
-    border: 1px solid #4a5568;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    padding: 0.15rem 0.65rem;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-}
-.fm-description {
-    font-style: italic;
-    color: #9ca3af;
-    margin: 0;
-    font-size: 0.9rem;
-}
-
-/* ── Image Audit ──────────────────────────────────────────────────── */
-.audit-thumbnail-cell {
-    width: 130px;
-    text-align: center;
-    vertical-align: middle;
-}
-
-.audit-thumbnail {
-    max-height: 80px;
-    max-width: 120px;
-    object-fit: contain;
-    border: 1px solid #444;
-    border-radius: 4px;
+dialog.edit-lock-dialog {
     background: #1a1a2e;
-    display: block;
-    margin: 0 auto;
-}
-
-.btn-delete-image {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.3rem 0.6rem;
-    background-color: transparent;
-    border: 1px solid #c0392b;
-    color: #c0392b;
-    border-radius: 3px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    transition: background-color 0.2s, color 0.2s;
-}
-
-.btn-delete-image:hover {
-    background-color: #c0392b;
-    color: #fff;
-}
-
-/* -- Cache files badge ------------------------------------------------------ */
-.cache-files-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3em;
-    background: #162032;
-    color: #7ec8e3;
-    border: 1px solid #2d5a7a;
-    border-radius: 9999px;
-    font-size: 0.68rem;
-    padding: 0.1rem 0.55rem;
-    cursor: pointer;
-    vertical-align: middle;
-    margin-left: 0.7rem;
-    font-weight: 500;
-    line-height: 1.6;
-    transition: background 0.15s, border-color 0.15s;
-}
-
-.cache-files-badge:hover {
-    background: #1e3040;
-    border-color: #4a8aaa;
-}
-
-dialog#cache-clear-dialog {
-    background: #1a1a2e;
-    border: 1px solid #444;
+    border: 1px solid #e3b341;
     border-radius: 8px;
-    padding: 1.4em 1.7em;
+    padding: 1.5em 1.8em;
     color: #e6edf3;
-    width: min(380px, 90vw);
+    width: min(460px, 92vw);
 }
 
-dialog#cache-clear-dialog::backdrop {
-    background: rgba(0, 0, 0, 0.65);
+dialog.edit-lock-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.70);
 }
 
-.cache-clear-dialog-message {
-    margin: 0 0 1.2em;
-    font-size: 0.97em;
-    color: #e6edf3;
+.edit-lock-dialog-title {
+    margin: 0 0 0.8em;
+    font-size: 1.05em;
+    color: #e3b341;
 }
 
-.cache-clear-dialog-actions {
+.edit-lock-dialog-body {
+    margin: 0 0 0.7em;
+    font-size: 0.9em;
+    color: #c9d1d9;
+    line-height: 1.5;
+}
+
+.edit-lock-dialog-actions {
     display: flex;
     justify-content: flex-end;
     gap: 0.6em;
+    margin-top: 1.2em;
 }
 
-.cache-clear-confirm-btn {
-    background: #8b1c1c;
-    color: #fff;
-    border: 1px solid #c0392b;
-    border-radius: 4px;
-    padding: 0.3em 1em;
-    font-size: 0.88em;
-    cursor: pointer;
-    transition: background 0.15s;
-}
-
-.cache-clear-confirm-btn:hover {
-    background: #a92020;
-}
-
-.cache-clear-cancel-btn {
+.edit-lock-force-btn {
     background: none;
-    border: 1px solid #555;
-    color: #8b949e;
+    border: 1px solid #e3b341;
+    color: #e3b341;
     border-radius: 4px;
-    padding: 0.3em 0.8em;
+    padding: 0.35em 0.9em;
     font-size: 0.88em;
     cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
+    transition: background 0.15s, color 0.15s;
 }
 
-.cache-clear-cancel-btn:hover {
-    border-color: #888;
-    color: #ccc;
+.edit-lock-force-btn:hover {
+    background: #e3b341;
+    color: #1a1a2e;
 }
-
