@@ -22,6 +22,11 @@
             <input type="checkbox" id="autoSaveCheckbox" checked>
             <span class="checkbox-label-text">Auto Save</span>
         </label>
+        <div class="editor-font-size-control" title="Editor font size">
+            <button type="button" id="fontSizeDecrease" class="editor-font-size-btn" aria-label="Decrease font size">A-</button>
+            <span id="editorFontSizeDisplay" class="editor-font-size-display">14px</span>
+            <button type="button" id="fontSizeIncrease" class="editor-font-size-btn" aria-label="Increase font size">A+</button>
+        </div>
         <span hidden id="md-last-modified-time-editor">${lastModifiedTime}</span>
     </div>
 </body>

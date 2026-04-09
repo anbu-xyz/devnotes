@@ -196,6 +196,88 @@ function attachCodeMirrorEditor() {
     }
 }
 
+//-----------------------------------------------------------------------------
+// Editor font size  (preference kept in server memory; localStorage is used
+// as an instant cache to avoid a flash-of-wrong-size while the fetch resolves)
+//-----------------------------------------------------------------------------
+const EDITOR_FONT_SIZE_KEY = 'devnotes.editorFontSize';
+const EDITOR_FONT_SIZE_MIN = 10;
+const EDITOR_FONT_SIZE_MAX = 28;
+const EDITOR_FONT_SIZE_DEFAULT = 14;
+
+function _applyEditorFontSize(px) {
+    // Set on :root so the value survives htmx swaps of #markdownEditor.
+    // The CSS rule  #codeMirrorEditor { font-size: var(--editor-font-size, 0.9em) }
+    // picks this up automatically, even when the element is freshly rendered.
+    document.documentElement.style.setProperty('--editor-font-size', px + 'px');
+    const displayEl = document.getElementById('editorFontSizeDisplay');
+    if (displayEl) displayEl.textContent = px + 'px';
+}
+
+async function _saveEditorFontSizeToServer(px) {
+    try {
+        await fetch('/editor/font-size', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ fontSize: px })
+        });
+        localStorage.setItem(EDITOR_FONT_SIZE_KEY, px);
+    } catch (err) {
+        console.warn('Failed to save editor font size to server:', err);
+    }
+}
+
+async function _loadEditorFontSizeFromServer() {
+    try {
+        const resp = await fetch('/editor/font-size');
+        if (!resp.ok) return null;
+        const data = await resp.json();
+        return (Number.isInteger(data.fontSize) &&
+                data.fontSize >= EDITOR_FONT_SIZE_MIN &&
+                data.fontSize <= EDITOR_FONT_SIZE_MAX)
+            ? data.fontSize : null;
+    } catch (err) {
+        console.warn('Failed to load editor font size from server:', err);
+        return null;
+    }
+}
+
+function initEditorFontSize() {
+    // Apply cached value immediately so the editor shows the right size with no delay
+    const cached = parseInt(localStorage.getItem(EDITOR_FONT_SIZE_KEY), 10);
+    const immediate = (cached >= EDITOR_FONT_SIZE_MIN && cached <= EDITOR_FONT_SIZE_MAX)
+        ? cached : EDITOR_FONT_SIZE_DEFAULT;
+    _applyEditorFontSize(immediate);
+
+    // Then fetch the authoritative value from the server and reconcile
+    _loadEditorFontSizeFromServer().then(serverPx => {
+        if (serverPx !== null && serverPx !== immediate) {
+            _applyEditorFontSize(serverPx);
+            localStorage.setItem(EDITOR_FONT_SIZE_KEY, serverPx);
+        }
+    });
+
+    const decreaseBtn = document.getElementById('fontSizeDecrease');
+    const increaseBtn = document.getElementById('fontSizeIncrease');
+
+    if (decreaseBtn) {
+        decreaseBtn.addEventListener('click', () => {
+            const current = parseInt(document.documentElement.style.getPropertyValue('--editor-font-size'), 10) || EDITOR_FONT_SIZE_DEFAULT;
+            const next = Math.max(EDITOR_FONT_SIZE_MIN, current - 1);
+            _applyEditorFontSize(next);
+            _saveEditorFontSizeToServer(next);
+        });
+    }
+    if (increaseBtn) {
+        increaseBtn.addEventListener('click', () => {
+            const current = parseInt(document.documentElement.style.getPropertyValue('--editor-font-size'), 10) || EDITOR_FONT_SIZE_DEFAULT;
+            const next = Math.min(EDITOR_FONT_SIZE_MAX, current + 1);
+            _applyEditorFontSize(next);
+            _saveEditorFontSizeToServer(next);
+        });
+    }
+}
+
 function invokePrismHighlighting() {
     Prism.highlightAll();
 }
@@ -266,6 +348,7 @@ document.body.addEventListener('htmx:afterSwap', evt => {
         },
         markdownEditor: () => {
             attachCodeMirrorEditor()
+            initEditorFontSize()
             startEditLockHeartbeat()
         }
     };
