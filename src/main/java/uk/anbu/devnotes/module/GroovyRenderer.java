@@ -97,11 +97,32 @@ public class GroovyRenderer {
     /**
      * Renders the groovy block and wraps the output in a {@code <div class="groovy-block">}
      * container that carries a {@code data-groovy-id} attribute for client-side refresh.
+     * When the info string contains {@code controlsEnabled:false} the wrapper also gets
+     * {@code data-groovy-controls="false"}, which tells the JS not to inject the ⋮ menu.
      */
     public Optional<Node> renderResultWrapped(FencedCodeBlock codeBlock, String cacheFileName,
                                               String codeType, String groovyId) {
+        var showControls = parseControlsEnabled(codeType);
         return renderResult(codeBlock, cacheFileName, codeType)
-                .map(node -> wrapInGroovyBlock(node, groovyId));
+                .map(node -> wrapInGroovyBlock(node, groovyId, showControls));
+    }
+
+    /**
+     * Extracts the {@code controlsEnabled} flag from the info string.
+     * Returns {@code true} (controls shown) when the flag is absent or any value other than {@code false}.
+     */
+    private static boolean parseControlsEnabled(String codeType) {
+        int open = codeType.indexOf('(');
+        if (open == -1) return true;
+        int close = codeType.lastIndexOf(')');
+        if (close == -1) return true;
+        for (var part : codeType.substring(open + 1, close).split(",")) {
+            var kv = part.split(":");
+            if (kv.length == 2 && "controlsEnabled".equals(kv[0].trim())) {
+                return Boolean.parseBoolean(kv[1].trim());
+            }
+        }
+        return true;
     }
 
     /**
@@ -135,10 +156,11 @@ public class GroovyRenderer {
         return renderResultWrapped(codeBlock, cacheFileName, codeType, groovyId);
     }
 
-    private static HtmlBlock wrapInGroovyBlock(Node node, String groovyId) {
+    private static HtmlBlock wrapInGroovyBlock(Node node, String groovyId, boolean showControls) {
         var innerHtml = convertNodeToHtml(node);
         var wrapper = new HtmlBlock();
-        wrapper.setLiteral("<div class=\"groovy-block\" data-groovy-id=\"" + groovyId + "\">"
+        var controlsAttr = showControls ? "" : " data-groovy-controls=\"false\"";
+        wrapper.setLiteral("<div class=\"groovy-block\" data-groovy-id=\"" + groovyId + "\"" + controlsAttr + ">"
                 + innerHtml + "</div>\n");
         return wrapper;
     }
@@ -224,10 +246,11 @@ public class GroovyRenderer {
         return htmlBlock;
     }
 
-    private record GroovyCodeBlockConfig(Boolean cachingEnabled) {
+    private record GroovyCodeBlockConfig(Boolean cachingEnabled, Boolean controlsEnabled) {
         public static GroovyCodeBlockConfig fromMap(Map<String, String> configMap) {
             var cachingEnabled = Boolean.parseBoolean(configMap.getOrDefault("cacheEnabled", "true"));
-            return new GroovyCodeBlockConfig(cachingEnabled);
+            var controlsEnabled = Boolean.parseBoolean(configMap.getOrDefault("controlsEnabled", "true"));
+            return new GroovyCodeBlockConfig(cachingEnabled, controlsEnabled);
         }
     }
 

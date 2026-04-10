@@ -25,6 +25,8 @@ By a corporate environment, I mean:
     - CSV tables
     - HTML
     - Text
+    - Optional config parameters per block: `cacheEnabled` (default `true`) and `controlsEnabled`
+      (default `true` — set to `false` to hide the ⋮ context menu)
 * **Groovy Playground** at `/groovy-playground` — interactive split-pane editor with live execution and render-mode
   selector
 * **Mermaid Playground** at `/mermaid-playground` — interactive split-pane editor with live Mermaid diagram preview
@@ -162,19 +164,40 @@ pageTitle
 
 #### Groovy code optional configuration
 
-To enable caching use the following syntax in the code block header:
+Config parameters are appended in parentheses to the info string, comma-separated as
+`key:value` pairs:
 
 ```
-groovy:csv-table-with-header(cacheEnabled:false)
+groovy:csv-table-with-header(cacheEnabled:false,controlsEnabled:false)
+```
+
+| Parameter         | Values          | Default | Description                                                                                                     |
+|-------------------|-----------------|---------|-----------------------------------------------------------------------------------------------------------------|
+| `cacheEnabled`    | `true` / `false` | `true`  | When `false` the script is re-executed on every page render and no `.output` cache file is written.             |
+| `controlsEnabled` | `true` / `false` | `true`  | When `false` the **⋮** context menu button is not injected into the rendered block. Useful for embedded output that should look like plain content. |
+
+Parameters can be combined freely:
+
+```
+groovy:html(cacheEnabled:false,controlsEnabled:false)
 ```
 
 #### Groovy block context menu
 
-Every rendered groovy block has a **⋮** button in the top-right corner. Clicking it opens a
-two-item menu:
+Every rendered groovy block has a **⋮** button in the top-right corner (unless
+`controlsEnabled:false` is set). Clicking it opens a two-item menu:
 
 * **Refresh** — re-executes the script (bypasses cache) and replaces the block output in-place.
 * **Source** — toggles the visibility of the original Groovy source code.
+
+To permanently hide the ⋮ button for a block that should appear as plain content, add
+`controlsEnabled:false` to the info string:
+
+````
+```groovy:html(controlsEnabled:false)
+"<p>This output has no context menu.</p>"
+```
+````
 
 ### Groovy Playground
 

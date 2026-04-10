@@ -782,6 +782,7 @@ function setDataBlockBusy(dataBlock, busy) {
 function setupGroovyBlockControls() {
     document.querySelectorAll('.groovy-block').forEach(block => {
         if (block.querySelector('.groovy-block-controls')) return; // already attached
+        if (block.dataset.groovyControls === 'false') return;      // disabled via controlsEnabled:false
 
         const btn = document.createElement('button');
         btn.className = 'groovy-block-more-btn';

@@ -137,4 +137,70 @@ class GroovyRendererSpec extends Specification {
         then:
         !result.isPresent()
     }
+
+    def "renderResultWrapped includes groovy-block div with data-groovy-id by default"() {
+        given:
+        def codeBlock = new FencedCodeBlock()
+        codeBlock.setLiteral('"Hi"')
+        def cacheFile = tempDir.resolve("wrap-default.txt")
+
+        when:
+        def result = groovyRenderer.renderResultWrapped(codeBlock, cacheFile.toString(), "groovy:text", "abc123")
+
+        then:
+        result.isPresent()
+        def html = (result.get() as HtmlBlock).literal
+        html.contains('class="groovy-block"')
+        html.contains('data-groovy-id="abc123"')
+        !html.contains('data-groovy-controls')
+    }
+
+    def "renderResultWrapped omits controls when controlsEnabled:false"() {
+        given:
+        def codeBlock = new FencedCodeBlock()
+        codeBlock.setLiteral('"Hi"')
+        def cacheFile = tempDir.resolve("wrap-no-controls.txt")
+
+        when:
+        def result = groovyRenderer.renderResultWrapped(codeBlock, cacheFile.toString(),
+                "groovy:text(controlsEnabled:false)", "abc123")
+
+        then:
+        result.isPresent()
+        def html = (result.get() as HtmlBlock).literal
+        html.contains('class="groovy-block"')
+        html.contains('data-groovy-controls="false"')
+    }
+
+    def "renderResultWrapped shows controls when controlsEnabled:true is explicit"() {
+        given:
+        def codeBlock = new FencedCodeBlock()
+        codeBlock.setLiteral('"Hi"')
+        def cacheFile = tempDir.resolve("wrap-explicit-controls.txt")
+
+        when:
+        def result = groovyRenderer.renderResultWrapped(codeBlock, cacheFile.toString(),
+                "groovy:text(controlsEnabled:true)", "abc123")
+
+        then:
+        result.isPresent()
+        def html = (result.get() as HtmlBlock).literal
+        !html.contains('data-groovy-controls')
+    }
+
+    def "controlsEnabled:false can be combined with cacheEnabled:false"() {
+        given:
+        def codeBlock = new FencedCodeBlock()
+        codeBlock.setLiteral('"Hi"')
+        def cacheFile = tempDir.resolve("wrap-no-cache-no-controls.txt")
+
+        when:
+        def result = groovyRenderer.renderResultWrapped(codeBlock, cacheFile.toString(),
+                "groovy:text(cacheEnabled:false,controlsEnabled:false)", "abc123")
+
+        then:
+        result.isPresent()
+        def html = (result.get() as HtmlBlock).literal
+        html.contains('data-groovy-controls="false"')
+    }
 }
