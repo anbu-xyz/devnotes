@@ -109,6 +109,10 @@ pre:has(> code.language-hidden-plantuml){
     display: none;
 }
 
+pre:has(> code.language-hidden-rest) {
+    display: none;
+}
+
 .sql-execution-time {
     margin-left: 2em;
 }
@@ -203,6 +207,57 @@ td td, th td, td th, th th {
 .groovy-text-output {
     white-space: pre-wrap;
     word-break: break-word;
+}
+
+/* ==========================================================================
+                       REST Block Controls
+   ========================================================================== */
+
+.rest-block {
+    position: relative;
+}
+
+.rest-block-controls {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+}
+
+.rest-block-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 28px;
+    background: #121212;
+    border: 1px solid #e0e0e0;
+    padding: 4px;
+    margin: 0;
+    list-style: none;
+}
+
+.rest-block-more-btn {
+    background: #0b1220;
+    color: gray;
+}
+
+.rest-block-number {
+    text-align: right;
+}
+
+.rest-block-status-row, .rest-block-status-cell {
+    border: none;
+    text-align: right;
+    color: gray;
+}
+
+.rest-block-error {
+    color: #e57373;
+    background-color: #1e1a1a;
+    border-left: 3px solid #c62828;
+    padding: 8px 12px;
+    margin: 4px 0;
+    border-radius: 2px;
 }
 
 .data-block-menu {
