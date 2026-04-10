@@ -1,15 +1,12 @@
 # Developer Notes
 
-The goal of this tool is to help developers build a personal knowledge base with markdown files in
-a corporate environment.
+This is my personal wiki for jotting down notes, code snippets, and documentation related to my projects. It is built
+with Java Spring Boot, and uses a custom Markdown parser to support executable Groovy and SQL blocks, database metadata
+documentation, and other dynamic features.
 
-By a corporate environment, I mean:
-
-* You do not have access to personal knowledge base tools like Obsidian, Notion, etc.
-* You have access to create a personal Git repository and store documents in it.
-* You need to work with multiple databases with different schemas - trying to remember obscure table and column names is
-  not enjoyable.
-* You need a scripting language to gather data and display it in a user-friendly way.
+* It uses Markdown files stored in a Git repository, so your notes are portable, searchable, and version-controlled.
+* It can work with multiple databases with different schemas.
+* It can do dynamic HTML fragment generation using Groovy.
 
 ## Requirements
 
@@ -19,7 +16,7 @@ By a corporate environment, I mean:
 
 ## Features
 
-* Store documents as markdown files
+* Store documents as Markdown files
 * Save documents into a Git repository
 * Execute Groovy scripts and render results in multiple formats:
     - CSV tables
@@ -119,11 +116,11 @@ output
 ```
 ````
 
-The code will be executed and the result will be rendered in the markdown file.
+The code will be executed and the result will be rendered in the Markdown file.
 
 ### Playwright Scripting
 
-To embed executable Playwright code in a markdown file, use the following syntax:
+To embed executable Playwright code in a Markdown file, use the following syntax:
 
 ````
 ```groovy:text
@@ -171,9 +168,9 @@ Config parameters are appended in parentheses to the info string, comma-separate
 groovy:csv-table-with-header(cacheEnabled:false,controlsEnabled:false)
 ```
 
-| Parameter         | Values          | Default | Description                                                                                                     |
-|-------------------|-----------------|---------|-----------------------------------------------------------------------------------------------------------------|
-| `cacheEnabled`    | `true` / `false` | `true`  | When `false` the script is re-executed on every page render and no `.output` cache file is written.             |
+| Parameter         | Values           | Default | Description                                                                                                                                         |
+|-------------------|------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `cacheEnabled`    | `true` / `false` | `true`  | When `false` the script is re-executed on every page render and no `.output` cache file is written.                                                 |
 | `controlsEnabled` | `true` / `false` | `true`  | When `false` the **⋮** context menu button is not injected into the rendered block. Useful for embedded output that should look like plain content. |
 
 Parameters can be combined freely:
@@ -266,7 +263,7 @@ The span receives the CSS class `color-red`, which is defined in `static/css/sty
 
 ### YAML front-matter
 
-Any markdown file can begin with a YAML front-matter block delimited by `---` lines.
+Any Markdown file can begin with a YAML front-matter block delimited by `---` lines.
 The block is stripped from the rendered output and its fields are used to annotate the page.
 
 ```markdown
@@ -295,7 +292,7 @@ Any other YAML keys are accepted without error and stored in the `extra` map for
 #### Rendering
 
 When at least one field is present, a `<div class="fm-metadata">` block is injected at the top
-of the markdown viewer, before the document body:
+of the Markdown viewer, before the document body:
 
 - **Tags** appear as `<span class="fm-tag">` elements in a flex row.
 - **Description** appears as a `<p class="fm-description">` in italic, muted text.
@@ -426,7 +423,7 @@ Individual slide backgrounds override the deck default via the per-slide `backgr
 #### Mermaid diagrams in slides
 
 Mermaid diagrams work inside slides using the standard `` ```mermaid `` code fence — the same
-syntax as the normal wiki view.  The Mermaid ESM library is loaded from CDN in the slides shell,
+syntax as the normal wiki view. The Mermaid ESM library is loaded from CDN in the slides shell,
 and diagrams are rendered automatically once the slides content is swapped in by HTMX.
 
 ````markdown
@@ -443,10 +440,8 @@ graph LR
 ```
 ````
 
-Diagrams are centred inside the slide and scaled to fit the viewport.  The Mermaid theme is
+Diagrams are centred inside the slide and scaled to fit the viewport. The Mermaid theme is
 fixed to `dark` in presentation mode regardless of the wiki-page theme preference.
-
-
 
 To embed executable sql code in a markdown file, use the following syntax:
 
@@ -748,7 +743,7 @@ After generation, open the file in your wiki, fill in the `description` placehol
 
 ### Todo blocks
 
-Embed a colour-coded task list directly in a markdown file using a `` ```todo `` fenced code
+Embed a color-coded task list directly in a Markdown file using a `` ```todo `` fenced code
 block. The block body is YAML.
 
 ````
@@ -817,14 +812,14 @@ green for the due-in dimension.
 #### Interactive controls
 
 Each rendered todo block includes three interactive controls that do not require saving the
-markdown editor:
+Markdown editor:
 
 **Next-state button (→)** — Every item has a small arrow button on its **left edge**. Clicking it
 advances the item's status through the cycle:
 
 > (none) → `not-started` → `in-progress` → `completed` → `not-started` → …
 
-The button POSTs to `POST /todo/advance-status`, updates the YAML in the markdown file on disk,
+The button POSTs to `POST /todo/advance-status`, updates the YAML in the Markdown file on disk,
 and replaces the widget with the freshly re-rendered HTML — no page reload needed.
 
 **Filter checkboxes** — Three checkboxes at the top of the widget (`Not started`, `In progress`,
@@ -835,15 +830,15 @@ status advance.
 **Add button (`+ Add`)** — A `+ Add` button sits at the right end of the filter bar. Clicking it
 opens a dialog where you can fill in:
 
-| Field | Required | Notes |
-|---|---|---|
-| Summary | yes | Plain text, displayed as the item heading |
-| Status | yes | `not-started` (default), `in-progress`, or `completed` |
-| Due date | no | ISO date picker; drives the due-in colour dimension |
-| Description | no | CommonMark markdown; rendered as HTML below the summary |
+| Field       | Required | Notes                                                   |
+|-------------|----------|---------------------------------------------------------|
+| Summary     | yes      | Plain text, displayed as the item heading               |
+| Status      | yes      | `not-started` (default), `in-progress`, or `completed`  |
+| Due date    | no       | ISO date picker; drives the due-in colour dimension     |
+| Description | no       | CommonMark Markdown; rendered as HTML below the summary |
 
 The `created` date is always set to today automatically. The new item is prepended at the **top**
-of the list. The endpoint `POST /todo/add-item` updates the YAML in the markdown file on disk and
+of the list. The endpoint `POST /todo/add-item` updates the YAML in the Markdown file on disk and
 returns the re-rendered widget HTML — no page reload needed.
 
 **Edit button (✎)** — Every item has a small pencil button on its **right edge**. Clicking it
@@ -853,7 +848,7 @@ HTML — no page reload needed.
 
 ### REST blocks
 
-REST blocks execute an HTTP request from inside a markdown file and render the JSON response as
+REST blocks execute an HTTP request from inside a Markdown file and render the JSON response as
 an HTML table. The block body is YAML.
 
 ````
@@ -928,7 +923,7 @@ indexed rows.
 
 #### Caching and the context menu
 
-Results are cached to `<mdFileNoExt>.<checksum>.output` alongside the markdown file, in the
+Results are cached to `<mdFileNoExt>.<checksum>.output` alongside the Markdown file, in the
 same way as data blocks. The cache key is a SHA-256 hash of the complete YAML configuration.
 
 Every rendered REST block has a **⋮** button in the top-right corner:
@@ -1028,7 +1023,7 @@ keystroke so your work is never lost.
 
 ### Javascript support
 
-Javascript script tags can be embedded in markdown files using the following syntax:
+Javascript script tags can be embedded in Markdown files using the following syntax:
 
 ```html
 
@@ -1037,7 +1032,7 @@ Javascript script tags can be embedded in markdown files using the following syn
 ```
 
 If the filename starts with dot (e.g. `./script.js`) the file will be searched in the
-same directory as the markdown file.
+same directory as the Markdown file.
 
 ### Flash Cards
 
@@ -1112,8 +1107,8 @@ directory is enough to create new cards. Missing SM-2 fields default to
 
 ### Exclusive Edit Locking
 
-When you open a markdown file for editing, the server takes an **exclusive edit lock** for that
-file.  If you (or anyone else using the same server) tries to open the same file for editing in
+When you open a Markdown file for editing, the server takes an **exclusive edit lock** for that
+file. If you (or anyone else using the same server) tries to open the same file for editing in
 another browser window or tab, a dialog is shown explaining that the file is already open:
 
 > 🔒 **File Already Open for Editing**
@@ -1127,12 +1122,12 @@ another browser window or tab, a dialog is shown explaining that the file is alr
   keep the lock alive.
 - When you save and close the editor, the lock is released immediately.
 - If you close the browser tab or navigate away without saving, the lock is released on page
-  unload.  If the unload beacon fails for any reason, the lock expires automatically after
+  unload. If the unload beacon fails for any reason, the lock expires automatically after
   **60 seconds** of inactivity — so an abandoned tab never permanently blocks editing.
 
 **Force Edit:**  If you are confident the other editor session is gone (e.g. a crashed browser),
-click the **Force Edit** button in the dialog.  This immediately takes over the lock and opens
-the editor.  Use this with care — if the other session is still active, both sessions will be
+click the **Force Edit** button in the dialog. This immediately takes over the lock and opens
+the editor. Use this with care — if the other session is still active, both sessions will be
 editing the same file simultaneously and the last save wins (the normal conflict-detection
 mechanism still applies).
 
@@ -1283,11 +1278,11 @@ This is one way to work around this issue by looping until the variable is defin
 ## Building the CodeMirror bundle
 
 The markdown editor uses a self-hosted CodeMirror 6 bundle located at
-`src/main/resources/static/js/codemirror-bundle.js`.  This file is generated from the
+`src/main/resources/static/js/codemirror-bundle.js`. This file is generated from the
 sources in `src/main/js/` and is **not** committed to the repository.
 
 **The bundle is built automatically** by `mvn package` (and any phase that includes
-`generate-resources`).  The `exec-maven-plugin` runs two steps:
+`generate-resources`). The `exec-maven-plugin` runs two steps:
 
 1. `npm install` — installs packages declared in `src/main/js/package.json` into
    `src/main/js/node_modules/`.

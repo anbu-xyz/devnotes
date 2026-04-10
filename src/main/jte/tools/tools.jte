@@ -20,6 +20,7 @@
     <a href="/tools/image-audit" class="btn-blue-glow"><i class="fas fa-images"></i>Image Audit</a>
     <a href="/mermaid-playground" class="btn-blue-glow"><i class="fas fa-project-diagram"></i>Mermaid Playground</a>
     <a href="/groovy-playground" class="btn-blue-glow"><i class="fas fa-terminal"></i>Groovy Playground</a>
+    <a href="/tools/jwt" class="btn-blue-glow"><i class="fas fa-key"></i>JWT Token Parser</a>
 </div>
 <hr>
 <a href="/" class="btn-blue-glow"><i class="fas fa-home"></i>Home</a>
