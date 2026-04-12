@@ -22,8 +22,7 @@ documentation, and other dynamic features.
     - CSV tables
     - HTML
     - Text
-    - Block config via a **YAML header** inside the fence (preferred) or the legacy
-      `groovy:format(key:value)` info-string syntax; options include `output`, `cache-enabled`,
+    - Block config via a **YAML header** inside the fence; options include `output`, `cache-enabled`,
       and `controls-enabled` (default `true` — set to `false` to hide the ⋮ context menu)
 * **Groovy Playground** at `/groovy-playground` - interactive split-pane editor with live execution and render-mode
   selector
@@ -42,6 +41,8 @@ documentation, and other dynamic features.
 * **Inline Groovy expressions** - evaluate a Groovy expression inside any paragraph, heading, or bold/italic text using
   `[groovy]expression[/groovy]`; errors render as a ⚠ warning span
 * **Inline red text** - highlight a span of text in red using `[red]text[/red]`
+* **Symbol shortcuts** - short text tokens such as `[-v-]`, `[-x-]`, `[-w-]`, `[-s-]`, and `[-a-]` are
+  automatically replaced with Unicode symbols (✓ ✗ ⚠ ★ ➤) anywhere in the document
 * **YAML front-matter** - add a `---` delimited YAML block at the top of any `.md` file to set a custom page `title`,
   tag badges, and a short `description` displayed below the tags
 * **Slides / Presentation mode** - set `type: slides` in front-matter to render a markdown file as a full-screen browser
@@ -53,14 +54,14 @@ documentation, and other dynamic features.
 
 ### Groovy Scripting
 
-To embed executable Groovy code in a markdown file, use a `groovy` fenced code block. The body
+To embed executable Groovy code in a markdown file, use a `groovy-exec` fenced code block. The body
 starts with a **YAML header** that configures the block, followed by `---` on its own line, and
 then the Groovy script.
 
 #### To render the result as a CSV table with a header:
 
 ````
-```groovy
+```groovy-exec
 output: csv-table-with-header
 ---
 def output = ""
@@ -78,7 +79,7 @@ output
 #### To render the result as a csv table:
 
 ````
-```groovy
+```groovy-exec
 output: csv-table
 ---
 def output = ""
@@ -93,7 +94,7 @@ output
 #### To render the result as code block without any html formatting:
 
 ````
-```groovy
+```groovy-exec
 output: code-block
 ---
 def output = """
@@ -108,7 +109,7 @@ output
 #### To render the result as html:
 
 ````
-```groovy
+```groovy-exec
 output: html
 ---
 def output = "<h1>Hello World</h1>"
@@ -120,7 +121,7 @@ output
 #### To render the result as text:
 
 ````
-```groovy
+```groovy-exec
 output: text
 ---
 def output = "Hello World"
@@ -136,7 +137,7 @@ The code will be executed and the result will be rendered in the Markdown file.
 To embed executable Playwright code in a Markdown file, use the following syntax:
 
 ````
-```groovy
+```groovy-exec
 output: text
 ---
 import com.microsoft.playwright.Browser
@@ -180,7 +181,7 @@ Configuration sits in the **YAML header** at the top of the block body, before t
 separator:
 
 ````
-```groovy
+```groovy-exec
 output: html
 cache-enabled: false
 controls-enabled: false
@@ -201,7 +202,7 @@ defaults to `html`.
 
 #### Groovy block context menu
 
-Every rendered groovy block has a **⋮** button in the top-right corner (unless
+Every rendered groovy-exec block has a **⋮** button in the top-right corner (unless
 `controls-enabled: false` is set in the YAML header). Clicking it opens a two-item menu:
 
 * **Refresh** - re-executes the script (bypasses cache) and replaces the block output in-place.
@@ -211,7 +212,7 @@ To permanently hide the ⋮ button for a block that should appear as plain conte
 `controls-enabled: false` in the YAML header:
 
 ````
-```groovy
+```groovy-exec
 output: html
 controls-enabled: false
 ---
@@ -283,6 +284,31 @@ This is [red]very important[/red] information.
 ```
 
 The span receives the CSS class `color-red`, which is defined in `static/css/style.css`.
+
+### Symbol shortcuts
+
+Short mnemonic tokens are automatically replaced with Unicode symbols anywhere in the document
+body (paragraphs, headings, list items, table cells, etc.):
+
+| Token   | Symbol | Meaning / typical use      |
+|---------|--------|---------------------------|
+| `[-v-]` | ✓      | Check / success            |
+| `[-x-]` | ✗      | Cross / failure            |
+| `[-w-]` | ⚠      | Warning                    |
+| `[-s-]` | ★      | Star / highlight           |
+| `[-a-]` | ➤      | Arrow / action / pointer   |
+
+Example:
+
+```markdown
+| Feature | Status |
+|---------|--------|
+| Login   | [-v-]  |
+| Signup  | [-x-]  |
+| Billing | [-w-]  |
+```
+
+Tokens inside backtick code spans (`` `...` ``) and fenced code blocks are not substituted.
 
 ### YAML front-matter
 

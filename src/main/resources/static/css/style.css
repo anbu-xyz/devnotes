@@ -81,7 +81,7 @@ div.modal-dialog div.modal-content pre {
     display: block !important;
 }
 
-pre:has(> code.language-hidden-groovy) {
+pre:has(> code.language-hidden-groovy-exec) {
     display: none;
 }
 

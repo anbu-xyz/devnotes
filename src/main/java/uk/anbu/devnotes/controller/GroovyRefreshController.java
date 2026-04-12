@@ -87,7 +87,7 @@ public class GroovyRefreshController {
     }
 
     private static boolean isGroovyBlock(String info) {
-        return "groovy".equals(info);
+        return "groovy-exec".equals(info);
     }
 
     private ResponseEntity<String> renderMatchedBlock(FencedCodeBlock fcb, MarkdownFile mdFile, String groovyId) {

@@ -292,9 +292,9 @@ class GroovyRefreshControllerSpec extends Specification {
         "output: ${outputType}\n${extraYaml}---\n${script}\n"
     }
 
-    /** Wraps a literal body inside a {@code ```groovy} fence. */
+    /** Wraps a literal body inside a {@code ```groovy-exec} fence. */
     private static String groovyFenceFromLiteral(String literal) {
-        "```groovy\n${literal}```\n"
+        "```groovy-exec\n${literal}```\n"
     }
 }
 

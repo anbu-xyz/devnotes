@@ -857,13 +857,13 @@ function setupGroovyBlockActionHandler() {
             // The hidden source <pre> is a previous sibling of the groovy-block div
             let sibling = groovyBlock.previousElementSibling;
             while (sibling) {
-                if (sibling.tagName === 'PRE' && sibling.querySelector('code.language-hidden-groovy')) {
+                if (sibling.tagName === 'PRE' && sibling.querySelector('code.language-hidden-groovy-exec')) {
                     togglePre(sibling);
                     return;
                 }
                 sibling = sibling.previousElementSibling;
             }
-            console.debug('No hidden-groovy <pre> found for source toggle');
+            console.debug('No hidden-groovy-exec <pre> found for source toggle');
             return;
         }
 

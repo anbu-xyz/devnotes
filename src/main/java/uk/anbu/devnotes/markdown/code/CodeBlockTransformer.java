@@ -61,7 +61,7 @@ public class CodeBlockTransformer {
 
     private void processFencedCodeBlock(FencedCodeBlock codeBlock) {
         String codeType = codeBlock.getInfo();
-        if ("groovy".equals(codeType)) {
+        if ("groovy-exec".equals(codeType)) {
             String cacheFileName = generateCacheFileName(markdownFile, codeBlock.getLiteral());
             String groovyId = generateHash(codeBlock.getLiteral());
             var node = groovyRenderer.renderResultWrapped(codeBlock, cacheFileName, groovyId);
@@ -69,7 +69,7 @@ public class CodeBlockTransformer {
                 codeBlock.insertBefore(new Text("Error: Unable to render Groovy result"));
             } else {
                 codeBlock.insertAfter(node.get());
-                codeBlock.setInfo("hidden-groovy");
+                codeBlock.setInfo("hidden-groovy-exec");
             }
         } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
             renderSqlResult(codeBlock, markdownFile, codeType);

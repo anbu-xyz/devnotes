@@ -244,7 +244,7 @@ start; the derived AES-256-GCM key is kept only in JVM memory.
 1. Raw markdown text is parsed by **commonmark-java**.
 2. A series of AST visitors (`NodeVisitor`) walk the tree and replace recognised code fences with
    rendered HTML (`HtmlBlock` nodes):
-   - `` ```groovy `` (YAML config header + `---` separator) or `` ```groovy:<format> `` (legacy) → `CodeBlockTransformer` → `GroovyRenderer`
+   - `` ```groovy-exec `` (YAML config header + `---` separator) → `CodeBlockTransformer` → `GroovyRenderer`
    - `` ```sql(datasource:...) `` → `CodeBlockTransformer` → `SqlExecutor`
    - `` ```data `` → `DataBlockTranslator` (YAML config → named-parameter JDBC query → HTML table or jte template)
    - `` ```mermaid `` → `MermaidBlockTranslator`
@@ -258,6 +258,7 @@ start; the derived AES-256-GCM key is kept only in JVM memory.
    implementations:
    - `[groovy]expression[/groovy]` → `GroovyInlineTransformer` → `GroovyInlineNode` → `GroovyInlineNodeRenderer`
    - `[red]text[/red]` → `RedTextTransformer` → `RedTextNode` → `RedTextNodeRenderer`
+   - `[-v-]` / `[-x-]` / `[-w-]` / `[-s-]` / `[-a-]` → `SymbolTransformer` → plain `Text` replacement
 4. The modified AST is rendered back to HTML and injected into the jte page template.
 
 ### Inline Groovy Expressions (`GroovyInlineTransformer`)
@@ -305,6 +306,37 @@ appear inside any `Text` node and follows the same pattern as `GroovyInlineTrans
 | `markdown/red/RedTextTransformer.java` | Walks `Text` nodes; splits on `[red]` / `[/red]`; inserts `RedTextNode` siblings |
 | `markdown/red/RedTextNode.java` | `CustomNode` subclass holding the literal string |
 | `markdown/red/RedTextNodeRenderer.java` | `NodeRenderer` that emits `<span class="color-red">` |
+
+### Symbol Shortcuts (`SymbolTransformer`)
+
+`SymbolTransformer` is a stateless inline transformer that replaces mnemonic token strings with
+Unicode symbols in every `Text` node of the AST.  It is invoked directly (not via a
+`CustomNode`) - the `Text` node literal is simply rewritten in-place.
+
+**Token map:**
+
+| Token   | Replacement | Meaning               |
+|---------|-------------|-----------------------|
+| `[-v-]` | `✓`         | Check / success       |
+| `[-x-]` | `✗`         | Cross / failure       |
+| `[-w-]` | `⚠`         | Warning               |
+| `[-s-]` | `★`         | Star / highlight      |
+| `[-a-]` | `➤`         | Arrow / pointer       |
+
+**Behaviour:**
+
+| Situation | Result |
+|---|---|
+| Token found in a `Text` node | Token replaced with the Unicode symbol; a new `Text` node is inserted and the old one unlinked |
+| Multiple tokens in the same node | All replacements applied in a single pass |
+| Token inside a backtick code span | Never substituted - commonmark parses code spans as `Code` nodes, not `Text` |
+| Token inside a fenced code block | Never substituted - fenced blocks are `FencedCodeBlock` nodes |
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `markdown/check/SymbolTransformer.java` | Walks all `Text` nodes recursively; replaces all matching tokens; does not use `CustomNode` |
 
 
 
@@ -1236,13 +1268,13 @@ nav bar buttons.
 
 Scripts run inside a sandboxed `GroovyShell`.
 
-#### YAML-header format (preferred)
+#### YAML-header format
 
-The fence info string is simply `groovy`.  The block body contains a YAML config header
+The fence info string is `groovy-exec`.  The block body contains a YAML config header
 followed by `---` on its own line, then the Groovy script:
 
 ```
-```groovy
+```groovy-exec
 output: html
 cache-enabled: false
 controls-enabled: true
@@ -1259,27 +1291,11 @@ println "<div>Hello</div>"
 
 If the `---` separator is absent the entire body is treated as the script with default config.
 
-#### Legacy info-string format (still supported)
-
-The output type is encoded in the fence info string; optional config parameters are appended
-in parentheses:
-
-| Info string | Rendered as |
-|---|---|
-| `groovy:csv-table` | HTML table (no header row) |
-| `groovy:csv-table-with-header` | HTML table (first row = header) |
-| `groovy:html` | Raw HTML |
-| `groovy:text` | `<pre>` block |
-| `groovy:code-block` | Escaped `<pre>` block |
-
-Append `(cacheEnabled:false)` or `(controlsEnabled:false)` to the info string to override
-defaults, e.g. `groovy:html(cacheEnabled:false,controlsEnabled:false)`.
-
 #### Groovy block context menu (Refresh / Source)
 
 Every rendered groovy output is wrapped in a `<div class="groovy-block" data-groovy-id="...">`.
 The ID is the first 16 hex characters of the SHA-256 hash of the **full block literal** (YAML
-header + script for the new format; script only for the legacy format).  `CodeBlockTransformer`
+header + script).  `CodeBlockTransformer`
 computes this via `FileBasedCache.generateHash(literal)` and calls
 `GroovyRenderer.renderResultWrapped(..., groovyId)`.
 
@@ -1289,11 +1305,11 @@ two-item dropdown into every `.groovy-block`:
 | Menu item | Behaviour |
 |---|---|
 | **Refresh** | POSTs `{markdownFile, groovyId}` to `POST /groovy/fragment`; replaces the `.groovy-block` div with the returned HTML. |
-| **Source** | Walks `previousElementSibling` to find the adjacent `<pre><code class="language-hidden-groovy">` and toggles its visibility. |
+| **Source** | Walks `previousElementSibling` to find the adjacent `<pre><code class="language-hidden-groovy-exec">` and toggles its visibility. |
 
 `GroovyRefreshController` (`POST /groovy/fragment`):
 1. Reads the markdown file.
-2. Walks all `FencedCodeBlock` nodes whose `info` is `"groovy"`.
+2. Walks all `FencedCodeBlock` nodes whose `info` is `"groovy-exec"`.
 3. Matches by `generateHash(literal)` where `literal` is the full block body.
 4. Calls `GroovyRenderer.renderResultFresh(...)` which deletes the cache file then re-executes.
 5. Returns the new `<div class="groovy-block">` HTML fragment.
@@ -1310,7 +1326,7 @@ two-item dropdown into every `.groovy-block`:
 |---|---|
 | `markdown/code/groovyblock/GroovyCodeblockConfig.java` | Jackson POJO (`output`, `cache-enabled`, `controls-enabled`) for YAML-header deserialisation |
 | `module/GroovyRenderer.java` | `renderResultWrapped` - wraps output in groovy-block div; `renderResultFresh` - deletes cache then re-executes; `parseYamlConfig` - parses YAML header; `convertNodeToHtml` - serialises any AST node to HTML |
-| `markdown/code/CodeBlockTransformer.java` | Computes `groovyId` via `FileBasedCache.generateHash`; calls `renderResultWrapped`; matches `"groovy"` fence info |
+| `markdown/code/CodeBlockTransformer.java` | Computes `groovyId` via `FileBasedCache.generateHash`; calls `renderResultWrapped`; matches `"groovy-exec"` fence info |
 | `controller/GroovyRefreshController.java` | `POST /groovy/fragment` - find-by-hash, force-refresh, return HTML fragment |
 | `util/FileBasedCache.java` | `generateHash` (now `public`) - 16-char SHA-256 hex used as block ID and cache-file suffix |
 | `static/js/markdown.js` | `setupGroovyBlockControls`, `setupGroovyBlockMenuToggle`, `setupGroovyBlockActionHandler`, `showGroovyError`, `setGroovyBlockBusy` |
@@ -1346,7 +1362,7 @@ A browser-based split-pane editor for authoring and previewing Mermaid diagrams 
 ### Groovy Playground (`GroovyPlaygroundController`)
 
 A browser-based split-pane editor for writing and executing Groovy scripts with a live rendered
-output panel.  Mirrors the render modes available in `groovy` fenced code blocks.
+output panel.  Mirrors the render modes available in `groovy-exec` fenced code blocks.
 
 `GET /groovy-playground` renders the playground page.  The script and selected render mode are
 autosaved to `<docsDirectory>/config/groovy-playground/` on every keystroke (debounced).
@@ -1404,7 +1420,10 @@ the commit-status API. No deployment step is included.
 | Change inline Groovy expression delimiters | Edit `GroovyInlineTransformer.OPEN` / `CLOSE` constants; update `GroovyInlineTransformerSpec` |
 | Change inline Groovy error rendering | Edit `GroovyInlineNodeRenderer.render` and the `.groovy-inline-error` CSS class |
 | Change inline red text CSS class or tag | Edit `RedTextNodeRenderer.render` and update the `.color-red` style in `static/css/style.css` |
+| Add a new symbol shortcut token | Add an entry to the token map in `SymbolTransformer.java`; document the new token in README and AGENTS.md |
+| Change an existing symbol shortcut | Edit the matching token string or replacement character in `SymbolTransformer.java` |
 | Add a new REST endpoint | New class in `controller/`, register as `@RestController` |
+| Change groovy fence identifier | Edit the `"groovy-exec"` string in `CodeBlockTransformer.java` and `GroovyRefreshController.isGroovyBlock`; update the hidden-info string `"hidden-groovy-exec"` in `CodeBlockTransformer`; update the CSS selector in `style.css` and the JS querySelector in `markdown.js`; update the test helper `groovyFenceFromLiteral` in `GroovyRefreshControllerSpec` |
 | Change groovy block refresh endpoint | Edit `GroovyRefreshController.java` |
 | Change how groovy block ID is computed | Edit `FileBasedCache.generateHash` and update `CodeBlockTransformer` + `GroovyRefreshController` accordingly |
 | Add a new output type to groovy blocks | Add a `case` to `GroovyRenderer.convertOutputToNode`; add an `<option>` in `groovy-playground.jte`; document in README |
