@@ -87,3 +87,84 @@
     justify-content: flex-end;
     gap: 0.5rem;
 }
+
+/* ---- Groovy execute dialog ---- */
+#groovy-exec-dialog {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-width: 500px;
+    max-width: 720px;
+    width: 60vw;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    background: #121212;
+    color: #29b4fd;
+}
+
+#groovy-exec-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+#groovy-exec-dialog h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.05rem;
+}
+
+.groovy-exec-script-label {
+    margin: 0 0 1rem 0;
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.groovy-exec-script-label code {
+    color: #e0e0e0;
+}
+
+.groovy-exec-results {
+    margin: 1rem 0 0.5rem 0;
+}
+
+.groovy-exec-section {
+    margin-bottom: 0.75rem;
+}
+
+.groovy-exec-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #888;
+    margin-bottom: 0.3rem;
+}
+
+.groovy-exec-output {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+    max-height: 220px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #d4d4d4;
+    min-height: 2.5rem;
+    margin: 0;
+}
+
+.groovy-exec-output-empty {
+    color: #555;
+    font-style: italic;
+}
+
+.groovy-exec-stderr-output {
+    color: #ff6b6b;
+}
+
+.groovy-exec-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+

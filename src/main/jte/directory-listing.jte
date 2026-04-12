@@ -79,6 +79,12 @@
                     </button>
                     <hr>
                 @endif
+                @if(entry.fileType().equals("groovy"))
+                    <button onclick="executeGroovyScript('${entry.filename()}')">
+                        <i class="fas fa-play"></i>Execute
+                    </button>
+                    <hr>
+                @endif
                 <button onclick="renameEntry('${entry.filename()}')">
                     <i class="fas fa-edit"></i>Rename
                 </button>
@@ -124,6 +130,27 @@
             <button type="button" id="search-cancel" class="btn-blue-glow">Cancel</button>
         </div>
     </form>
+</dialog>
+
+<dialog id="groovy-exec-dialog">
+    <h3>Execute Groovy Script</h3>
+    <p class="groovy-exec-script-label">Script: <code id="groovy-exec-script-name"></code></p>
+    <div id="groovy-exec-results" class="groovy-exec-results" hidden>
+        <div class="groovy-exec-section">
+            <div class="groovy-exec-label">STDOUT</div>
+            <pre id="groovy-exec-stdout" class="groovy-exec-output"></pre>
+        </div>
+        <div class="groovy-exec-section">
+            <div class="groovy-exec-label">STDERR</div>
+            <pre id="groovy-exec-stderr" class="groovy-exec-output groovy-exec-stderr-output"></pre>
+        </div>
+    </div>
+    <div class="groovy-exec-buttons">
+        <button id="groovy-exec-run-btn" class="btn-blue-glow">
+            <i class="fas fa-play"></i> Run
+        </button>
+        <button id="groovy-exec-close-btn" class="btn-blue-glow">Close</button>
+    </div>
 </dialog>
 
 <script src="/js/paste-image.js"></script>

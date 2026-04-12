@@ -1058,6 +1058,55 @@ before the first run.
 
 ---
 
+### Groovy Script Execution from Directory Listing (`GroovyFileExecuteController`)
+
+`.groovy` files in the directory listing have an extra **Execute** option in their hover
+context menu (rendered before the standard Rename / Make a Copy / Delete items).  Clicking it
+opens a `<dialog id="groovy-exec-dialog">` that lets the user run the script immediately and
+inspect the captured output without leaving the page.
+
+**Dialog flow:**
+
+1. Dialog opens showing the script filename and **Run** / **Close** buttons.
+2. User clicks **Run** → button shows a spinning "Running…" state while the browser POSTs to
+   `POST /groovy/execute-file`.
+3. When the response arrives the results section is revealed with two labelled `<pre>` blocks:
+   - **STDOUT** – normal output captured from `System.out` / `println`.
+   - **STDERR** – error output / exception stack traces captured from `System.err`.
+   - If either stream produced no output the block shows `(empty)` in muted italic text.
+4. Button becomes **Run Again** so the script can be re-executed without closing the dialog.
+5. **Close** dismisses the dialog.
+
+**Server-side execution (`POST /groovy/execute-file`):**
+
+| Parameter | Required | Description |
+|---|---|---|
+| `path` | yes | Directory path relative to `docsDirectory` (sanitised by `FileUtil.cleanDirectoryName`) |
+| `name` | yes | Script filename within that directory |
+
+- Path-traversal guard: `FileUtil.cleanDirectoryName` strips `..` segments from `path`;
+  `normalize()` + `startsWith(docsRoot)` rejects any `name` that would escape the docs root.
+- The script is executed with a `GroovyShell` + `Binding`, with `System.out` and `System.err`
+  redirected to in-memory `ByteArrayOutputStream` buffers.
+- Execution is serialised with `synchronized (GroovyScriptJob.class)` to prevent overlapping
+  stdout/stderr captures when a scheduled run coincides with a manual one.
+- Script exceptions are written to the STDERR buffer rather than propagated, so a valid
+  `{stdout, stderr}` JSON response is always returned.
+- Returns `200 OK` with `ExecuteResult(stdout, stderr)` JSON on success; `404` when the file
+  does not exist; `400` on path-traversal; `500` on unexpected server error.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `controller/GroovyFileExecuteController.java` | `POST /groovy/execute-file`; `ExecuteResult(stdout, stderr)` record |
+| `jte/directory-listing.jte` | **Execute** button in `.entry-actions` (`.groovy` files only); `<dialog id="groovy-exec-dialog">` with results section |
+| `static/js/directory-listing.js` | `executeGroovyScript(name)` - opens dialog; `groovy-exec-run-btn` handler - POSTs, shows spinner, populates results; `setExecOutput` helper - shows `(empty)` placeholder when stream is blank |
+| `static/css/directory-listing.css` | `#groovy-exec-dialog`, `.groovy-exec-output`, `.groovy-exec-output-empty` (muted italic), `.groovy-exec-stderr-output` (red), `.groovy-exec-buttons` |
+| `test/.../GroovyFileExecuteControllerSpec.groovy` | 8 Spock feature methods (stdout capture, stderr on exception, both streams, 404 on missing file, path traversal via `name`, subdirectory, silent script) |
+
+---
+
 ### YAML Front-Matter (`FrontMatterParser`)
 
 Any `.md` file may begin with a YAML front-matter block delimited by `---` lines.
@@ -1393,6 +1442,11 @@ the commit-status API. No deployment step is included.
 | Change the edit-lock dialog message or buttons | Edit `<dialog id="edit-lock-dialog">` in `jte/render/markdown.jte` |
 | Change the edit-lock dialog style | Edit `dialog.edit-lock-dialog` and `.edit-lock-force-btn` in `static/css/style.css` |
 | Disable the Force Edit button | Remove the `.edit-lock-force-btn` button and `openEditModeForce()` from `markdown.js` |
+| Change the Groovy execute-file endpoint | Edit `GroovyFileExecuteController.executeFile`; update `GroovyFileExecuteControllerSpec` |
+| Change which file types show the Execute menu item | Edit the `@if(entry.fileType().equals("groovy"))` guard in `directory-listing.jte` |
+| Change the execute dialog layout or fields | Edit `<dialog id="groovy-exec-dialog">` in `directory-listing.jte` and the corresponding handlers in `directory-listing.js` |
+| Change the "(empty)" placeholder text or style | Edit `setExecOutput` in `directory-listing.js`; update `.groovy-exec-output-empty` in `directory-listing.css` |
+| Change the STDERR output colour in the execute dialog | Edit `.groovy-exec-stderr-output` in `directory-listing.css` |
 | Add a new exchange-rate currency symbol | Add a `case` to `DataBlockTranslator.resolveTargetCurrency`; document in README |
 | Change exchange-rate storage location | Edit `ExchangeRateService.ratesFile()` |
 | Change exchange-rate YAML format | Edit `ExchangeRateService.save()` and `init()`; update tests |

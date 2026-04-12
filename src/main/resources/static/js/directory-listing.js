@@ -108,6 +108,21 @@ function renderPlantUml(name) {
     window.location.href = `/plantuml?filename=${encodeURIComponent(currentDirectoryName)}/${encodeURIComponent(name)}`;
 }
 
+let groovyExecCurrentName = '';
+
+function executeGroovyScript(name) {
+    hideActions();
+    groovyExecCurrentName = name;
+    document.getElementById('groovy-exec-script-name').textContent = name;
+    document.getElementById('groovy-exec-stdout').textContent = '';
+    document.getElementById('groovy-exec-stderr').textContent = '';
+    document.getElementById('groovy-exec-results').hidden = true;
+    const runBtn = document.getElementById('groovy-exec-run-btn');
+    runBtn.disabled = false;
+    runBtn.innerHTML = '<i class="fas fa-play"></i> Run';
+    document.getElementById('groovy-exec-dialog').showModal();
+}
+
 async function uploadFile(file) {
     if (!file) return;
     const formData = new FormData();
@@ -192,5 +207,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('search-cancel').addEventListener('click', () => {
         document.getElementById('search-dialog').close();
+    });
+
+    // Groovy execute dialog
+    function setExecOutput(elementId, content) {
+        const el = document.getElementById(elementId);
+        if (content) {
+            el.textContent = content;
+            el.classList.remove('groovy-exec-output-empty');
+        } else {
+            el.textContent = '(empty)';
+            el.classList.add('groovy-exec-output-empty');
+        }
+    }
+
+    document.getElementById('groovy-exec-run-btn').addEventListener('click', async () => {
+        const runBtn = document.getElementById('groovy-exec-run-btn');
+        runBtn.disabled = true;
+        runBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Running...';
+
+        try {
+            const response = await fetch('/groovy/execute-file', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+                body: new URLSearchParams({path: currentDirectoryName, name: groovyExecCurrentName})
+            });
+            const result = await response.json();
+            setExecOutput('groovy-exec-stdout', result.stdout || '');
+            setExecOutput('groovy-exec-stderr', result.stderr || '');
+        } catch (error) {
+            setExecOutput('groovy-exec-stdout', '');
+            setExecOutput('groovy-exec-stderr', 'Error: ' + error.message);
+        }
+
+        document.getElementById('groovy-exec-results').hidden = false;
+        runBtn.disabled = false;
+        runBtn.innerHTML = '<i class="fas fa-play"></i> Run Again';
+    });
+
+    document.getElementById('groovy-exec-close-btn').addEventListener('click', () => {
+        document.getElementById('groovy-exec-dialog').close();
     });
 });
