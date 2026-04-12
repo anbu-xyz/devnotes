@@ -226,58 +226,6 @@ columns-to-exclude: ['password']
         headers.containsAll(["id", "name", "email"]*.toUpperCase())
     }
 
-    def "output template (jte) renders the provided template correctly"() {
-        given:
-        String yaml = '''
-source: datasource1
-query: SELECT id, name, email, password FROM users ORDER BY id
-output:
-  template-type: jte
-  template: |
-    @import java.util.*
-    @param List<String>  columns
-    @param List<Map<String, Object>> rows
-    <h1>Sample output</h1>
-    <table>
-        <thead>
-        <tr>
-            @for(var column : columns)
-                <th>${column}</th>
-            @endfor
-        </tr>
-        </thead>
-        <tbody>
-        @for(var row : rows)
-           <tr>
-                @for(String column : columns)
-                    <td>${row.get(column) == null? "": row.get(column).toString()}</td>
-                @endfor
-            </tr>
-        @endfor
-        </tbody>
-    </table>
-'''
-
-        when:
-        Optional<Node> result = translator.renderDataBlock(yaml, new MarkdownFile(tempDir, "example.md"))
-
-        then:
-        result.isPresent()
-        def doc = Jsoup.parse(result.get().literal)
-        def rows = doc.select("tbody tr")
-        rows.size() == 3
-
-        def firstCells = rows[0].select("td")
-        firstCells[1].text() == "Alice"
-        firstCells[2].text() == "alice@example.com"
-
-        def secondCells = rows[1].select("td")
-        secondCells[1].text() == "Bob"
-        secondCells[2].text() == "bob@example.com"
-
-        def h1 = doc.select("h1")
-        h1.text() == "Sample output"
-    }
 
     def "parameterized query accepts typed parameters"() {
         given:

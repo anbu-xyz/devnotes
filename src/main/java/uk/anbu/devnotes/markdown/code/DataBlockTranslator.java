@@ -2,10 +2,6 @@ package uk.anbu.devnotes.markdown.code;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import gg.jte.ContentType;
-import gg.jte.TemplateEngine;
-import gg.jte.output.StringOutput;
-import gg.jte.resolve.DirectoryCodeResolver;
 import j2html.tags.ContainerTag;
 import j2html.tags.specialized.TdTag;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +29,6 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Blob;
 import java.sql.Date;
@@ -160,17 +155,6 @@ public class DataBlockTranslator {
             return Optional.of(combineIfSingleColumn(rows, maxRowsReached, config.checksum(sharedParams)));
         }
 
-        // Check for output-template
-        String templateContent = null;
-        String outputTemplateType = null;
-        if (config.getOutput() != null) {
-            outputTemplateType = config.getOutput().getTemplateType();
-            templateContent = config.getOutput().getTemplate();
-        }
-
-        if (templateContent != null && "jte".equalsIgnoreCase(outputTemplateType)) {
-            return buildFromTemplate(columns, rows, dataSourceName, mdName, templateContent);
-        }
 
         HtmlBlock node = htmlFallbackTable(config, rows, maxRowsReached, sharedParams);
         return Optional.of(node);
@@ -238,37 +222,6 @@ public class DataBlockTranslator {
         }
     }
 
-    private static Optional<Node> buildFromTemplate(List<String> columns,
-                                                    List<LinkedHashMap<String, Object>> rows,
-                                                    String dataSourceName, String mdName, String templateContent) {
-        try {
-            Path tempDir = Files.createTempDirectory("jte-templates");
-            DirectoryCodeResolver codeResolver = new DirectoryCodeResolver(tempDir);
-            TemplateEngine templateEngine = TemplateEngine.create(codeResolver, ContentType.Html);
-
-            String templateName = "user-template.jte";
-            Path templatePath = tempDir.resolve(templateName);
-
-            Files.writeString(templatePath, templateContent); // Write the template content to the file
-
-            Map<String, Object> params = new HashMap<>();
-            params.put("columns", columns);
-            params.put("rows", rows);
-            params.put("datasource", dataSourceName);
-            params.put("markdownFile", mdName);
-
-            StringOutput output = new StringOutput();
-            templateEngine.render(templateName, params, output);
-            var html = new HtmlBlock();
-            html.setLiteral(output.toString());
-            return Optional.of(html);
-        } catch (Exception e) {
-            log.error("Error rendering data block template", e);
-            ContainerTag<?> err = div()
-                    .withText("Error rendering template for data block ('" + mdName + "'): " + e.getMessage());
-            return Optional.of(toHtmlBlock(err));
-        }
-    }
 
     private static HtmlBlock combineIfSingleColumn(List<LinkedHashMap<String, Object>> rows,
                                                    boolean maxRowsReached, String checksum) {

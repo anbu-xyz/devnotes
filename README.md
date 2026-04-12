@@ -512,7 +512,7 @@ Following parameters can be specified in the code block header:
 ### Data blocks
 
 Data blocks are a more advanced way to embed executable code in a Markdown file. They allow you to specify
-the data source, query, options, and output template.
+the data source, query, and options. Results are always rendered as an HTML table.
 
 Example:
 
@@ -522,41 +522,7 @@ source: datasource1
 query: SELECT id, first_name, last_name FROM users
 options:
   columns: [id, first_name, last_name]
-  limit: 10
-output-template-type: jte
-output-template: |
-  @import java.util.*
-  @param List<String>  columns
-  @param List<Map<String, Object>> rows
-  <table>
-      <thead>
-      <tr>
-          @for(var column : columns)
-              <th>${column}</th>
-          @endfor
-      </tr>
-      </thead>
-      <tbody>
-      @for(var row : rows)
-          <tr>
-              @for(String column : columns)
-                  <td>-${row.get(column) == null? "": row.get(column).toString()}</td>
-              @endfor
-          </tr>
-      @endfor
-      </tbody>
-  </table>
-```
-````
-
-#### Default without output-template
-
-If no output-template is specified, the default will be an HTML table.
-
-````
-```data
-source: datasource1
-query: SELECT * FROM users
+  row-limit: 10
 ```
 ````
 

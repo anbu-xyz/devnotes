@@ -35,18 +35,11 @@ public class YamlCodeblockConfig {
     private boolean transpose = false;
 
     private SqlOptions options;
-    private Output output;
     private Map<String, SqlParameter> parameters = Map.of();
 
     @JsonProperty("column-formats")
     private Map<String, ColumnFormatConfig> columnFormats = Map.of();
 
-    @Data
-    public static class Output {
-        @JsonProperty("template-type")
-        private String templateType;
-        private String template;
-    }
 
     @Data
     public static class SqlOptions {
