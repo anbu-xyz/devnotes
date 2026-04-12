@@ -11,6 +11,7 @@ import spock.lang.TempDir
 import uk.anbu.devnotes.cash.ExchangeRates
 import uk.anbu.devnotes.markdown.code.datablock.YamlCodeblockConfig
 import uk.anbu.devnotes.service.ConfigService
+import uk.anbu.devnotes.service.ExchangeRateService
 import uk.anbu.devnotes.types.CurrencyPair
 
 import java.nio.file.Path
@@ -78,6 +79,10 @@ class DataBlockExportControllerSpec extends Specification {
         new DataBlockExportController(cs, null)
     }
 
+    private DataBlockExportController newController(ConfigService cs, ExchangeRateService exchangeRateService) {
+        new DataBlockExportController(cs, exchangeRateService)
+    }
+
     /**
      * Calls {@code exportExcel} and returns the captured {@link MockHttpServletResponse}.
      * The response object acts as both the sink for the Excel bytes (success) and the error
@@ -96,7 +101,13 @@ class DataBlockExportControllerSpec extends Specification {
     private static String checksumOf(String yamlLiteral) {
         def mapper = new ObjectMapper(new YAMLFactory())
         def config = mapper.readValue(yamlLiteral, YamlCodeblockConfig)
-        config.checksum([:])
+        config.checksum([__exchangeRatesVersion: 0L])
+    }
+
+    private static String checksumOf(String yamlLiteral, Map<String, Object> sharedParams) {
+        def mapper = new ObjectMapper(new YAMLFactory())
+        def config = mapper.readValue(yamlLiteral, YamlCodeblockConfig)
+        config.checksum(sharedParams)
     }
 
     /**
@@ -188,6 +199,46 @@ class DataBlockExportControllerSpec extends Specification {
         then:
         resp.status == 404
         resp.contentAsString.contains("not found")
+    }
+
+    def "export checksum ignores filename in params on server side"() {
+        given:
+        def yaml = "source: testDs\nquery: SELECT id FROM person WHERE id = 1\n"
+        writeMdWith("filename-filter.md", yaml)
+        def blockId = checksumOf(yaml, [__exchangeRatesVersion: 0L])
+        def ctrl = newController(configServiceFor("testDs"))
+
+        when:
+        def resp = doExport(ctrl, [
+                markdownFile: "filename-filter.md",
+                datablockId: blockId,
+                params: [filename: "filename-filter.md", __exchangeRatesVersion: 0L]
+        ])
+
+        then:
+        resp.status == 200
+        resp.contentType.contains("spreadsheetml")
+    }
+
+    def "export checksum injects exchange-rate version when params omit it"() {
+        given:
+        def yaml = "source: testDs\nquery: SELECT id FROM person WHERE id = 1\n"
+        writeMdWith("version-inject.md", yaml)
+        def exchangeRateService = Mock(ExchangeRateService)
+        exchangeRateService.getVersion() >> 77L
+        def blockId = checksumOf(yaml, [__exchangeRatesVersion: 77L])
+        def ctrl = newController(configServiceFor("testDs"), exchangeRateService)
+
+        when:
+        def resp = doExport(ctrl, [
+                markdownFile: "version-inject.md",
+                datablockId: blockId,
+                params: [:]
+        ])
+
+        then:
+        resp.status == 200
+        resp.contentType.contains("spreadsheetml")
     }
 
     // -------------------------------------------------------------------------

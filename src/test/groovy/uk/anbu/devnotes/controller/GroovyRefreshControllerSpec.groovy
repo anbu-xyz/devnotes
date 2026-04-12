@@ -283,6 +283,167 @@ class GroovyRefreshControllerSpec extends Specification {
         response.body.contains('data-groovy-controls="false"')
     }
 
+    // =========================================================================
+    // POST /groovy/edit
+    // =========================================================================
+
+    def "edit - returns 400 when markdownFile is missing"() {
+        when:
+        def response = controller.editBlock([blockId: "abc", newContent: groovyLiteral("html", '"hi"')])
+
+        then:
+        response.statusCode == HttpStatus.BAD_REQUEST
+    }
+
+    def "edit - returns 400 when blockId is missing"() {
+        when:
+        def response = controller.editBlock([markdownFile: "test.md", newContent: groovyLiteral("html", '"hi"')])
+
+        then:
+        response.statusCode == HttpStatus.BAD_REQUEST
+    }
+
+    def "edit - returns 400 when newContent is missing"() {
+        when:
+        def response = controller.editBlock([markdownFile: "test.md", blockId: "abc"])
+
+        then:
+        response.statusCode == HttpStatus.BAD_REQUEST
+    }
+
+    def "edit - returns 400 when the markdown file does not exist"() {
+        when:
+        def response = controller.editBlock([
+                markdownFile: "nonexistent.md",
+                blockId     : "abc",
+                newContent  : groovyLiteral("html", '"hi"')
+        ])
+
+        then:
+        response.statusCode == HttpStatus.BAD_REQUEST
+        response.body.contains("not found")
+    }
+
+    def "edit - returns 409 when file was modified after the client timestamp"() {
+        given:
+        Files.writeString(tempDir.resolve("test.md"), "# hello\n")
+
+        when:
+        def response = controller.editBlock([
+                markdownFile    : "test.md",
+                blockId         : "abc",
+                newContent      : groovyLiteral("html", '"hi"'),
+                fileLastModified: "2020-01-01 00:00:00"
+        ])
+
+        then:
+        response.statusCode == HttpStatus.CONFLICT
+    }
+
+    def "edit - returns 404 when blockId does not match any groovy block"() {
+        given:
+        def literal = groovyLiteral("html", '"<b>existing</b>"')
+        Files.writeString(tempDir.resolve("test.md"), groovyFenceFromLiteral(literal))
+
+        when:
+        def response = controller.editBlock([
+                markdownFile: "test.md",
+                blockId     : "doesnotmatch",
+                newContent  : groovyLiteral("html", '"<b>new</b>"')
+        ])
+
+        then:
+        response.statusCode == HttpStatus.NOT_FOUND
+    }
+
+    def "edit - updates the markdown file on disk with the new content"() {
+        given:
+        def literal = groovyLiteral("html", '"<b>old</b>"')
+        def mdFile = tempDir.resolve("update.md")
+        Files.writeString(mdFile, groovyFenceFromLiteral(literal))
+        def blockId = generateHash(literal)
+        def newLiteral = groovyLiteral("html", '"<b>updated</b>"')
+
+        when:
+        def response = controller.editBlock([
+                markdownFile: "update.md",
+                blockId     : blockId,
+                newContent  : newLiteral
+        ])
+
+        then:
+        response.statusCode == HttpStatus.OK
+        Files.readString(mdFile).contains('"<b>updated</b>"')
+        !Files.readString(mdFile).contains('"<b>old</b>"')
+    }
+
+    def "edit - deletes old cache file and returns HTML reflecting new content"() {
+        given:
+        def literal = groovyLiteral("html", '"<span>old output</span>"')
+        def mdFile = tempDir.resolve("cached.md")
+        Files.writeString(mdFile, groovyFenceFromLiteral(literal))
+        def blockId = generateHash(literal)
+
+        def mdFileObj = new MarkdownFile(tempDir, "cached.md")
+        def oldCacheFile = Path.of(generateCacheFileName(mdFileObj, literal))
+        Files.writeString(oldCacheFile, "<span>stale cached content</span>")
+
+        def newLiteral = groovyLiteral("html", '"<span>fresh content</span>"')
+
+        when:
+        def response = controller.editBlock([
+                markdownFile: "cached.md",
+                blockId     : blockId,
+                newContent  : newLiteral
+        ])
+
+        then:
+        response.statusCode == HttpStatus.OK
+        !Files.exists(oldCacheFile)
+        response.body.contains("<span>fresh content</span>")
+    }
+
+    def "edit - returned HTML carries the new block ID derived from the new content"() {
+        given:
+        def literal = groovyLiteral("html", '"<em>original</em>"')
+        Files.writeString(tempDir.resolve("ids.md"), groovyFenceFromLiteral(literal))
+        def blockId = generateHash(literal)
+
+        def newLiteral = groovyLiteral("html", '"<em>changed</em>"')
+        // server ensures trailing newline before hashing
+        def safeNewLiteral = newLiteral.endsWith("\n") ? newLiteral : newLiteral + "\n"
+        def expectedNewId = generateHash(safeNewLiteral)
+
+        when:
+        def response = controller.editBlock([
+                markdownFile: "ids.md",
+                blockId     : blockId,
+                newContent  : newLiteral
+        ])
+
+        then:
+        response.statusCode == HttpStatus.OK
+        response.body.contains("data-groovy-id=\"${expectedNewId}\"")
+    }
+
+    def "edit - returns X-File-Last-Modified header with correct timestamp format"() {
+        given:
+        def literal = groovyLiteral("html", '"<p>hello</p>"')
+        Files.writeString(tempDir.resolve("hdr.md"), groovyFenceFromLiteral(literal))
+        def blockId = generateHash(literal)
+
+        when:
+        def response = controller.editBlock([
+                markdownFile: "hdr.md",
+                blockId     : blockId,
+                newContent  : groovyLiteral("html", '"<p>world</p>"')
+        ])
+
+        then:
+        response.statusCode == HttpStatus.OK
+        response.headers.getFirst("X-File-Last-Modified") =~ /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/
+    }
+
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------

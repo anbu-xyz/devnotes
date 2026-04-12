@@ -166,8 +166,9 @@ public class GroovyRenderer {
         var innerHtml = convertNodeToHtml(node);
         var wrapper = new HtmlBlock();
         var controlsAttr = showControls ? "" : " data-groovy-controls=\"false\"";
+        var blockIdDisplay = "<div class=\"block-id-display\">Block ID: " + groovyId + "</div>";
         wrapper.setLiteral("<div class=\"groovy-block\" data-groovy-id=\"" + groovyId + "\"" + controlsAttr + ">"
-                + innerHtml + "</div>\n");
+                + innerHtml + blockIdDisplay + "</div>\n");
         return wrapper;
     }
 

@@ -2,6 +2,10 @@ spring.application.name: devnotes
 
 spring.profiles.active: prod
 
+logging:
+  level:
+    uk.anbu.devnotes: DEBUG
+
 devnotes:
   docsDirectory: @user.home@/docs
   allowedIps: 127.0.0.1,0:0:0:0:0:0:0:1,192.168.1.103

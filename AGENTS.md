@@ -1327,10 +1327,91 @@ two-item dropdown into every `.groovy-block`:
 | `markdown/code/groovyblock/GroovyCodeblockConfig.java` | Jackson POJO (`output`, `cache-enabled`, `controls-enabled`) for YAML-header deserialisation |
 | `module/GroovyRenderer.java` | `renderResultWrapped` - wraps output in groovy-block div; `renderResultFresh` - deletes cache then re-executes; `parseYamlConfig` - parses YAML header; `convertNodeToHtml` - serialises any AST node to HTML |
 | `markdown/code/CodeBlockTransformer.java` | Computes `groovyId` via `FileBasedCache.generateHash`; calls `renderResultWrapped`; matches `"groovy-exec"` fence info |
-| `controller/GroovyRefreshController.java` | `POST /groovy/fragment` - find-by-hash, force-refresh, return HTML fragment |
+| `controller/GroovyRefreshController.java` | `POST /groovy/fragment` - find-by-hash, force-refresh, return HTML fragment; `POST /groovy/edit` - inline block edit (replace source, re-render, return fragment + `X-File-Last-Modified`) |
 | `util/FileBasedCache.java` | `generateHash` (now `public`) - 16-char SHA-256 hex used as block ID and cache-file suffix |
 | `static/js/markdown.js` | `setupGroovyBlockControls`, `setupGroovyBlockMenuToggle`, `setupGroovyBlockActionHandler`, `showGroovyError`, `setGroovyBlockBusy` |
 | `static/css/style.css` | `.groovy-block`, `.groovy-block-controls`, `.groovy-block-menu`, `.groovy-block-more-btn`, `.groovy-text-output` |
+
+---
+
+### Inline Block Editor
+
+An **Edit** option in the **⋮** context menus of `data` and `groovy-exec` rendered blocks opens a modal `<dialog>` containing a fresh CodeMirror 6 editor pre-loaded with the block's raw source.  On **Save**, the server locates and replaces only that fence block in the markdown file (by its checksum/hash ID), re-renders it, and swaps the result back into the page.
+
+**CM6 language support:**
+
+- `@codemirror/lang-yaml` is added to `src/main/js/package.json` and exported as `yaml` from `entry.js`.
+- `window.initBlockEditorCM(mountEl, content, lang)` is exposed in `markdown.jte`'s `<script type="module">` block: it creates a standalone `EditorView` inside the supplied mount element (separate from `window.editorView`). `lang` is `'yaml'` for data blocks and `'plain'` for groovy blocks (plain `basicSetup` only).
+
+**Dialog structure** (added to `markdown.jte`):
+
+```html
+<dialog id="block-editor-dialog">
+  <h3 class="block-editor-title">Edit Block</h3>
+  <div id="block-editor-cm-mount"><!-- CM6 mounts here --></div>
+  <div class="block-editor-actions">
+    <span class="block-editor-error"></span>
+    <button id="block-editor-save-btn">Save</button>
+    <button id="block-editor-cancel-btn">Cancel</button>
+  </div>
+</dialog>
+```
+
+**Client-side flow (`setupBlockEditorDialog()` in `markdown.js`):**
+
+1. Clicking **Edit** in a `.data-block-menu` or `.groovy-block-menu` reads the block's raw source from the adjacent hidden `<code class="language-hidden-data">` / `<code class="language-hidden-groovy-exec">` element and its ID from `data-datablock-id` / `data-groovy-id`.
+2. The dialog's `data-block-type` and `data-block-id` attributes are set; `dialog._targetBlock` holds a reference to the originating block element.
+3. `window.initBlockEditorCM(mountEl, sourceContent, lang)` is called and the dialog is opened with `showModal()`.
+4. **Cancel** closes the dialog and destroys the CM6 instance.
+5. **Save** POSTs `{markdownFile, blockId, newContent, fileLastModified}` (where `fileLastModified` comes from `#md-last-modified-time-viewer`) to `/datablock/edit` or `/groovy/edit`.
+   - **409 Conflict** → show inline error *"File was modified externally since this page loaded. Reload the page and try again."* without closing.
+   - **2xx success** → read `X-File-Last-Modified` response header; update `#md-last-modified-time-viewer`; destroy CM6; close dialog; replace `dialog._targetBlock` in the DOM with the returned HTML; re-call `setupDataBlockControls()` / `setupGroovyBlockControls()`.
+   - **Other failure** → show error message inside dialog without closing.
+
+**`POST /datablock/edit`** (added to `DataBlockRefreshController`):
+
+| Field | Required | Description |
+|---|---|---|
+| `markdownFile` | yes | Relative path of the markdown file |
+| `blockId` | yes | `checksum(sharedParams)` of the target data block |
+| `newContent` | yes | Replacement YAML content for the fence body |
+| `fileLastModified` | no | `"yyyy-MM-dd HH:mm:ss"` timestamp from the client; triggers 409 if stale |
+
+Server logic:
+1. Validate inputs; resolve path; `400` if absent.
+2. **Conflict check** – compare `fileLastModified` (parsed as `LocalDateTime`) against `Files.getLastModifiedTime`; return `409` if the on-disk time is newer.
+3. Parse the markdown; walk `FencedCodeBlock` nodes; **re-derive shared params** by replaying all `parameter` blocks that appear before the target `data` block in document order (same registry walk as the normal page render), then augment with `__exchangeRatesVersion`.
+4. Match the target `data` block by `checksum(sharedParams)` == `blockId`.
+5. Delete the old cache file via `DataBlockTranslator.deleteCache(mdFile, blockId)`.
+6. Reconstruct the old fence text; replace with a new fence using the same delimiters and `newContent`; write back to disk.
+7. Re-derive shared params for the *new* content (replay parameter blocks before the replaced block), then call `dataBlockTranslator.renderDataBlockFreshFromYaml(newContent, mdFile, sharedParams)`.
+8. Return `200 text/html` with the rendered HTML fragment and `X-File-Last-Modified` header.
+
+**`POST /groovy/edit`** (added to `GroovyRefreshController`):
+
+| Field | Required | Description |
+|---|---|---|
+| `markdownFile` | yes | Relative path of the markdown file |
+| `blockId` | yes | `generateHash(literal)` of the target groovy-exec block |
+| `newContent` | yes | Replacement script content for the fence body |
+| `fileLastModified` | no | `"yyyy-MM-dd HH:mm:ss"` timestamp from the client; triggers 409 if stale |
+
+Server logic mirrors the data-block variant but matches by `generateHash(fcb.getLiteral()).equals(blockId)`, deletes the old cache file keyed on the old literal's hash, then calls `groovyRenderer.renderResultFresh(newFcb, newCacheFileName, newGroovyId)` with the new literal's hash.
+
+**Bug fix bundled in this change:** `GroovyRefreshController.isGroovyBlock` was incorrectly matching on `"groovy"` instead of `"groovy-exec"`; corrected to `"groovy-exec".equals(info)`.
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `src/main/js/package.json` | Adds `@codemirror/lang-yaml` dependency |
+| `src/main/js/entry.js` | Exports `yaml` from `@codemirror/lang-yaml` |
+| `jte/render/markdown.jte` | `window.initBlockEditorCM(mountEl, content, lang)` factory; `<dialog id="block-editor-dialog">` |
+| `static/js/markdown.js` | `setupBlockEditorDialog()` - delegates Edit clicks; reads source; opens CM6 dialog; Save/Cancel handlers; DOM swap on success |
+| `controller/DataBlockRefreshController.java` | `POST /datablock/edit` - conflict check, shared-param re-derivation, fence replacement, fresh render, `X-File-Last-Modified` header |
+| `controller/GroovyRefreshController.java` | `POST /groovy/edit` - same pattern for groovy blocks; `isGroovyBlock` bug fix |
+| `markdown/code/DataBlockTranslator.java` | `deleteCache(MarkdownFile, String)` static helper; `reconstructFence(FencedCodeBlock)` static helper |
+| `static/css/style.css` | `#block-editor-dialog`, `.block-editor-title`, `#block-editor-cm-mount`, `.block-editor-actions`, `.block-editor-error` |
 
 ---
 
@@ -1503,6 +1584,12 @@ the commit-status API. No deployment step is included.
 | Add a new format type to rest block column-formats | Add field to `RestCodeblockConfig.ColumnFormatConfig`; handle in `RestBlockTranslator.createTdTag` |
 | Change rest block refresh endpoint | Edit `RestBlockRefreshController.java` |
 | Add menu items to the rest block context menu | Edit `setupRestBlockControls` in `markdown.js`; add a new `action` case in `setupRestBlockActionHandler` |
+| Change the inline block editor dialog layout | Edit `<dialog id="block-editor-dialog">` in `jte/render/markdown.jte`; update `.block-editor-*` CSS in `style.css` |
+| Change the CM6 language used for data block editing | Edit the `lang` argument passed to `window.initBlockEditorCM` inside `setupBlockEditorDialog()` in `markdown.js` |
+| Change the inline block edit endpoint (data) | Edit `DataBlockRefreshController.editDataBlock` and the fetch URL in `setupBlockEditorDialog()` in `markdown.js` |
+| Change the inline block edit endpoint (groovy) | Edit `GroovyRefreshController.editGroovyBlock` and the fetch URL in `setupBlockEditorDialog()` in `markdown.js` |
+| Change the conflict detection timestamp field | Edit `fileLastModified` handling in both `DataBlockRefreshController.editDataBlock` and `GroovyRefreshController.editGroovyBlock`; update the client-side read of `#md-last-modified-time-viewer` in `markdown.js` |
+| Change how the edited block is re-rendered after save | Edit the DOM-replacement logic in the Save handler inside `setupBlockEditorDialog()` in `markdown.js` |
 | Change the mermaid playground default diagram | Edit `MermaidPlaygroundController.DEFAULT_CONTENT` |
 | Change the mermaid playground autosave path | Edit `MermaidPlaygroundController.AUTOSAVE_RELATIVE_PATH` |
 | Change the groovy playground default script | Edit `GroovyPlaygroundController.DEFAULT_SCRIPT` |

@@ -13,6 +13,8 @@ import uk.anbu.devnotes.module.SlidesRenderer
 import uk.anbu.devnotes.markdown.code.DatabaseMetadataBlockTranslator
 import uk.anbu.devnotes.module.sql.SqlExecutor
 import uk.anbu.devnotes.service.ConfigService
+import uk.anbu.devnotes.types.FrontMatter
+import uk.anbu.devnotes.types.MarkdownRenderResult
 
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -49,6 +51,36 @@ class MarkdownControllerSpec extends Specification {
         then:
         response.statusCode == HttpStatus.FOUND
         response.headers.getFirst("Location") == "/markdown?filename=index.md"
+    }
+
+    def "markdownViewer filters internal query params before seeding renderer shared params"() {
+        given:
+        def tempDir = Files.createTempDirectory("viewer-filter")
+        def mdFile = tempDir.resolve("test.md")
+        Files.writeString(mdFile, "# test")
+
+        def renderer = Mock(MarkdownRenderer)
+        def localConfigService = Mock(ConfigService)
+        localConfigService.getDocsDirectory() >> tempDir.toString()
+        def localTemplateEngine = Mock(TemplateEngine)
+        def localController = new MarkdownController(renderer, localTemplateEngine, localConfigService, Mock(SlidesRenderer))
+
+        when:
+        def response = localController.markdownViewer("test.md", [filename: "test.md", edit: "true", userId: "42"])
+
+        then:
+        1 * renderer.convertMarkdown(_ as uk.anbu.devnotes.types.Markdown,
+                _ as uk.anbu.devnotes.types.MarkdownFile,
+                { Map<String, String> params ->
+                    !params.containsKey("filename") &&
+                            !params.containsKey("edit") &&
+                            params.get("userId") == "42"
+                }) >> new MarkdownRenderResult("<h1>ok</h1>", FrontMatter.empty(), 0)
+        1 * localTemplateEngine.render("render/markdown-viewer.jte", _ as Map, _ as gg.jte.TemplateOutput)
+        response.statusCode == HttpStatus.OK
+
+        cleanup:
+        tempDir.toFile().deleteDir()
     }
 
     def "markdown() should handle directory"() {

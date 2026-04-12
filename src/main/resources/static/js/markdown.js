@@ -361,6 +361,7 @@ document.body.addEventListener('htmx:afterSwap', evt => {
             setupTodoStatusHandler()
             setupTodoItemDialogHandler()
             document.querySelectorAll('.todo-widget').forEach(w => applyTodoFilters(w))
+            setupBlockEditorDialog()
         },
         markdownEditor: () => {
             attachCodeMirrorEditor()
@@ -447,7 +448,8 @@ function setupDataBlockControls() {
         menu.innerHTML =
             '<li><a data-action="source">Source</a></li>' +
             '<li><a data-action="refresh">Refresh</a></li>' +
-            '<li><a data-action="export-excel">Export Excel</a></li>';
+            '<li><a data-action="export-excel">Export Excel</a></li>' +
+            '<li><a data-action="edit">Edit</a></li>';
 
         const controls = document.createElement('div');
         controls.className = 'data-block-controls';
@@ -793,7 +795,8 @@ function setupGroovyBlockControls() {
         menu.className = 'groovy-block-menu';
         menu.innerHTML =
             '<li><a data-action="refresh">Refresh</a></li>' +
-            '<li><a data-action="source">Source</a></li>';
+            '<li><a data-action="source">Source</a></li>' +
+            '<li><a data-action="edit">Edit</a></li>';
 
         const controls = document.createElement('div');
         controls.className = 'groovy-block-controls';
@@ -947,6 +950,176 @@ function setGroovyBlockBusy(groovyBlock, busy) {
         const spinnerEl = groovyBlock.querySelector('.groovy-block-spinner');
         if (spinnerEl) spinnerEl.remove();
     }
+}
+
+//-----------------------------------------------------------------------------
+// Block Editor Dialog (inline editing of data / groovy-exec blocks)
+//-----------------------------------------------------------------------------
+
+function setupBlockEditorDialog() {
+    if (window._blockEditorAttached) return;
+    window._blockEditorAttached = true;
+
+    const dialog = document.getElementById('block-editor-dialog');
+    const mountEl = document.getElementById('block-editor-cm-mount');
+    const errorEl = document.getElementById('block-editor-error');
+    const saveBtn = document.getElementById('block-editor-save-btn');
+    const cancelBtn = document.getElementById('block-editor-cancel-btn');
+    if (!dialog || !mountEl || !saveBtn || !cancelBtn) return;
+
+    function showError(msg) {
+        if (!errorEl) return;
+        errorEl.textContent = msg;
+        errorEl.style.display = 'block';
+    }
+    function clearError() {
+        if (!errorEl) return;
+        errorEl.textContent = '';
+        errorEl.style.display = 'none';
+    }
+    function destroyEditor() {
+        if (window._blockEditorView) {
+            window._blockEditorView.destroy();
+            window._blockEditorView = null;
+        }
+    }
+
+    // Delegate edit-action clicks from both data and groovy menus
+    document.body.addEventListener('click', function (e) {
+        const link = e.target.closest('.data-block-menu a[data-action="edit"], .groovy-block-menu a[data-action="edit"]');
+        if (!link) return;
+        e.preventDefault();
+
+        // Close the containing dropdown menu
+        const menu = link.closest('.data-block-menu, .groovy-block-menu');
+        if (menu) menu.style.display = 'none';
+
+        const isData = !!link.closest('.data-block-menu');
+        let sourceContent = '';
+        let blockId = '';
+        let targetBlock = null;
+
+        if (isData) {
+            const dataBlock = link.closest('.data-block');
+            if (!dataBlock) return;
+            targetBlock = dataBlock;
+            // Find source in a following sibling <pre><code class="language-hidden-data">
+            let sib = dataBlock.nextElementSibling;
+            while (sib) {
+                const code = sib.querySelector('code.language-hidden-data');
+                if (code) { sourceContent = code.textContent; break; }
+                sib = sib.nextElementSibling;
+            }
+            const table = dataBlock.querySelector('table[data-datablock-id]');
+            blockId = table ? table.getAttribute('data-datablock-id') : '';
+            console.log('[Block Editor] Data block - extracted blockId:', blockId);
+            dialog.dataset.blockType = 'data';
+        } else {
+            const groovyBlock = link.closest('.groovy-block');
+            if (!groovyBlock) return;
+            targetBlock = groovyBlock;
+            // Find source in a preceding sibling <pre><code class="language-hidden-groovy-exec">
+            let sib = groovyBlock.previousElementSibling;
+            while (sib) {
+                const code = sib.querySelector('code.language-hidden-groovy-exec');
+                if (code) { sourceContent = code.textContent; break; }
+                sib = sib.previousElementSibling;
+            }
+            blockId = groovyBlock.getAttribute('data-groovy-id') || '';
+            console.log('[Block Editor] Groovy block - extracted blockId:', blockId);
+            dialog.dataset.blockType = 'groovy';
+        }
+
+        dialog.dataset.blockId = blockId;
+        dialog._targetBlock = targetBlock;
+        console.log('[Block Editor] Opening editor for block type:', dialog.dataset.blockType, 'blockId:', blockId);
+        clearError();
+
+        const doOpen = () => {
+            const lang = isData ? 'yaml' : 'plain';
+            window.initBlockEditorCM(mountEl, sourceContent, lang);
+            dialog.showModal();
+        };
+
+        if (typeof window.initBlockEditorCM === 'function') {
+            doOpen();
+        } else {
+            window.addEventListener('cm6ready', doOpen, { once: true });
+        }
+    });
+
+    cancelBtn.addEventListener('click', function () {
+        destroyEditor();
+        clearError();
+        dialog.close();
+    });
+
+    saveBtn.addEventListener('click', async function () {
+        if (!window._blockEditorView) return;
+        const newContent = window._blockEditorView.state.doc.toString();
+        const markdownFile = (document.getElementById('md-file-path') || {}).textContent?.trim() || '';
+        const blockId = dialog.dataset.blockId || '';
+        const blockType = dialog.dataset.blockType || '';
+        const fileLastModified = (document.getElementById('md-last-modified-time-viewer') || {}).textContent?.trim() || '';
+
+        const endpoint = blockType === 'groovy' ? '/groovy/edit' : '/datablock/edit';
+        clearError();
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving…';
+
+        console.log('[Block Editor] Saving block:', {
+            endpoint,
+            markdownFile,
+            blockId,
+            blockType,
+            fileLastModified,
+            contentLength: newContent.length
+        });
+
+        try {
+            const resp = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'same-origin',
+                body: JSON.stringify({ markdownFile, blockId, newContent, fileLastModified })
+            });
+
+            if (resp.status === 409) {
+                showError('File was modified externally since this page loaded. Reload the page and try again.');
+                return;
+            }
+            if (!resp.ok) {
+                const txt = await resp.text().catch(() => resp.statusText);
+                showError('Save failed: ' + (txt || resp.statusText));
+                return;
+            }
+
+            // Success
+            const newLastModified = resp.headers.get('X-File-Last-Modified');
+            if (newLastModified) {
+                const ts = document.getElementById('md-last-modified-time-viewer');
+                if (ts) ts.textContent = newLastModified;
+            }
+            const html = await resp.text();
+            const container = document.createElement('div');
+            container.innerHTML = html;
+            const newBlock = container.firstElementChild;
+            if (newBlock && dialog._targetBlock) {
+                dialog._targetBlock.replaceWith(newBlock);
+            }
+            destroyEditor();
+            dialog.close();
+            clearError();
+            // Re-attach controls to the newly inserted block
+            setupDataBlockControls();
+            setupGroovyBlockControls();
+        } catch (err) {
+            showError('Save failed: ' + (err.message || 'unknown error'));
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
+        }
+    });
 }
 
 //-----------------------------------------------------------------------------

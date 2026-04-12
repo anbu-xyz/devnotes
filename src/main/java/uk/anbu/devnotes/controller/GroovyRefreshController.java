@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import uk.anbu.devnotes.markdown.code.DataBlockTranslator;
 import uk.anbu.devnotes.module.GroovyRenderer;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.types.MarkdownFile;
@@ -20,6 +21,10 @@ import uk.anbu.devnotes.types.MarkdownFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Optional;
 
@@ -31,6 +36,8 @@ import static uk.anbu.devnotes.util.FileBasedCache.generateHash;
 @RequiredArgsConstructor
 @Slf4j
 public class GroovyRefreshController {
+
+    private static final DateTimeFormatter TS_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final ConfigService configService;
 
@@ -54,6 +61,101 @@ public class GroovyRefreshController {
                     .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body("groovyId not found in file"));
         } catch (Exception e) {
             log.error("Error refreshing groovy block", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error: " + e.getMessage());
+        }
+    }
+
+    @PostMapping(value = "/edit", consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.TEXT_HTML_VALUE)
+    public ResponseEntity<String> editBlock(@RequestBody Map<String, Object> body) {
+        var markdownFileStr = extractRequiredParam(body, "markdownFile");
+        var blockId = extractRequiredParam(body, "blockId");
+        var newContent = Optional.ofNullable(body.get("newContent")).map(Object::toString);
+
+        if (markdownFileStr.isEmpty() || blockId.isEmpty() || newContent.isEmpty()) {
+            return ResponseEntity.badRequest().body("missing markdownFile, blockId, or newContent");
+        }
+
+        try {
+            var mdPathOpt = resolveMdPath(markdownFileStr.get());
+            if (mdPathOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body("markdown file not found: " + markdownFileStr.get());
+            }
+            Path mdPath = mdPathOpt.get();
+
+            // Conflict check
+            var fileLastModifiedStr = extractRequiredParam(body, "fileLastModified");
+            if (fileLastModifiedStr.isPresent()) {
+                LocalDateTime clientTime = LocalDateTime.parse(fileLastModifiedStr.get(), TS_FMT);
+                FileTime diskTime = Files.getLastModifiedTime(mdPath);
+                LocalDateTime diskDateTime = diskTime.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime().withNano(0);
+                if (diskDateTime.isAfter(clientTime)) {
+                    return ResponseEntity.status(HttpStatus.CONFLICT)
+                            .body("File was modified after the page was loaded");
+                }
+            }
+
+            String rawMarkdown = Files.readString(mdPath);
+            var document = Parser.builder().build().parse(rawMarkdown);
+            var mdFile = new MarkdownFile(Path.of(configService.getDocsDirectory()), markdownFileStr.get());
+
+            // Find matching groovy-exec block by hash
+            FencedCodeBlock matchedFcb = null;
+            for (Node node = document.getFirstChild(); node != null; node = node.getNext()) {
+                if (node instanceof FencedCodeBlock fcb && isGroovyBlock(fcb.getInfo())
+                        && blockId.get().equals(generateHash(fcb.getLiteral()))) {
+                    matchedFcb = fcb;
+                    break;
+                }
+            }
+            if (matchedFcb == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("blockId not found in file");
+            }
+
+            // Delete the OLD cache file (keyed on the old literal's hash)
+            String oldCacheFileName = generateCacheFileName(mdFile, matchedFcb.getLiteral());
+            Files.deleteIfExists(Path.of(oldCacheFileName));
+
+            // Replace fence in raw markdown
+            String oldFence = DataBlockTranslator.reconstructFence(matchedFcb);
+            String safeNewContent = newContent.get().endsWith("\n") ? newContent.get() : newContent.get() + "\n";
+            String indent = " ".repeat(matchedFcb.getFenceIndent());
+            int fenceLen = matchedFcb.getOpeningFenceLength() != null ? matchedFcb.getOpeningFenceLength() : 3;
+            String fenceMarker = matchedFcb.getFenceCharacter().repeat(fenceLen);
+            String newFence = indent + fenceMarker + (matchedFcb.getInfo() != null ? matchedFcb.getInfo() : "") + "\n"
+                    + safeNewContent + indent + fenceMarker + "\n";
+            String updatedMarkdown = rawMarkdown.replace(oldFence, newFence);
+            Files.writeString(mdPath, updatedMarkdown);
+
+            // New last-modified time
+            String newLastModified = Files.getLastModifiedTime(mdPath).toInstant()
+                    .atZone(ZoneId.systemDefault()).toLocalDateTime().withNano(0).format(TS_FMT);
+
+            // Re-render with the new content
+            String newGroovyId = generateHash(safeNewContent);
+            String newCacheFileName = generateCacheFileName(mdFile, safeNewContent);
+            // Build a synthetic FencedCodeBlock representing the new content
+            var newFcb = new FencedCodeBlock();
+            newFcb.setInfo(matchedFcb.getInfo());
+            newFcb.setFenceCharacter(matchedFcb.getFenceCharacter());
+            newFcb.setOpeningFenceLength(matchedFcb.getOpeningFenceLength());
+            newFcb.setFenceIndent(matchedFcb.getFenceIndent());
+            newFcb.setLiteral(safeNewContent);
+
+            var groovyRenderer = new GroovyRenderer(configService::getChromeDriverLocation);
+            return groovyRenderer.renderResultFresh(newFcb, newCacheFileName, newGroovyId)
+                    .map(node -> {
+                        var html = node instanceof HtmlBlock hb ? hb.getLiteral() : node.toString();
+                        return ResponseEntity.ok()
+                                .contentType(MediaType.TEXT_HTML)
+                                .header("X-File-Last-Modified", newLastModified)
+                                .body(html);
+                    })
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body("failed to render groovy block"));
+
+        } catch (Exception e) {
+            log.error("Error editing groovy block", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("error: " + e.getMessage());
         }
     }

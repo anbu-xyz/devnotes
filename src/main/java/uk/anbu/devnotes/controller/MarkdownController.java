@@ -66,7 +66,8 @@ public class MarkdownController {
             var markdownFile = new MarkdownFile(markdownRoot, filename);
             Assert.isTrue(markdownFile.exists(), "File does not exist " + filename);
             var markdown = new Markdown(Files.readAllBytes(markdownFile.fullPath()));
-            var renderResult = markdownRenderer.convertMarkdown(markdown, markdownFile, allRequestParams);
+            var renderParams = toRendererParams(allRequestParams);
+            var renderResult = markdownRenderer.convertMarkdown(markdown, markdownFile, renderParams);
             var frontMatter = renderResult.frontMatter();
             var baseTitle = constructMarkdownTitle(filename, markdownRoot);
             var title = (frontMatter.title() != null) ? frontMatter.title() : baseTitle;
@@ -76,7 +77,7 @@ public class MarkdownController {
 
             if ("slides".equals(frontMatter.type())) {
                 var deck = SlidesParser.parse(markdown.text());
-                var slidesHtml = slidesRenderer.render(deck, markdownFile, allRequestParams);
+                var slidesHtml = slidesRenderer.render(deck, markdownFile, renderParams);
                 params.put("slidesHtml", slidesHtml);
                 params.put("title", title);
                 params.put("markdownFile", filename);
@@ -202,15 +203,8 @@ public class MarkdownController {
                 filename = filename.substring(1);
             }
 
-            // Build a map of query params to pass to renderer, excluding internal params
-            var queryParams = new HashMap<String, Object>();
-            if (allRequestParams != null) {
-                for (var entry : allRequestParams.entrySet()) {
-                    String k = entry.getKey();
-                    if ("filename".equals(k) || "edit".equals(k)) continue;
-                    queryParams.put(k, entry.getValue());
-                }
-            }
+            // Build a map of query params to pass to renderer, excluding internal params.
+            var queryParams = new HashMap<String, Object>(toRendererParams(allRequestParams));
 
             Path markdownRoot = Paths.get(configService.getDocsDirectory());
             Path filePath;
@@ -468,6 +462,21 @@ public class MarkdownController {
                 .replace(">", "&gt;")
                 .replace("\"", "&quot;")
                 .replace("'", "&#39;");
+    }
+
+    private static Map<String, String> toRendererParams(Map<String, String> allRequestParams) {
+        var filtered = new HashMap<String, String>();
+        if (allRequestParams == null || allRequestParams.isEmpty()) {
+            return filtered;
+        }
+        for (var entry : allRequestParams.entrySet()) {
+            var key = entry.getKey();
+            if ("filename".equals(key) || "edit".equals(key)) {
+                continue;
+            }
+            filtered.put(key, entry.getValue());
+        }
+        return filtered;
     }
 
     @Data

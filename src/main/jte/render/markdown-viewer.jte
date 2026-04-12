@@ -58,6 +58,10 @@
                     </select>
                 </label>
             @endif
+            <label style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.82rem;color:#6b7280;margin-left:0.75rem;">
+                <input type="checkbox" id="show-block-ids-checkbox" style="cursor:pointer;">
+                Show Block IDs
+            </label>
         </p>
         <span hidden id="md-file-path">${markdownFile}</span>
         <script>
@@ -98,6 +102,23 @@
                 });
             })();
             @endif
+
+            // Show Block IDs toggle
+            (function() {
+                const checkbox = document.getElementById('show-block-ids-checkbox');
+                if (!checkbox) return;
+
+                checkbox.addEventListener('change', function() {
+                    document.body.classList.toggle('show-block-ids', this.checked);
+                    localStorage.setItem('showBlockIds', this.checked ? '1' : '0');
+                });
+
+                // Restore checkbox state from localStorage
+                if (localStorage.getItem('showBlockIds') === '1') {
+                    checkbox.checked = true;
+                    document.body.classList.add('show-block-ids');
+                }
+            })();
         </script>
     </div>
 </body>

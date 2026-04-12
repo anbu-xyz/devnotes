@@ -9,6 +9,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Node;
+import org.commonmark.node.FencedCodeBlock;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -28,6 +29,7 @@ import uk.anbu.devnotes.util.FileBasedCache;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.text.DecimalFormat;
 import java.nio.file.Path;
 import java.sql.Blob;
@@ -73,8 +75,15 @@ public class DataBlockTranslator {
             sharedParams = augmented;
         }
         final Map<String, Object> effectiveParams = sharedParams;
+        
+        log.debug("=== Rendering data block (file: {}) ===", mdName);
+        log.debug("Shared params for block ID: {}", effectiveParams);
+        String blockId = config.checksum(effectiveParams);
+        log.debug("Computed block ID: {}", blockId);
+        
         var html = readCached(markdownFile, config, effectiveParams);
         if (html.isPresent()) {
+            log.debug("Using cached output for block ID: {}", blockId);
             return html;
         }
 
@@ -176,7 +185,9 @@ public class DataBlockTranslator {
         ContainerTag<?> wrapper = div().withClass("data-block")
             .attr("data-datablock-id", checksum)
             .attr("data-datablock-params", jsonStringify(sharedParams))
-            .with(err);
+            .with(err)
+            .with(div().withClass("block-id-display")
+                    .withText("Block ID: " + checksum));
         return Optional.of(toHtmlBlock(wrapper));
     }
 
@@ -256,7 +267,11 @@ public class DataBlockTranslator {
                         )
                 );
 
-        return toHtmlBlock(tbl);
+        var wrapper = div().withClass("data-block")
+                .with(tbl)
+                .with(div().withClass("block-id-display")
+                        .withText("Block ID: " + checksum));
+        return toHtmlBlock(wrapper);
     }
 
     private static void cleanNullColumns(List<LinkedHashMap<String, Object>> rows) {
@@ -538,7 +553,9 @@ public class DataBlockTranslator {
         }
 
         ContainerTag<?> wrapper = div().withClass("data-block")
-                .with(tableTag.with(theadTag, tbodyTag, tfootTag));
+                .with(tableTag.with(theadTag, tbodyTag, tfootTag))
+                .with(div().withClass("block-id-display")
+                        .withText("Block ID: " + config.checksum(sharedParams)));
         return toHtmlBlock(wrapper);
     }
 
@@ -578,7 +595,9 @@ public class DataBlockTranslator {
             }
         }
         var dataBlock = div().withClass("data-block")
-            .with(tableTag);
+            .with(tableTag)
+            .with(div().withClass("block-id-display")
+                    .withText("Block ID: " + config.checksum(sharedParams)));
         return toHtmlBlock(dataBlock);
     }
 
@@ -819,5 +838,27 @@ public class DataBlockTranslator {
             ContainerTag<?> err = div().withText("Error parsing data block YAML for refresh: " + e.getMessage());
             return Optional.of(toHtmlBlock(err));
         }
+    }
+
+    /** Deletes the on-disk cache file for the given checksum, if it exists. */
+    public static void deleteCache(MarkdownFile markdownFile, String checksum) {
+        if (markdownFile == null || checksum == null) return;
+        try {
+            var baseFileName = markdownFile.fullPath().getFileName().toString();
+            var fileNameNoExt = baseFileName.replaceFirst("[.][^.]+$", "");
+            var cacheFile = markdownFile.fullPath().getParent()
+                    .resolve(fileNameNoExt + "." + checksum + ".output");
+            Files.deleteIfExists(cacheFile);
+        } catch (Exception e) {
+            log.warn("Could not delete data block cache for checksum {}", checksum, e);
+        }
+    }
+
+    public static String reconstructFence(FencedCodeBlock fcb) {
+        String indent = " ".repeat(fcb.getFenceIndent());
+        int fenceLen = fcb.getOpeningFenceLength() != null ? fcb.getOpeningFenceLength() : 3;
+        String fenceMarker = fcb.getFenceCharacter().repeat(fenceLen);
+        String info = fcb.getInfo() != null ? fcb.getInfo() : "";
+        return indent + fenceMarker + info + "\n" + fcb.getLiteral() + indent + fenceMarker + "\n";
     }
 }

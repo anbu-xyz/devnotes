@@ -51,6 +51,10 @@ documentation, and other dynamic features.
 * **Exclusive edit locking** - opening a file for editing takes a server-side exclusive lock so the same file cannot be
   edited simultaneously from another window or tab; the lock is kept alive by automatic heartbeats and expires after
   60 seconds of inactivity; a **Force Edit** option lets you take over an apparently abandoned session
+* **Inline block editor** - an **Edit** option in the **⋮** context menu of `data` and `groovy-exec` rendered blocks
+  opens a CodeMirror 6 modal editor pre-loaded with the block's raw source; saving replaces only that fence in the
+  markdown file and swaps the freshly-rendered output back into the page; conflict detection prevents overwriting
+  externally-modified files
 
 ### Groovy Scripting
 
@@ -203,10 +207,12 @@ defaults to `html`.
 #### Groovy block context menu
 
 Every rendered groovy-exec block has a **⋮** button in the top-right corner (unless
-`controls-enabled: false` is set in the YAML header). Clicking it opens a two-item menu:
+`controls-enabled: false` is set in the YAML header). Clicking it opens a three-item menu:
 
 * **Refresh** - re-executes the script (bypasses cache) and replaces the block output in-place.
 * **Source** - toggles the visibility of the original Groovy source code.
+* **Edit** - opens a CodeMirror 6 modal editor pre-loaded with the block's raw source; saving
+  replaces the fence in the markdown file and swaps the re-rendered output back into the page.
 
 To permanently hide the ⋮ button for a block that should appear as plain content, set
 `controls-enabled: false` in the YAML header:

@@ -90,7 +90,7 @@
         <!-- JavaScript -->
         <script src="/js/prism-bundle.js"></script>
         <script type="module">
-            import { basicSetup, EditorView, markdown, oneDark } from '/js/codemirror-bundle.js';
+            import { basicSetup, EditorView, markdown, yaml, oneDark } from '/js/codemirror-bundle.js';
 
             window.initCodeMirrorEditor = function(mountId, initialContent) {
                 const mountEl = document.getElementById(mountId);
@@ -112,8 +112,36 @@
             };
             window._cm6ready = true;
             window.dispatchEvent(new Event('cm6ready'));
+
+            // Block-editor CM6 factory (separate from the main page editor)
+            window._blockEditorView = null;
+            window.initBlockEditorCM = function(mountEl, content, lang) {
+                if (window._blockEditorView) {
+                    window._blockEditorView.destroy();
+                    window._blockEditorView = null;
+                }
+                const extensions = [basicSetup, oneDark, EditorView.lineWrapping];
+                if (lang === 'yaml') extensions.push(yaml());
+                // 'plain' → no language extension; just basicSetup
+                window._blockEditorView = new EditorView({
+                    doc: content || '',
+                    extensions,
+                    parent: mountEl,
+                });
+                return window._blockEditorView;
+            };
         </script>
         <script src="/js/paste-image.js"></script>
+        <!-- Block editor dialog: used for inline editing of data/groovy-exec blocks -->
+        <dialog id="block-editor-dialog">
+            <h3 class="block-editor-title">Edit Block</h3>
+            <div id="block-editor-cm-mount"></div>
+            <div class="block-editor-error" id="block-editor-error" style="display:none"></div>
+            <div class="block-editor-actions">
+                <button id="block-editor-cancel-btn" type="button">Cancel</button>
+                <button id="block-editor-save-btn" type="button" class="btn-blue-glow">Save</button>
+            </div>
+        </dialog>
         <script src="/js/markdown.js"></script>
         <script>
             if (${editMode}) {

@@ -37,6 +37,7 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -85,9 +86,11 @@ public class DataBlockExportController {
             return;
         }
 
+        var checksumParams = normalizeChecksumParams(params.get());
+
         Optional<YamlCodeblockConfig> config;
         try {
-            config = findDataBlockConfig(mdPath, datablockId, params.get());
+            config = findDataBlockConfig(mdPath, datablockId, checksumParams);
         } catch (IOException e) {
             log.error("Error reading markdown file for export", e);
             writeError(response, SC_INTERNAL_SERVER_ERROR, "Error reading markdown: " + e.getMessage());
@@ -105,7 +108,7 @@ public class DataBlockExportController {
         }
 
         prepareDownloadHeaders(response, mdPath);
-        streamExcel(response, config.get(), params.get());
+        streamExcel(response, config.get(), checksumParams);
     }
 
     // ── Request parsing ───────────────────────────────────────────────────────
@@ -128,6 +131,20 @@ public class DataBlockExportController {
         if (raw == null)                  return Optional.of(Map.of());
         if (raw instanceof Map<?, ?> map) return Optional.of((Map<String, Object>) map);
         return Optional.empty();
+    }
+
+    private Map<String, Object> normalizeChecksumParams(Map<String, Object> params) {
+        var normalized = new LinkedHashMap<String, Object>();
+        if (params != null && !params.isEmpty()) {
+            normalized.putAll(params);
+        }
+        // Internal route/query param must not affect data-block checksum matching.
+        normalized.remove("filename");
+        if (!normalized.containsKey("__exchangeRatesVersion")) {
+            var version = exchangeRateService != null ? exchangeRateService.getVersion() : 0L;
+            normalized.put("__exchangeRatesVersion", version);
+        }
+        return normalized;
     }
 
     // ── File & config resolution ──────────────────────────────────────────────

@@ -3,6 +3,7 @@ package uk.anbu.devnotes.markdown.code.datablock;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+@Slf4j
 @Data
 public class YamlCodeblockConfig {
     private String source;
@@ -108,6 +110,16 @@ public class YamlCodeblockConfig {
 
             byte[] bytes = mapper.writeValueAsBytes(this);
             byte[] sharedBytes = mapper.writeValueAsBytes(sharedParams);
+            
+            // Log inputs for debugging
+            String configJson = mapper.writeValueAsString(this);
+            String sharedParamsJson = mapper.writeValueAsString(sharedParams);
+            log.debug("Computing block ID checksum:");
+            log.debug("  Config JSON: {}", configJson);
+            log.debug("  Shared params JSON: {}", sharedParamsJson);
+            log.debug("  Config bytes length: {}", bytes.length);
+            log.debug("  Shared params bytes length: {}", sharedBytes.length);
+            
             // combine both byte arrays for checksum
             byte[] combined = new byte[bytes.length + sharedBytes.length];
             System.arraycopy(bytes, 0, combined, 0, bytes.length);
@@ -115,8 +127,13 @@ public class YamlCodeblockConfig {
 
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             byte[] digest = md.digest(combined);
-            return bytesToHex(digest);
+            String checksum = bytesToHex(digest);
+            
+            log.debug("  Computed checksum: {}", checksum);
+            
+            return checksum;
         } catch (JsonProcessingException | NoSuchAlgorithmException e) {
+            log.error("Failed to compute checksum", e);
             throw new IllegalStateException("Failed to compute checksum", e);
         }
     }
