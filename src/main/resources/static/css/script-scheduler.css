@@ -1,6 +1,17 @@
 .cron-expression {
     color: #29b4fd;
     font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.next-run-hint {
+    color: #666;
+    font-size: 0.82em;
+    font-weight: normal;
+    white-space: nowrap;
 }
 
 .schedule-item {
@@ -18,17 +29,259 @@
     margin-bottom: 10px;
 }
 
-.htmx-request.btn-primary {
-    opacity: 0.8;
+.htmx-request.btn-blue-glow {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
-.schedule-form h2,
+/* ── Page header (title + Add button on same row) ────────────────────────── */
+.scheduler-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+}
+
+.scheduler-page-header h1 {
+    margin: 0;
+}
+
 .existing-schedules h2 {
     padding-bottom: 0.5rem;
     border-bottom: 1px solid #333;
 }
 
+/* ── Add-schedule dialog ─────────────────────────────────────────────────── */
+dialog.add-schedule-dialog {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 0;
+    width: min(480px, 92vw);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    background: #121212;
+    color: #29b4fd;
+    overflow: hidden;
+}
+
+dialog.add-schedule-dialog[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+dialog.add-schedule-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.add-schedule-dialog-body {
+    padding: 1.25rem 1.5rem 1.5rem;
+}
+
+.add-schedule-dialog-body .form-group label {
+    color: #e0e0e0;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.add-schedule-dialog-body .form-input {
+    background: #1a1a1a;
+    border: 1px solid #444;
+    color: #e0e0e0;
+    border-radius: 4px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.add-schedule-dialog-body .form-input:focus {
+    outline: none;
+    border-color: #29b4fd;
+}
+
+.add-schedule-dialog-body small {
+    color: #666;
+    font-size: 0.78rem;
+}
+
+.add-schedule-dialog-actions {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 1.25rem;
+}
+
 #schedules-list p {
     color: #a0a0a0;
     font-style: italic;
+}
+
+/* ── Schedule meta row ───────────────────────────────────────────────────── */
+.schedule-meta {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    font-size: 0.85em;
+    color: #a0a0a0;
+    margin-top: 0.25rem;
+}
+
+.schedule-script-file {
+    color: #e0e0e0;
+}
+
+.schedule-last-ran {
+    color: #888;
+}
+
+.last-ran-value {
+    color: #29b4fd;
+}
+
+a.last-ran-link {
+    color: #29b4fd;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-underline-offset: 2px;
+    cursor: pointer;
+}
+
+a.last-ran-link:hover {
+    text-decoration-style: solid;
+    opacity: 0.8;
+}
+
+/* ── Logs dialog ─────────────────────────────────────────────────────────── */
+dialog.logs-dialog {
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    padding: 0;
+    width: min(960px, 92vw);
+    max-height: 80vh;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    background: #121212;
+    color: #29b4fd;
+    overflow: hidden;
+}
+
+dialog.logs-dialog[open] {
+    display: flex;
+    flex-direction: column;
+}
+
+dialog.logs-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.logs-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.9rem 1.25rem;
+    border-bottom: 1px solid #2a2a2a;
+    flex-shrink: 0;
+}
+
+.logs-dialog-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-shrink: 0;
+}
+
+.logs-dialog-header h3 {
+    margin: 0;
+    font-size: 1.0rem;
+    color: #29b4fd;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.logs-dialog-header h3 i {
+    margin-right: 0.4rem;
+    opacity: 0.8;
+}
+
+.logs-dialog-close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.4rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 0.2rem;
+    flex-shrink: 0;
+    margin-left: 0.75rem;
+    transition: color 0.15s;
+}
+
+.logs-dialog-close-btn:hover {
+    color: #29b4fd;
+}
+
+.logs-dialog-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    min-height: 0;
+    height: 60vh;
+}
+
+/* Left panel: log entry list */
+.logs-list-panel {
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid #2a2a2a;
+    overflow-y: auto;
+    background: #0d0d0d;
+}
+
+.logs-list-entry {
+    padding: 0.55rem 1rem;
+    cursor: pointer;
+    color: #aaa;
+    font-size: 0.82rem;
+    border-bottom: 1px solid #1a1a1a;
+    border-left: 3px solid transparent;
+    transition: background 0.12s, color 0.12s, border-left-color 0.12s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.logs-list-entry:hover {
+    background: #1a1a1a;
+    color: #e0e0e0;
+}
+
+.logs-list-entry.active {
+    background: #0f1e2e;
+    color: #29b4fd;
+    border-left-color: #29b4fd;
+}
+
+/* Right panel: log content */
+.logs-content-panel {
+    flex: 1;
+    overflow: auto;
+    padding: 1rem 1.25rem;
+    background: #121212;
+    min-width: 0;
+}
+
+.logs-content-panel pre {
+    margin: 0;
+    color: #d0d0d0;
+    font-size: 0.8rem;
+    font-family: 'Courier New', Courier, monospace;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.logs-empty {
+    color: #555;
+    font-style: italic;
+    font-size: 0.88rem;
+    padding: 1rem 0.5rem;
+    text-align: center;
 }

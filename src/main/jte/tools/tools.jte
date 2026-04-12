@@ -6,7 +6,7 @@
     <title>Tools</title>
 </head>
 <body class="p-8">
-<h1>Tools</h1>
+<h1><a href="/" class="btn-blue-glow"><i class="fas fa-arrow-left"></i></a> Tools</h1>
 
 <div class="tools-list">
     <a href="/pomodoro" class="btn-blue-glow"><i class="fas fa-clock"></i>Pomodoro Timer</a>
@@ -23,7 +23,6 @@
     <a href="/tools/jwt" class="btn-blue-glow"><i class="fas fa-key"></i>JWT Token Parser</a>
 </div>
 <hr>
-<a href="/" class="btn-blue-glow"><i class="fas fa-home"></i>Home</a>
 
 </body>
 </html>

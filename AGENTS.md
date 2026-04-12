@@ -971,6 +971,93 @@ extension.
 
 ---
 
+### Groovy Script Scheduler (`ScriptSchedulerService` / `ScriptSchedulerController`)
+
+The scheduler UI at `GET /scheduler` allows cron-based execution of Groovy scripts stored anywhere
+under `docsDirectory`.  Schedules are persisted to `<docsDirectory>/config/cron.yaml`.
+
+**Schedule record (`ScriptSchedule`):**
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | `String` | UUID assigned at creation |
+| `cronExpression` | `String` | Quartz cron expression (6 or 7 fields, e.g. `0 0 12 * * ?`) |
+| `scriptFile` | `String` | Path to the `.groovy` file relative to `docsDirectory` |
+
+**UI features:**
+
+| Feature | Description |
+|---|---|
+| **Add** | Opens a dialog; cron expression + script file path required; closes and appends the new row on success |
+| **Edit** | Pre-fills the same dialog with existing values; replaces the Quartz trigger in-place and swaps the row via HTMX `outerHTML` |
+| **Execute Now** | Runs the script synchronously; shows a spinner; opens the logs dialog with the fresh output when complete |
+| **Delete** | Removes the schedule from YAML and cancels the Quartz trigger |
+| **Next run** | Computed from the cron expression via `org.quartz.CronExpression.getNextValidTimeAfter`; shown inline next to the cron expression as a muted hint; updates immediately after an Edit |
+| **Last ran** | The timestamp of the most recent log file for that script, shown as a clickable link; clicking opens the logs dialog; shows "Never" as plain text when no logs exist |
+| **Logs dialog** | Two-panel split: list of past runs on the left (newest first), log content on the right; newest entry is auto-selected; **Clear All Logs** button deletes all log files for that schedule after a confirmation prompt |
+
+**Log file capture:**
+
+Every execution writes a log file to `<docsDirectory>/config/groovy-script-logs/` named:
+
+```
+<scriptBaseName>_<yyyy-MM-dd_HH-mm-ss>.log
+```
+
+where `scriptBaseName` is the script filename with non-alphanumeric characters replaced by `_`.
+
+Log file format:
+
+```
+Script  : /absolute/path/to/script.groovy
+Executed: 2026-04-12 10:30:00
+Trigger : Scheduled        ← "Manual" when triggered via Execute Now
+--- STDOUT ---
+<captured output>
+--- STDERR ---
+<captured errors / exceptions>
+```
+
+Both `System.out`/`System.err` and the Groovy `Binding` `out`/`err` properties are redirected,
+so both `println` and `System.out.println` are captured.  Execution is serialised with
+`synchronized (GroovyScriptJob.class)` to prevent overlapping captures when a manual trigger
+coincides with a scheduled one.  Script exceptions are written to STDERR rather than propagated,
+so a log file is always produced.
+
+The `groovy-script-logs/` directory is automatically added to `<docsDirectory>/config/.gitignore`
+before the first run.
+
+**REST API:**
+
+| Method | Path | Description |
+|---|---|---|
+| `GET` | `/scheduler` | Full scheduler page |
+| `POST` | `/scheduler/add` | Add schedule; returns `schedule-item.jte` HTML fragment |
+| `POST` | `/scheduler/edit/{id}` | Update cron/scriptFile; returns updated fragment (`outerHTML` swap) |
+| `DELETE` | `/scheduler/delete/{id}` | Delete schedule from YAML and Quartz |
+| `POST` | `/scheduler/execute/{id}` | Execute immediately; returns `{"displayName":"2026-04-12 10:30:00"}` |
+| `GET` | `/scheduler/logs?scheduleId=` | List log entries; returns `List<LogEntry>` JSON (newest first) |
+| `DELETE` | `/scheduler/logs?scheduleId=` | Delete all log files for a schedule |
+| `GET` | `/scheduler/log-content?scheduleId=&logFile=` | Return plain-text content of one log file |
+| `GET` | `/scheduler/last-ran?scheduleId=` | Return `{"lastRan":"..."}` |
+| `GET` | `/scheduler/empty-message` | HTMX fragment: "No scripts scheduled yet" |
+
+**Key files:**
+
+| File | Role |
+|---|---|
+| `service/ScriptSchedulerService.java` | Load/save `cron.yaml`; start/stop Quartz; `updateSchedule`, `executeNow` (with capture logic), `getLastRanDisplay`, `getNextRunDisplay`, `listLogs`, `readLogContent`, `clearLogs` |
+| `scheduled/GroovyScriptJob.java` | Quartz `Job`; captures stdout/stderr; writes log with `Trigger : Scheduled` |
+| `controller/ScriptSchedulerController.java` | All HTTP endpoints; renders `schedule-item.jte` fragments |
+| `types/ScriptSchedule.java` | Record `(id, cronExpression, scriptFile)` |
+| `types/LogEntry.java` | Record `(fileName, displayName)` returned as JSON for the logs list |
+| `jte/tools/script-scheduler.jte` | Full page: header with Add button; schedule list; add / edit / logs dialogs; all client JS (`openLogsDialog`, `executeScheduleNow`, `updateLastRanLink`, `resetLastRanToNever`, …) |
+| `jte/tools/schedule-item.jte` | Single schedule row fragment: cron + next-run hint; Execute Now / Edit / Delete buttons; Last ran link |
+| `jte/tools/empty-schedule-message.jte` | HTMX fragment for empty state |
+| `static/css/script-scheduler.css` | All scheduler styles including add/edit dialog and logs dialog |
+
+---
+
 ### YAML Front-Matter (`FrontMatterParser`)
 
 Any `.md` file may begin with a YAML front-matter block delimited by `---` lines.
