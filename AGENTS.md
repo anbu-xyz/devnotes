@@ -4,7 +4,7 @@
 
 **devnotes** is a personal knowledge-base tool for developers in corporate environments. It serves
 markdown files as a web application and extends standard markdown with executable code blocks
-(Groovy, SQL, data blocks, PlantUML, Mermaid), Git integration, a Pomodoro timer, and a
+(Groovy, data blocks, PlantUML, Mermaid), Git integration, a Pomodoro timer, and a
 spaced-repetition flash-card system.
 
 - **Language / Runtime:** Java 21, Spring Boot 3.x
@@ -175,7 +175,7 @@ src/
     java/uk/anbu/devnotes/
       controller/          # Spring MVC controllers (one per feature area)
       markdown/            # Markdown AST visitors / transformers
-        code/              # Code-block translators (Groovy, SQL, data, Mermaid, parameter, database-metadata, todo, rest)
+        code/              # Code-block translators (Groovy, data, Mermaid, parameter, database-metadata, todo, rest)
           datablock/       # YamlCodeblockConfig POJO + ParameterRegistry
           databasemetadata/ # DatabaseMetadataConfig POJO
           todo/            # TodoConfig POJO
@@ -184,7 +184,7 @@ src/
         red/               # Inline [red]...[/red] transformer + custom AST node + renderer
         image/             # Local-image path rewriting
         link/              # Link transformers
-      module/              # Business-logic modules (search, SQL executor, Groovy renderer ...)
+      module/              # Business-logic modules (search, Groovy renderer ...)
       service/             # Spring services (config, git, pomodoro, scheduler, datasource, encryption)
                            #   EditLockService.java       - in-memory exclusive edit-lock registry; heartbeat TTL; force release
                            #   FlashCardService.java      - load/save/query cards; delegates SM-2 to Sm2Algorithm
@@ -217,7 +217,7 @@ src/
 | `devnotes.allowedIps` | `127.0.0.1,...` | IP whitelist for access |
 | `devnotes.sshKeyFile` | *(empty)* | SSH key for Git push/pull |
 | `devnotes.chromeDriverLocation` | *(empty)* | Path to ChromeDriver for Selenium |
-| `devnotes.sql.maxRows` | `1000` | Global default SQL row limit |
+| `devnotes.sql.maxRows` | `1000` | Global default row limit for data blocks |
 | `server.port` | `8443` | HTTPS port |
 
 Datasource connections are configured in a separate file at
@@ -245,7 +245,6 @@ start; the derived AES-256-GCM key is kept only in JVM memory.
 2. A series of AST visitors (`NodeVisitor`) walk the tree and replace recognised code fences with
    rendered HTML (`HtmlBlock` nodes):
    - `` ```groovy-exec `` (YAML config header + `---` separator) → `CodeBlockTransformer` → `GroovyRenderer`
-   - `` ```sql(datasource:...) `` → `CodeBlockTransformer` → `SqlExecutor`
    - `` ```data `` → `DataBlockTranslator` (YAML config → named-parameter JDBC query → HTML table or jte template)
    - `` ```mermaid `` → `MermaidBlockTranslator`
    - `` ```plantuml `` → `PlantumlController` (rendered server-side to PNG via URL)
@@ -371,7 +370,7 @@ so any rate change automatically invalidates the cache.
 
 ### Currency-Symbol Column Conversion
 
-When a SQL result column name starts with a recognised currency symbol, every non-null cell value
+When a data block column name starts with a recognised currency symbol, every non-null cell value
 is automatically converted to the target currency and displayed as a formatted number.
 
 | Column prefix | Unicode | Target currency | Example column name |
@@ -742,7 +741,7 @@ loaded as-is when no passphrase is set, and are encrypted on the first save afte
 
 **Inline warning when key is absent (`enc-key-needed`):**
 
-When a markdown page contains a `data` or `sql(...)` block that references a datasource whose
+When a markdown page contains a `data` block that references a datasource whose
 password is stored as `ENC(...)` but no passphrase has been entered yet, the render pipeline
 detects this early and emits an amber warning `<div class="enc-key-needed">` in place of the
 query result.  Detection test (used in `DataBlockTranslator` and `CodeBlockTransformer`):
@@ -1513,7 +1512,7 @@ the commit-status API. No deployment step is included.
 | Add menu items to the groovy block context menu | Edit `setupGroovyBlockControls` in `markdown.js`; add a new `action` case in `setupGroovyBlockActionHandler` |
 | Change the groovy block wrapper structure | Edit `GroovyRenderer.wrapInGroovyBlock` and `convertNodeToHtml` |
 | Add a new datasource driver | Add the JDBC dependency in `pom.xml` |
-| Change default SQL row limit | `devnotes.sql.maxRows` in `application.yaml` or override in data-block YAML |
+| Change default data-block row limit | `devnotes.sql.maxRows` in `application.yaml` or override in data-block YAML |
 | Add a new jte view template | `src/main/jte/` (dev profile) or `src/main/resources/templates/` |
 | Change cache key logic | `YamlCodeblockConfig.checksum()` in `markdown/code/datablock/` |
 | Add a scheduled job | New class in `scheduled/`, configure via Quartz or `@Scheduled` |

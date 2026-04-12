@@ -69,9 +69,6 @@ pre[class*="language-"] {
     overflow-x: hidden;
 }
 
-pre:has(> code.language-hidden-sql) {
-    display: none;
-}
 
 pre:has(> code.language-hidden-data) {
     display: none;
@@ -113,9 +110,6 @@ pre:has(> code.language-hidden-rest) {
     display: none;
 }
 
-.sql-execution-time {
-    margin-left: 2em;
-}
 
 /* Lists */
 ul, ol {
@@ -661,21 +655,6 @@ table.sortable .btn-blue-glow i {
     border-radius: 3px;
 }
 
-.sql-datasource-name {
-    float: left;
-    font-weight: bold;
-}
-
-.sql-execution-time {
-    float: right;
-    font-weight: bold;
-}
-
-.sql-result-header {
-    border-color: #cccccc;
-    border-style: solid;
-    border-width: 1px;
-}
 
 .color-red {
     color: #d76969;

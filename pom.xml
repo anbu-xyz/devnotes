@@ -114,11 +114,6 @@
             <version>${jsch.version}</version>
         </dependency>
 
-        <dependency>
-            <groupId>com.github.jsqlparser</groupId>
-            <artifactId>jsqlparser</artifactId>
-            <version>4.9</version>
-        </dependency>
 
         <!-- Selenium -->
         <dependency>

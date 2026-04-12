@@ -11,7 +11,6 @@ import uk.anbu.devnotes.module.GroovyRenderer
 import uk.anbu.devnotes.module.MarkdownRenderer
 import uk.anbu.devnotes.module.SlidesRenderer
 import uk.anbu.devnotes.markdown.code.DatabaseMetadataBlockTranslator
-import uk.anbu.devnotes.module.sql.SqlExecutor
 import uk.anbu.devnotes.service.ConfigService
 import uk.anbu.devnotes.types.FrontMatter
 import uk.anbu.devnotes.types.MarkdownRenderResult
@@ -29,15 +28,12 @@ class MarkdownControllerSpec extends Specification {
     MarkdownRenderer markdownRenderer
     TemplateEngine templateEngine
     ConfigService configService
-    def sqlExecutor, groovyRenderer, dataSourceConfigResolver
+    def groovyRenderer, dataSourceConfigResolver
 
     def setup() {
-        sqlExecutor = Mock(SqlExecutor)
-        sqlExecutor.renderResultAsJsonFile(_ as SqlExecutor.JsonGenerationRequest) >> Paths.get("src/test/resources/sql-result.json")
-        sqlExecutor.convertToHtmlTable(_ as SqlExecutor.HtmlTableRequest) >> "html-table"
         groovyRenderer = new GroovyRenderer((r) -> Optional.empty())
         dataSourceConfigResolver = x -> new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "testUser", "testPass")
-        markdownRenderer = new MarkdownRenderer(groovyRenderer, dataSourceConfigResolver, sqlExecutor, configService, new DatabaseMetadataBlockTranslator(), null)
+        markdownRenderer = new MarkdownRenderer(groovyRenderer, dataSourceConfigResolver, configService, new DatabaseMetadataBlockTranslator(), null)
         var codeResolver = new DirectoryCodeResolver(Paths.get("src/main/jte"))
         templateEngine = TemplateEngine.create(codeResolver, Paths.get("src/main/jte"), ContentType.Html)
         configService = Mock(ConfigService)
@@ -491,24 +487,5 @@ class MarkdownControllerSpec extends Specification {
         Files.deleteIfExists(tempFile.resolveSibling(response.body.newFilename))
     }
 
-    def "Markdown with a sql error should render the error message"() {
-        given:
-        def tempFile = Files.createTempFile("test", ".md")
-        configService.getDocsDirectory() >> tempFile.toFile().parentFile.absolutePath
-        Files.write(tempFile, "# Test\n```sql(missing-database)\nselect * from user\n```".getBytes())
-
-        when:
-        def response = controller.markdownViewer(tempFile.fileName.toString(), Map.of())
-
-        then:
-        Document doc = Jsoup.parse(response.body.toString())
-        response.statusCode == HttpStatus.OK
-        doc.select("#markdownViewer > h1").text() == "Test"
-        doc.select("#markdownViewer > h1 + pre > code").text() == "select * from user"
-        doc.select("#markdownViewer > h1 + pre > code").get(0).attr("class") == "language-hidden-sql"
-        // TODO: check for error message
-
-        cleanup:
-        Files.deleteIfExists(tempFile)
-    }
 }
+

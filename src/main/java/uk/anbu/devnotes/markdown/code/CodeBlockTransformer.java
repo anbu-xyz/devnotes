@@ -3,25 +3,19 @@ package uk.anbu.devnotes.markdown.code;
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.node.FencedCodeBlock;
-import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Image;
 import org.commonmark.node.Node;
 import org.commonmark.node.Text;
 import uk.anbu.devnotes.module.GroovyRenderer;
-import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
-import uk.anbu.devnotes.service.EncryptionService;
 import uk.anbu.devnotes.service.ExchangeRateService;
 import uk.anbu.devnotes.types.MarkdownFile;
 import uk.anbu.devnotes.markdown.code.datablock.ParameterRegistry;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static uk.anbu.devnotes.util.FileBasedCache.generateCacheFileName;
 import static uk.anbu.devnotes.util.FileBasedCache.generateHash;
@@ -33,7 +27,6 @@ public class CodeBlockTransformer {
     @Builder.Default
     private Integer codeBlockCounter = 0;
     private final MarkdownFile markdownFile;
-    private final SqlExecutor sqlExecutor;
     private final GroovyRenderer groovyRenderer;
     private final DatasourceConfigResolver dataSourceConfigResolver;
     private final ConfigService configService;
@@ -71,8 +64,6 @@ public class CodeBlockTransformer {
                 codeBlock.insertAfter(node.get());
                 codeBlock.setInfo("hidden-groovy-exec");
             }
-        } else if (codeType.matches("^sql\\(([^)]+)\\)$")) {
-            renderSqlResult(codeBlock, markdownFile, codeType);
         } else if (codeType.matches("^data$")) {
             renderDataBlock(codeBlock, markdownFile);
         } else if (codeType.matches("^parameter$")) {
@@ -186,122 +177,4 @@ public class CodeBlockTransformer {
         codeBlock.insertAfter(image);
         codeBlock.setInfo("hidden-plantuml");
     }
-
-    private void renderSqlResult(FencedCodeBlock codeBlock, MarkdownFile markdownFile, String codeType) {
-        // codetype is of format sql(config1:value1,config2:value2)
-        String configString = codeType.substring("sql(".length(), codeType.length() - 1);
-        String[] configParts = configString.split(",");
-        Map<String, String> configMap = new HashMap<>();
-        for (String configKeyValue : configParts) {
-            // if colon is not found, assume the configKeyValue is the datasource name
-            if (configKeyValue.indexOf(':') == -1) {
-                configMap.put("datasource", configKeyValue);
-                continue;
-            }
-            // strip leading and trailing whitespace
-            configKeyValue = configKeyValue.trim();
-            String[] keyValue = configKeyValue.split(":");
-            configMap.put(keyValue[0], keyValue[1]);
-        }
-        if (!configMap.containsKey("datasource")) {
-            log.error("Error rendering SQL result: datasource not specified in config");
-            return;
-        }
-
-        String sql = codeBlock.getLiteral();
-        Node newNodeToInsert;
-        var maxRows = readMaxRows(configMap);
-        var dataSourceConfig = dataSourceConfigResolver.resolve(configMap.get("datasource"));
-        if (dataSourceConfig == null) {
-            newNodeToInsert = new Text("Error: DataSource '" + configMap.get("datasource") + "' not defined in config.");
-        } else if (EncryptionService.isEncrypted(dataSourceConfig.password())
-                && configService != null && !configService.isEncryptionKeySet()) {
-            String dsName = configMap.get("datasource");
-            String returnUrl = markdownFile != null
-                    ? "/markdown?filename=" + URLEncoder.encode(markdownFile.fileName(), StandardCharsets.UTF_8)
-                    : null;
-            String href = "/config/encryption-key"
-                    + (returnUrl != null ? "?returnTo=" + URLEncoder.encode(returnUrl, StandardCharsets.UTF_8) : "");
-            HtmlBlock warning = new HtmlBlock();
-            warning.setLiteral("<div class=\"enc-key-needed\"><i class=\"fas fa-lock\"></i>"
-                    + " Datasource '" + dsName + "' has an encrypted password. "
-                    + "<a href=\"" + href + "\">Enter encryption key</a></div>\n");
-            newNodeToInsert = warning;
-        } else {
-            try {
-                newNodeToInsert = processSqlCodeBlock(sql, dataSourceConfig, markdownFile, maxRows);
-            } catch (Exception e) {
-                log.error("Error rendering SQL result", e);
-                newNodeToInsert = new Text("Error rendering SQL result: " + e.getMessage()
-                        + " original SQL: " + sql);
-            }
-        }
-        codeBlock.insertBefore(newNodeToInsert);
-
-        // rename original info text from 'sql(...)' to 'hidden-sql' to hide it from rendering
-        codeBlock.setInfo("hidden-sql");
-    }
-
-    private static int readMaxRows(Map<String, String> configMap) {
-        if (configMap.get("max_rows") == null) {
-            return 0;
-        }
-        try {
-            return Integer.parseInt(configMap.get("max_rows"));
-        } catch (NumberFormatException e) {
-            log.warn("Invalid max_rows value in config, using default value");
-            return 0;
-        }
-    }
-
-    private HtmlBlock processSqlCodeBlock(String sql, ConfigService.DataSourceConfig dataSourceConfig,
-                                          MarkdownFile markdownFile, int maxRows) {
-
-        List<String> parameterNames = extractParameterNames(sql);
-        Map<String, String> parameterValues = new LinkedHashMap<>();
-
-        if (!parameterNames.isEmpty()) {
-            // TODO: Implement user input for parameter values
-            // For now, we'll use placeholder values
-            for (String param : parameterNames) {
-                if (parameterRegistry != null) {
-                    var sp = parameterRegistry.get(param);
-                    if (sp != null) {
-                        parameterValues.put(param, sp.toString());
-                        continue;
-                    }
-                }
-                parameterValues.put(param, "");
-            }
-        }
-
-        var request = new SqlExecutor.JsonGenerationRequest(dataSourceConfig, sql, parameterValues,
-                markdownFile, maxRows, false);
-        var outputPath = sqlExecutor.renderResultAsJsonFile(request);
-
-        return renderSqlResultTable(sql, outputPath, parameterValues, dataSourceConfig.name(),
-                markdownFile);
-    }
-
-    private List<String> extractParameterNames(String sql) {
-        List<String> parameterNames = new ArrayList<>();
-        Pattern pattern = Pattern.compile(":(\\w+)");
-        Matcher matcher = pattern.matcher(sql);
-        while (matcher.find()) {
-            parameterNames.add(matcher.group(1));
-        }
-        return parameterNames;
-    }
-
-    private HtmlBlock renderSqlResultTable(String sqlText, Path outputPath, Map<String, String> parameterValues,
-                                           String dataSourceName, MarkdownFile markdownFile) {
-        var request = new SqlExecutor.HtmlTableRequest(sqlText, outputPath, parameterValues, dataSourceName,
-                markdownFile, codeBlockCounter);
-        codeBlockCounter++;
-        String tableString = sqlExecutor.convertToHtmlTable(request);
-        HtmlBlock htmlBlock = new HtmlBlock();
-        htmlBlock.setLiteral(tableString);
-        return htmlBlock;
-    }
-
 }

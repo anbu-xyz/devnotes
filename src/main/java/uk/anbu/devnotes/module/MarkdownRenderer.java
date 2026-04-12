@@ -26,7 +26,6 @@ import uk.anbu.devnotes.markdown.image.LocalImageTransformer;
 import uk.anbu.devnotes.markdown.link.LocalLinkTransformer;
 import uk.anbu.devnotes.markdown.red.RedTextNodeRenderer;
 import uk.anbu.devnotes.markdown.red.RedTextTransformer;
-import uk.anbu.devnotes.module.sql.SqlExecutor;
 import uk.anbu.devnotes.service.ConfigService;
 import uk.anbu.devnotes.service.DatasourceConfigResolver;
 import uk.anbu.devnotes.service.ExchangeRateService;
@@ -43,7 +42,6 @@ public class MarkdownRenderer {
 
     private final GroovyRenderer groovyRenderer;
     private final DatasourceConfigResolver dataSourceConfigResolver;
-    private final SqlExecutor sqlExecutor;
     private final ConfigService configService;
     private final DatabaseMetadataBlockTranslator databaseMetadataBlockTranslator;
     private final ExchangeRateService exchangeRateService;
@@ -68,7 +66,6 @@ public class MarkdownRenderer {
         }
         CodeBlockTransformer.builder()
                 .markdownFile(markdownFile)
-                .sqlExecutor(sqlExecutor)
                 .groovyRenderer(groovyRenderer)
                 .dataSourceConfigResolver(dataSourceConfigResolver)
                 .configService(configService)

@@ -10,7 +10,6 @@ import uk.anbu.devnotes.markdown.code.DatabaseMetadataBlockTranslator
 import uk.anbu.devnotes.module.GroovyRenderer
 import uk.anbu.devnotes.module.MarkdownRenderer
 import uk.anbu.devnotes.module.SlidesRenderer
-import uk.anbu.devnotes.module.sql.SqlExecutor
 import uk.anbu.devnotes.service.ConfigService
 
 import java.nio.file.Files
@@ -24,10 +23,9 @@ class SlidesControllerSpec extends Specification {
     ConfigService configService
 
     def setup() {
-        def sqlExecutor = Mock(SqlExecutor)
         def groovyRenderer = new GroovyRenderer((r) -> Optional.empty())
         def dataSourceConfigResolver = { x -> new ConfigService.DataSourceConfig("testDB", "jdbc:test:url", "u", "p") }
-        markdownRenderer = new MarkdownRenderer(groovyRenderer, dataSourceConfigResolver, sqlExecutor, null, new DatabaseMetadataBlockTranslator(), null)
+        markdownRenderer = new MarkdownRenderer(groovyRenderer, dataSourceConfigResolver, null, new DatabaseMetadataBlockTranslator(), null)
         def codeResolver = new DirectoryCodeResolver(Paths.get("src/main/jte"))
         templateEngine = TemplateEngine.create(codeResolver, Paths.get("src/main/jte"), ContentType.Html)
         configService = Mock(ConfigService)

@@ -163,12 +163,6 @@ async function saveContent() {
     }
 }
 
-function downloadExcel(outputFileName, markdownFileName) {
-    window.location.href = '/downloadExcel?' + new URLSearchParams({
-        outputFileName,
-        markdownFileName
-    });
-}
 
 function createHomeLink(elementId) {
     const viewContent = document.getElementById(elementId);

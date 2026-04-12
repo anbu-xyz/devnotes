@@ -1,7 +1,7 @@
 # Developer Notes
 
 This is my personal wiki for jotting down notes, code snippets, and documentation related to my projects. It is built
-with Java Spring Boot, and uses a custom Markdown parser to support executable Groovy and SQL blocks, database metadata
+with Java Spring Boot, and uses a custom Markdown parser to support executable Groovy blocks, database metadata
 documentation, and other dynamic features.
 
 * It uses Markdown files stored in a Git repository, so your notes are portable, searchable, and version-controlled.
@@ -498,22 +498,6 @@ graph LR
 Diagrams are centred inside the slide and scaled to fit the viewport. The Mermaid theme is
 fixed to `dark` in presentation mode regardless of the wiki-page theme preference.
 
-To embed executable sql code in a markdown file, use the following syntax:
-
-````
-```sql(datasource:datasource1, max_rows:100)
-SELECT * FROM users
-```
-````
-
-That gets rendered as:
-
-![](/docs/sql-result.png)
-
-Following parameters can be specified in the code block header:
-
-* datasource: Name of the SQL data source to use.
-* max_rows: Maximum number of rows to return.
 
 ### Data blocks
 
@@ -565,7 +549,7 @@ Columns without a `column-formats` entry fall back to the built-in defaults:
 
 #### Currency-symbol column conversion
 
-When a SQL result column name begins with a recognised currency symbol, every non-null cell value
+When a data block column name begins with a recognised currency symbol, every non-null cell value
 is automatically converted to the corresponding target currency and displayed as a formatted
 number.
 
