@@ -244,7 +244,7 @@ start; the derived AES-256-GCM key is kept only in JVM memory.
 1. Raw markdown text is parsed by **commonmark-java**.
 2. A series of AST visitors (`NodeVisitor`) walk the tree and replace recognised code fences with
    rendered HTML (`HtmlBlock` nodes):
-   - `` ```groovy:<format> `` → `CodeBlockTransformer` → `GroovyRenderer`
+   - `` ```groovy `` (YAML config header + `---` separator) or `` ```groovy:<format> `` (legacy) → `CodeBlockTransformer` → `GroovyRenderer`
    - `` ```sql(datasource:...) `` → `CodeBlockTransformer` → `SqlExecutor`
    - `` ```data `` → `DataBlockTranslator` (YAML config → named-parameter JDBC query → HTML table or jte template)
    - `` ```mermaid `` → `MermaidBlockTranslator`
@@ -1098,8 +1098,35 @@ nav bar buttons.
 
 ### Groovy Execution
 
-Scripts run inside a sandboxed `GroovyShell`. Supported output formats (specified in the code-fence
-info string):
+Scripts run inside a sandboxed `GroovyShell`.
+
+#### YAML-header format (preferred)
+
+The fence info string is simply `groovy`.  The block body contains a YAML config header
+followed by `---` on its own line, then the Groovy script:
+
+```
+```groovy
+output: html
+cache-enabled: false
+controls-enabled: true
+---
+println "<div>Hello</div>"
+```
+```
+
+| YAML field         | Values                                                                  | Default | Description                                      |
+|--------------------|-------------------------------------------------------------------------|---------|--------------------------------------------------|
+| `output`           | `html` / `text` / `code-block` / `csv-table` / `csv-table-with-header` | `html`  | How the script return value is rendered          |
+| `cache-enabled`    | `true` / `false`                                                        | `true`  | `false` → re-execute on every render, no cache   |
+| `controls-enabled` | `true` / `false`                                                        | `true`  | `false` → suppress the ⋮ context-menu button     |
+
+If the `---` separator is absent the entire body is treated as the script with default config.
+
+#### Legacy info-string format (still supported)
+
+The output type is encoded in the fence info string; optional config parameters are appended
+in parentheses:
 
 | Info string | Rendered as |
 |---|---|
@@ -1109,14 +1136,16 @@ info string):
 | `groovy:text` | `<pre>` block |
 | `groovy:code-block` | Escaped `<pre>` block |
 
-Append `(cacheEnabled:false)` to the info string to disable output caching.
+Append `(cacheEnabled:false)` or `(controlsEnabled:false)` to the info string to override
+defaults, e.g. `groovy:html(cacheEnabled:false,controlsEnabled:false)`.
 
 #### Groovy block context menu (Refresh / Source)
 
 Every rendered groovy output is wrapped in a `<div class="groovy-block" data-groovy-id="...">`.
-The ID is the first 16 hex characters of the SHA-256 hash of the script literal (the same hash
-used to name the `.output` cache file).  `CodeBlockTransformer` computes this via
-`FileBasedCache.generateHash(literal)` and calls `GroovyRenderer.renderResultWrapped(..., groovyId)`.
+The ID is the first 16 hex characters of the SHA-256 hash of the **full block literal** (YAML
+header + script for the new format; script only for the legacy format).  `CodeBlockTransformer`
+computes this via `FileBasedCache.generateHash(literal)` and calls
+`GroovyRenderer.renderResultWrapped(..., groovyId)`.
 
 The JavaScript function `setupGroovyBlockControls()` dynamically injects a **⋮** button and a
 two-item dropdown into every `.groovy-block`:
@@ -1128,17 +1157,24 @@ two-item dropdown into every `.groovy-block`:
 
 `GroovyRefreshController` (`POST /groovy/fragment`):
 1. Reads the markdown file.
-2. Walks all `FencedCodeBlock` nodes whose `info` matches `groovy:...`.
-3. Matches by `generateHash(literal)`.
+2. Walks all `FencedCodeBlock` nodes whose `info` is `"groovy"`.
+3. Matches by `generateHash(literal)` where `literal` is the full block body.
 4. Calls `GroovyRenderer.renderResultFresh(...)` which deletes the cache file then re-executes.
 5. Returns the new `<div class="groovy-block">` HTML fragment.
+
+**Config parsing internals (`GroovyRenderer`):**
+
+| Method | Role |
+|---|---|
+| `parseYamlConfig(literal)` | Splits on `\n---\n`; deserialises YAML header into `GroovyCodeblockConfig` |
 
 **Key files:**
 
 | File | Role |
 |---|---|
-| `module/GroovyRenderer.java` | `renderResultWrapped` - wraps output in groovy-block div; `renderResultFresh` - deletes cache then re-executes; `convertNodeToHtml` - serialises any AST node to HTML |
-| `markdown/code/CodeBlockTransformer.java` | Computes `groovyId` via `FileBasedCache.generateHash`; calls `renderResultWrapped` |
+| `markdown/code/groovyblock/GroovyCodeblockConfig.java` | Jackson POJO (`output`, `cache-enabled`, `controls-enabled`) for YAML-header deserialisation |
+| `module/GroovyRenderer.java` | `renderResultWrapped` - wraps output in groovy-block div; `renderResultFresh` - deletes cache then re-executes; `parseYamlConfig` - parses YAML header; `convertNodeToHtml` - serialises any AST node to HTML |
+| `markdown/code/CodeBlockTransformer.java` | Computes `groovyId` via `FileBasedCache.generateHash`; calls `renderResultWrapped`; matches `"groovy"` fence info |
 | `controller/GroovyRefreshController.java` | `POST /groovy/fragment` - find-by-hash, force-refresh, return HTML fragment |
 | `util/FileBasedCache.java` | `generateHash` (now `public`) - 16-char SHA-256 hex used as block ID and cache-file suffix |
 | `static/js/markdown.js` | `setupGroovyBlockControls`, `setupGroovyBlockMenuToggle`, `setupGroovyBlockActionHandler`, `showGroovyError`, `setGroovyBlockBusy` |
@@ -1174,7 +1210,7 @@ A browser-based split-pane editor for authoring and previewing Mermaid diagrams 
 ### Groovy Playground (`GroovyPlaygroundController`)
 
 A browser-based split-pane editor for writing and executing Groovy scripts with a live rendered
-output panel.  Mirrors the render modes available in `` ```groovy:<mode> `` fenced code blocks.
+output panel.  Mirrors the render modes available in `groovy` fenced code blocks.
 
 `GET /groovy-playground` renders the playground page.  The script and selected render mode are
 autosaved to `<docsDirectory>/config/groovy-playground/` on every keystroke (debounced).
@@ -1235,6 +1271,9 @@ the commit-status API. No deployment step is included.
 | Add a new REST endpoint | New class in `controller/`, register as `@RestController` |
 | Change groovy block refresh endpoint | Edit `GroovyRefreshController.java` |
 | Change how groovy block ID is computed | Edit `FileBasedCache.generateHash` and update `CodeBlockTransformer` + `GroovyRefreshController` accordingly |
+| Add a new output type to groovy blocks | Add a `case` to `GroovyRenderer.convertOutputToNode`; add an `<option>` in `groovy-playground.jte`; document in README |
+| Add a new config field to groovy blocks | Add field to `GroovyCodeblockConfig` (POJO in `markdown/code/groovyblock/`); handle in `GroovyRenderer.parseYamlConfig`; update `GroovyRendererSpec` |
+| Change the groovy YAML/script separator token | Edit the `separator` constant in `GroovyRenderer.parseYamlConfig` |
 | Add menu items to the groovy block context menu | Edit `setupGroovyBlockControls` in `markdown.js`; add a new `action` case in `setupGroovyBlockActionHandler` |
 | Change the groovy block wrapper structure | Edit `GroovyRenderer.wrapInGroovyBlock` and `convertNodeToHtml` |
 | Add a new datasource driver | Add the JDBC dependency in `pom.xml` |

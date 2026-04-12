@@ -102,7 +102,7 @@ class GroovyRefreshControllerSpec extends Specification {
 
     def "returns 404 when groovyId does not match any block in the file"() {
         given:
-        Files.writeString(tempDir.resolve("test.md"), groovyFence("groovy:html", '"<b>hi</b>"'))
+        Files.writeString(tempDir.resolve("test.md"), groovyFenceFromLiteral(groovyLiteral("html", '"<b>hi</b>"')))
 
         when:
         def response = controller.renderFragment([markdownFile: "test.md", groovyId: "doesnotmatch"])
@@ -127,11 +127,10 @@ class GroovyRefreshControllerSpec extends Specification {
     // Successful refresh - output types
     // -------------------------------------------------------------------------
 
-    def "returns 200 HTML with groovy-block wrapper for a groovy:html block"() {
+    def "returns 200 HTML with groovy-block wrapper for an html block"() {
         given:
-        def script = '"<p>hello from groovy</p>"'
-        def literal = script + "\n"
-        Files.writeString(tempDir.resolve("test.md"), groovyFence("groovy:html", script))
+        def literal = groovyLiteral("html", '"<p>hello from groovy</p>"')
+        Files.writeString(tempDir.resolve("test.md"), groovyFenceFromLiteral(literal))
         def groovyId = generateHash(literal)
 
         when:
@@ -145,11 +144,10 @@ class GroovyRefreshControllerSpec extends Specification {
         response.body.contains("<p>hello from groovy</p>")
     }
 
-    def "returns 200 with groovy-block wrapper for a groovy:text block"() {
+    def "returns 200 with groovy-block wrapper for a text block"() {
         given:
-        def script = '"plain text output"'
-        def literal = script + "\n"
-        Files.writeString(tempDir.resolve("notes.md"), groovyFence("groovy:text", script))
+        def literal = groovyLiteral("text", '"plain text output"')
+        Files.writeString(tempDir.resolve("notes.md"), groovyFenceFromLiteral(literal))
         def groovyId = generateHash(literal)
 
         when:
@@ -161,11 +159,10 @@ class GroovyRefreshControllerSpec extends Specification {
         response.body.contains("plain text output")
     }
 
-    def "returns 200 with groovy-block wrapper for a groovy:csv-table block"() {
+    def "returns 200 with groovy-block wrapper for a csv-table block"() {
         given:
-        def script = '"""A,B\n1,2"""'
-        def literal = script + "\n"
-        Files.writeString(tempDir.resolve("table.md"), groovyFence("groovy:csv-table", script))
+        def literal = groovyLiteral("csv-table", '"""A,B\n1,2"""')
+        Files.writeString(tempDir.resolve("table.md"), groovyFenceFromLiteral(literal))
         def groovyId = generateHash(literal)
 
         when:
@@ -184,9 +181,8 @@ class GroovyRefreshControllerSpec extends Specification {
 
     def "deletes stale cache file and returns fresh output on refresh"() {
         given:
-        def script = '"<span>fresh output</span>"'
-        def literal = script + "\n"
-        Files.writeString(tempDir.resolve("cached.md"), groovyFence("groovy:html", script))
+        def literal = groovyLiteral("html", '"<span>fresh output</span>"')
+        Files.writeString(tempDir.resolve("cached.md"), groovyFenceFromLiteral(literal))
         def groovyId = generateHash(literal)
 
         def mdFile = new MarkdownFile(tempDir, "cached.md")
@@ -202,11 +198,10 @@ class GroovyRefreshControllerSpec extends Specification {
         !response.body.contains("stale")
     }
 
-    def "cache file is absent after a successful refresh when caching is enabled"() {
+    def "cache file is written after a successful refresh when caching is enabled"() {
         given:
-        def script = '"<b>result</b>"'
-        def literal = script + "\n"
-        Files.writeString(tempDir.resolve("test.md"), groovyFence("groovy:html", script))
+        def literal = groovyLiteral("html", '"<b>result</b>"')
+        Files.writeString(tempDir.resolve("test.md"), groovyFenceFromLiteral(literal))
         def groovyId = generateHash(literal)
 
         def mdFile = new MarkdownFile(tempDir, "test.md")
@@ -221,30 +216,31 @@ class GroovyRefreshControllerSpec extends Specification {
         Files.readString(cacheFile).contains("<b>result</b>")
     }
 
-    // -------------------------------------------------------------------------
-    // Info-string matching
-    // -------------------------------------------------------------------------
-
-    def "matches a groovy block whose info string includes config parameters"() {
+    def "cache-enabled false does not leave a cache file after refresh"() {
         given:
-        def script = '"<em>no-cache block</em>"'
-        def literal = script + "\n"
-        Files.writeString(tempDir.resolve("test.md"), groovyFence("groovy:html(cacheEnabled:false)", script))
+        def literal = groovyLiteral("html", '"<em>no-cache</em>"', "cache-enabled: false\n")
+        Files.writeString(tempDir.resolve("no-cache.md"), groovyFenceFromLiteral(literal))
         def groovyId = generateHash(literal)
+        def mdFile = new MarkdownFile(tempDir, "no-cache.md")
+        def cacheFile = Path.of(generateCacheFileName(mdFile, literal))
 
         when:
-        def response = controller.renderFragment([markdownFile: "test.md", groovyId: groovyId])
+        def response = controller.renderFragment([markdownFile: "no-cache.md", groovyId: groovyId])
 
         then:
         response.statusCode == HttpStatus.OK
-        response.body.contains("<em>no-cache block</em>")
+        response.body.contains("<em>no-cache</em>")
+        !Files.exists(cacheFile)
     }
+
+    // -------------------------------------------------------------------------
+    // Block selection
+    // -------------------------------------------------------------------------
 
     def "skips non-groovy code blocks and matches the correct groovy block"() {
         given:
-        def script = '"<i>correct block</i>"'
-        def literal = script + "\n"
-        def content = "```data\nsource: myDs\n```\n\n" + groovyFence("groovy:html", script)
+        def literal = groovyLiteral("html", '"<i>correct block</i>"')
+        def content = "```data\nsource: myDs\n```\n\n" + groovyFenceFromLiteral(literal)
         Files.writeString(tempDir.resolve("mixed.md"), content)
         def groovyId = generateHash(literal)
 
@@ -258,11 +254,11 @@ class GroovyRefreshControllerSpec extends Specification {
 
     def "matches the second of two groovy blocks by its distinct groovyId"() {
         given:
-        def script1 = '"<b>first block</b>"'
-        def script2 = '"<b>second block</b>"'
-        def content = groovyFence("groovy:html", script1) + "\n" + groovyFence("groovy:html", script2)
+        def literal1 = groovyLiteral("html", '"<b>first block</b>"')
+        def literal2 = groovyLiteral("html", '"<b>second block</b>"')
+        def content = groovyFenceFromLiteral(literal1) + "\n" + groovyFenceFromLiteral(literal2)
         Files.writeString(tempDir.resolve("two-blocks.md"), content)
-        def groovyId = generateHash(script2 + "\n")
+        def groovyId = generateHash(literal2)
 
         when:
         def response = controller.renderFragment([markdownFile: "two-blocks.md", groovyId: groovyId])
@@ -273,12 +269,32 @@ class GroovyRefreshControllerSpec extends Specification {
         !response.body.contains("<b>first block</b>")
     }
 
+    def "controls-enabled false suppresses context-menu attribute"() {
+        given:
+        def literal = groovyLiteral("text", '"no menu"', "controls-enabled: false\n")
+        Files.writeString(tempDir.resolve("no-ctrl.md"), groovyFenceFromLiteral(literal))
+        def groovyId = generateHash(literal)
+
+        when:
+        def response = controller.renderFragment([markdownFile: "no-ctrl.md", groovyId: groovyId])
+
+        then:
+        response.statusCode == HttpStatus.OK
+        response.body.contains('data-groovy-controls="false"')
+    }
+
     // -------------------------------------------------------------------------
-    // Helper
+    // Helpers
     // -------------------------------------------------------------------------
 
-    private static String groovyFence(String infoString, String script) {
-        "```${infoString}\n${script}\n```\n"
+    /** Builds a fence literal: {@code "output: <type>\n[extraYaml]---\n<script>\n"} */
+    private static String groovyLiteral(String outputType, String script, String extraYaml = "") {
+        "output: ${outputType}\n${extraYaml}---\n${script}\n"
+    }
+
+    /** Wraps a literal body inside a {@code ```groovy} fence. */
+    private static String groovyFenceFromLiteral(String literal) {
+        "```groovy\n${literal}```\n"
     }
 }
 

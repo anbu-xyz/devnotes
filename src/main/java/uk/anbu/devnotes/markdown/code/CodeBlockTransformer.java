@@ -61,11 +61,10 @@ public class CodeBlockTransformer {
 
     private void processFencedCodeBlock(FencedCodeBlock codeBlock) {
         String codeType = codeBlock.getInfo();
-        // match codeType of format "groovy:targetType(config1:value1,config2:value2) or "groovy:targetType"
-        if (codeType.matches("^groovy:([^(]+)\\(.*\\)$") || codeType.matches("^groovy:([^(]+)$")) {
+        if ("groovy".equals(codeType)) {
             String cacheFileName = generateCacheFileName(markdownFile, codeBlock.getLiteral());
             String groovyId = generateHash(codeBlock.getLiteral());
-            var node = groovyRenderer.renderResultWrapped(codeBlock, cacheFileName, codeType, groovyId);
+            var node = groovyRenderer.renderResultWrapped(codeBlock, cacheFileName, groovyId);
             if (node.isEmpty()) {
                 codeBlock.insertBefore(new Text("Error: Unable to render Groovy result"));
             } else {

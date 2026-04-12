@@ -22,8 +22,9 @@ documentation, and other dynamic features.
     - CSV tables
     - HTML
     - Text
-    - Optional config parameters per block: `cacheEnabled` (default `true`) and `controlsEnabled`
-      (default `true` - set to `false` to hide the ⋮ context menu)
+    - Block config via a **YAML header** inside the fence (preferred) or the legacy
+      `groovy:format(key:value)` info-string syntax; options include `output`, `cache-enabled`,
+      and `controls-enabled` (default `true` — set to `false` to hide the ⋮ context menu)
 * **Groovy Playground** at `/groovy-playground` - interactive split-pane editor with live execution and render-mode
   selector
 * **Mermaid Playground** at `/mermaid-playground` - interactive split-pane editor with live Mermaid diagram preview
@@ -52,12 +53,16 @@ documentation, and other dynamic features.
 
 ### Groovy Scripting
 
-To embed executable Groovy code in a markdown file, use the following syntax:
+To embed executable Groovy code in a markdown file, use a `groovy` fenced code block. The body
+starts with a **YAML header** that configures the block, followed by `---` on its own line, and
+then the Groovy script.
 
 #### To render the result as a CSV table with a header:
 
 ````
-```groovy:csv-table-with-header
+```groovy
+output: csv-table-with-header
+---
 def output = ""
 output += "N, N squared \n"
 for (int i = 0; i < 10; i++) {
@@ -73,7 +78,9 @@ output
 #### To render the result as a csv table:
 
 ````
-```groovy:csv-table
+```groovy
+output: csv-table
+---
 def output = ""
 for (int i = 0; i < 10; i++) {
     output += "${i},${i * i}\n"
@@ -86,12 +93,14 @@ output
 #### To render the result as code block without any html formatting:
 
 ````
-```groovy:code-block
+```groovy
+output: code-block
+---
 def output = """
 The following output will contain the angle brackets:
 
 <h1>Hello World</h1>
-
+"""
 output
 ```
 ````
@@ -99,7 +108,9 @@ output
 #### To render the result as html:
 
 ````
-```groovy:html
+```groovy
+output: html
+---
 def output = "<h1>Hello World</h1>"
 
 output
@@ -109,7 +120,9 @@ output
 #### To render the result as text:
 
 ````
-```groovy:text
+```groovy
+output: text
+---
 def output = "Hello World"
 
 output
@@ -123,7 +136,9 @@ The code will be executed and the result will be rendered in the Markdown file.
 To embed executable Playwright code in a Markdown file, use the following syntax:
 
 ````
-```groovy:text
+```groovy
+output: text
+---
 import com.microsoft.playwright.Browser
 import com.microsoft.playwright.Page
 import com.microsoft.playwright.Playwright
@@ -159,39 +174,47 @@ try (Playwright playwright = Playwright.create()) {
 pageTitle
 ````
 
-#### Groovy code optional configuration
+#### Groovy block configuration
 
-Config parameters are appended in parentheses to the info string, comma-separated as
-`key:value` pairs:
+Configuration sits in the **YAML header** at the top of the block body, before the `---`
+separator:
 
+````
+```groovy
+output: html
+cache-enabled: false
+controls-enabled: false
+---
+"<p>My script</p>"
 ```
-groovy:csv-table-with-header(cacheEnabled:false,controlsEnabled:false)
-```
+````
 
-| Parameter         | Values           | Default | Description                                                                                                                                         |
-|-------------------|------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `cacheEnabled`    | `true` / `false` | `true`  | When `false` the script is re-executed on every page render and no `.output` cache file is written.                                                 |
-| `controlsEnabled` | `true` / `false` | `true`  | When `false` the **⋮** context menu button is not injected into the rendered block. Useful for embedded output that should look like plain content. |
+| Field              | Values                                                                  | Default | Description                                                                                         |
+|--------------------|-------------------------------------------------------------------------|---------|-----------------------------------------------------------------------------------------------------|
+| `output`           | `html` / `text` / `code-block` / `csv-table` / `csv-table-with-header` | `html`  | How the script's return value is rendered.                                                          |
+| `cache-enabled`    | `true` / `false`                                                        | `true`  | When `false` the script is re-executed on every page render and no `.output` cache file is written. |
+| `controls-enabled` | `true` / `false`                                                        | `true`  | When `false` the **⋮** context menu button is not injected into the rendered block.                 |
 
-Parameters can be combined freely:
+If the `---` separator is omitted, the entire body is treated as a Groovy script and `output`
+defaults to `html`.
 
-```
-groovy:html(cacheEnabled:false,controlsEnabled:false)
-```
 
 #### Groovy block context menu
 
 Every rendered groovy block has a **⋮** button in the top-right corner (unless
-`controlsEnabled:false` is set). Clicking it opens a two-item menu:
+`controls-enabled: false` is set in the YAML header). Clicking it opens a two-item menu:
 
 * **Refresh** - re-executes the script (bypasses cache) and replaces the block output in-place.
 * **Source** - toggles the visibility of the original Groovy source code.
 
-To permanently hide the ⋮ button for a block that should appear as plain content, add
-`controlsEnabled:false` to the info string:
+To permanently hide the ⋮ button for a block that should appear as plain content, set
+`controls-enabled: false` in the YAML header:
 
 ````
-```groovy:html(controlsEnabled:false)
+```groovy
+output: html
+controls-enabled: false
+---
 "<p>This output has no context menu.</p>"
 ```
 ````

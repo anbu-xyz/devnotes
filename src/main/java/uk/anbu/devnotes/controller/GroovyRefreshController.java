@@ -87,14 +87,13 @@ public class GroovyRefreshController {
     }
 
     private static boolean isGroovyBlock(String info) {
-        return info != null
-                && (info.matches("^groovy:([^(]+)\\(.*\\)$") || info.matches("^groovy:([^(]+)$"));
+        return "groovy".equals(info);
     }
 
     private ResponseEntity<String> renderMatchedBlock(FencedCodeBlock fcb, MarkdownFile mdFile, String groovyId) {
         var groovyRenderer = new GroovyRenderer(configService::getChromeDriverLocation);
         var cacheFileName = generateCacheFileName(mdFile, fcb.getLiteral());
-        return groovyRenderer.renderResultFresh(fcb, cacheFileName, fcb.getInfo(), groovyId)
+        return groovyRenderer.renderResultFresh(fcb, cacheFileName, groovyId)
                 .map(node -> {
                     var html = node instanceof HtmlBlock hb ? hb.getLiteral() : node.toString();
                     return ResponseEntity.ok().contentType(MediaType.TEXT_HTML).body(html);

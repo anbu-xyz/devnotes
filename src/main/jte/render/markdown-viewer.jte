@@ -79,7 +79,7 @@
                 if (statusBar) {
                     const badge = document.createElement('button');
                     badge.className = 'cache-files-badge';
-                    badge.title = 'This page has ${cacheFileCount} cached output file${cacheFileCount == 1 ? "" : "s"} \u2014 click to clear';
+                    badge.title = 'This page has ${cacheFileCount} cached output file${cacheFileCount == 1 ? "" : "s"} - click to clear';
                     badge.innerHTML = '<i class="fas fa-database"></i>\u00a0${cacheFileCount}';
                     badge.addEventListener('click', function(e) {
                         e.preventDefault();

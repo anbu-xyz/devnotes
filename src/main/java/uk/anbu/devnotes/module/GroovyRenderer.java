@@ -1,10 +1,13 @@
 package uk.anbu.devnotes.module;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import lombok.extern.slf4j.Slf4j;
 import org.commonmark.node.FencedCodeBlock;
 import org.commonmark.node.HtmlBlock;
 import org.commonmark.node.Node;
 import org.commonmark.node.Text;
+import uk.anbu.devnotes.markdown.code.groovyblock.GroovyCodeblockConfig;
 import uk.anbu.devnotes.util.GroovyShellRunner;
 
 import java.io.IOException;
@@ -12,8 +15,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -37,92 +38,21 @@ public class GroovyRenderer {
         return new GroovyOutput(outputString, node);
     }
 
-    public Optional<Node> renderResult(FencedCodeBlock codeBlock, String cacheFileName, String codeType) {
-        // Assuming codeType string is of format "groovy:targetType(config1:value1,config2:value2)"
-        // find location of first opening parenthesis
-        int openParenIndex = codeType.indexOf('(');
-        Map<String, String> configMap = new HashMap<>();
-        if (openParenIndex == -1) {
-            log.debug("Open parenthesis not found in config string {}, using default config", codeType);
-            openParenIndex = codeType.length();
-        } else {
-            // find location of last closing parenthesis
-            int closeParenIndex = codeType.lastIndexOf(')');
-            if (closeParenIndex == -1) {
-                log.error("Error rendering Groovy result: missing closing parenthesis. Unable to read config from {}", codeType);
-                return Optional.empty();
-            }
-            String[] configParts = codeType.substring(openParenIndex + 1, closeParenIndex).split(",");
-            for (String configKeyValue : configParts) {
-                String[] keyValue = configKeyValue.split(":");
-                configMap.put(keyValue[0], keyValue[1]);
-            }
-        }
-
-        String groovyScriptText = codeBlock.getLiteral();
-
-        String targetType = codeType.substring("groovy:".length(), openParenIndex);
-        var groovyCodeBlockRequest = new GroovyRenderer.GroovyCodeBlockRequest(groovyScriptText, targetType,
-                GroovyRenderer.GroovyCodeBlockConfig.fromMap(configMap));
-
-        Path outputFile = Paths.get(cacheFileName);
-
-        Node node;
-        if (groovyCodeBlockRequest.config().cachingEnabled()) {
-            if (Files.exists(outputFile)) {
-                var outputString = readFromFile(outputFile, cacheFileName);
-                node = convertOutputToNode(targetType, outputString);
-            } else {
-                try {
-                    var output = processGroovyCodeBlock(groovyCodeBlockRequest);
-                    saveOutput(outputFile, output.outputString());
-                    node = output.node();
-                } catch (Exception e) {
-                    log.error("Error rendering Groovy result with caching enabled", e);
-                    node = new Text("Error executing Groovy script: " + e.getMessage());
-                }
-            }
-        } else {
-            try {
-                var output = processGroovyCodeBlock(groovyCodeBlockRequest);
-                node = output.node();
-            } catch (Exception e) {
-                log.error("Error rendering Groovy result with caching disabled", e);
-                node = new Text("Error executing Groovy script: " + e.getMessage());
-            }
-        }
-        return Optional.of(node);
+    public Optional<Node> renderResult(FencedCodeBlock codeBlock, String cacheFileName) {
+        return renderResultFromParsed(parseYamlConfig(codeBlock.getLiteral()), cacheFileName);
     }
 
     /**
      * Renders the groovy block and wraps the output in a {@code <div class="groovy-block">}
      * container that carries a {@code data-groovy-id} attribute for client-side refresh.
-     * When the info string contains {@code controlsEnabled:false} the wrapper also gets
+     * When the config has {@code controls-enabled: false} the wrapper also gets
      * {@code data-groovy-controls="false"}, which tells the JS not to inject the ⋮ menu.
      */
     public Optional<Node> renderResultWrapped(FencedCodeBlock codeBlock, String cacheFileName,
-                                              String codeType, String groovyId) {
-        var showControls = parseControlsEnabled(codeType);
-        return renderResult(codeBlock, cacheFileName, codeType)
-                .map(node -> wrapInGroovyBlock(node, groovyId, showControls));
-    }
-
-    /**
-     * Extracts the {@code controlsEnabled} flag from the info string.
-     * Returns {@code true} (controls shown) when the flag is absent or any value other than {@code false}.
-     */
-    private static boolean parseControlsEnabled(String codeType) {
-        int open = codeType.indexOf('(');
-        if (open == -1) return true;
-        int close = codeType.lastIndexOf(')');
-        if (close == -1) return true;
-        for (var part : codeType.substring(open + 1, close).split(",")) {
-            var kv = part.split(":");
-            if (kv.length == 2 && "controlsEnabled".equals(kv[0].trim())) {
-                return Boolean.parseBoolean(kv[1].trim());
-            }
-        }
-        return true;
+                                              String groovyId) {
+        var parsed = parseYamlConfig(codeBlock.getLiteral());
+        return renderResultFromParsed(parsed, cacheFileName)
+                .map(node -> wrapInGroovyBlock(node, groovyId, parsed.config().controlsEnabled()));
     }
 
     /**
@@ -146,14 +76,90 @@ public class GroovyRenderer {
      * {@link #renderResultWrapped}.
      */
     public Optional<Node> renderResultFresh(FencedCodeBlock codeBlock, String cacheFileName,
-                                            String codeType, String groovyId) {
+                                            String groovyId) {
         Path outputFile = Paths.get(cacheFileName);
         try {
             Files.deleteIfExists(outputFile);
         } catch (IOException e) {
             log.warn("Could not delete Groovy cache file {}", cacheFileName, e);
         }
-        return renderResultWrapped(codeBlock, cacheFileName, codeType, groovyId);
+        return renderResultWrapped(codeBlock, cacheFileName, groovyId);
+    }
+
+    // -------------------------------------------------------------------------
+    // Config parsing
+    // -------------------------------------------------------------------------
+
+    /**
+     * Parses the block configuration from the YAML header at the top of the block body.
+     *
+     * <p>The body must contain a {@code ---} separator on its own line; everything before it
+     * is parsed as YAML config and everything after is the Groovy script.  If no separator is
+     * found the entire body is treated as the script with default config.
+     */
+    static ParsedConfig parseYamlConfig(String literal) {
+        var separator = "\n---\n";
+        int sepIdx = literal.indexOf(separator);
+        String yamlPart;
+        String scriptPart;
+        if (sepIdx >= 0) {
+            yamlPart = literal.substring(0, sepIdx).trim();
+            scriptPart = literal.substring(sepIdx + separator.length());
+        } else {
+            // No separator - treat the entire body as script with defaults
+            return new ParsedConfig("html", literal, new GroovyCodeBlockConfig(true, true));
+        }
+
+        if (yamlPart.isBlank()) {
+            return new ParsedConfig("html", scriptPart, new GroovyCodeBlockConfig(true, true));
+        }
+
+        try {
+            var mapper = new ObjectMapper(new YAMLFactory());
+            var yamlCfg = mapper.readValue(yamlPart, GroovyCodeblockConfig.class);
+            var output = yamlCfg.getOutput() != null ? yamlCfg.getOutput() : "html";
+            var config = new GroovyCodeBlockConfig(yamlCfg.isCacheEnabled(), yamlCfg.isControlsEnabled());
+            return new ParsedConfig(output, scriptPart, config);
+        } catch (Exception e) {
+            log.warn("Failed to parse YAML header in groovy block: {}", e.getMessage());
+            return new ParsedConfig("html", scriptPart, new GroovyCodeBlockConfig(true, true));
+        }
+    }
+
+
+    // -------------------------------------------------------------------------
+    // Core rendering
+    // -------------------------------------------------------------------------
+
+    private Optional<Node> renderResultFromParsed(ParsedConfig parsed, String cacheFileName) {
+        var request = new GroovyCodeBlockRequest(parsed.script(), parsed.targetType(), parsed.config());
+        var outputFile = Paths.get(cacheFileName);
+
+        Node node;
+        if (request.config().cachingEnabled()) {
+            if (Files.exists(outputFile)) {
+                var outputString = readFromFile(outputFile, cacheFileName);
+                node = convertOutputToNode(parsed.targetType(), outputString);
+            } else {
+                try {
+                    var output = processGroovyCodeBlock(request);
+                    saveOutput(outputFile, output.outputString());
+                    node = output.node();
+                } catch (Exception e) {
+                    log.error("Error rendering Groovy result with caching enabled", e);
+                    node = new Text("Error executing Groovy script: " + e.getMessage());
+                }
+            }
+        } else {
+            try {
+                var output = processGroovyCodeBlock(request);
+                node = output.node();
+            } catch (Exception e) {
+                log.error("Error rendering Groovy result with caching disabled", e);
+                node = new Text("Error executing Groovy script: " + e.getMessage());
+            }
+        }
+        return Optional.of(node);
     }
 
     private static HtmlBlock wrapInGroovyBlock(Node node, String groovyId, boolean showControls) {
@@ -246,13 +252,14 @@ public class GroovyRenderer {
         return htmlBlock;
     }
 
-    private record GroovyCodeBlockConfig(Boolean cachingEnabled, Boolean controlsEnabled) {
-        public static GroovyCodeBlockConfig fromMap(Map<String, String> configMap) {
-            var cachingEnabled = Boolean.parseBoolean(configMap.getOrDefault("cacheEnabled", "true"));
-            var controlsEnabled = Boolean.parseBoolean(configMap.getOrDefault("controlsEnabled", "true"));
-            return new GroovyCodeBlockConfig(cachingEnabled, controlsEnabled);
-        }
-    }
+    // -------------------------------------------------------------------------
+    // Internal types
+    // -------------------------------------------------------------------------
+
+    /** Holds the fully-parsed configuration extracted from either format. */
+    record ParsedConfig(String targetType, String script, GroovyCodeBlockConfig config) {}
+
+    private record GroovyCodeBlockConfig(Boolean cachingEnabled, Boolean controlsEnabled) {}
 
     private record GroovyCodeBlockRequest(String groovyScript, String targetType, GroovyCodeBlockConfig config) {}
 

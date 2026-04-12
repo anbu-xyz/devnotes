@@ -641,7 +641,7 @@ items:
         def item = new TodoConfig.TodoItem()
 
         expect:
-        translator.computeOpenDays(item) == "\u2014"
+        translator.computeOpenDays(item) == "-"
     }
 
     def "computeOpenDays returns correct day count"() {
@@ -658,7 +658,7 @@ items:
         def item = new TodoConfig.TodoItem()
 
         expect:
-        translator.computeDueIn(item) == "\u2014"
+        translator.computeDueIn(item) == "-"
     }
 
     def "computeDueIn returns positive count when due is in the future"() {
