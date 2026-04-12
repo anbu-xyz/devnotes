@@ -118,7 +118,7 @@ class JwtToolControllerSpec extends Specification {
         doc.select("button[type=submit]").text().contains("Parse Token")
     }
 
-    // ── POST /tools/jwt/parse — basic parsing ────────────────────────────────
+    // ── POST /tools/jwt/parse - basic parsing ────────────────────────────────
 
     def "parseJwt() decodes header and payload of an HS256 token without validation"() {
         given:

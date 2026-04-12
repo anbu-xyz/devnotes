@@ -63,7 +63,7 @@ class FlashCardServiceSpec extends Specification {
         root == tempDir.resolve("config/flashcards")
     }
 
-    def "flashcardsRoot() is idempotent — calling twice returns same path without error"() {
+    def "flashcardsRoot() is idempotent - calling twice returns same path without error"() {
         when:
         def root1 = service.flashcardsRoot()
         def root2 = service.flashcardsRoot()
@@ -163,7 +163,7 @@ class FlashCardServiceSpec extends Specification {
     // saveCard
     // =========================================================================
 
-    def "saveCard round-trip — write then read back preserves all persisted fields"() {
+    def "saveCard round-trip - write then read back preserves all persisted fields"() {
         given:
         def card = new FlashCard()
         card.question      = "What is JVM?"
@@ -362,7 +362,7 @@ class FlashCardServiceSpec extends Specification {
 
         then:
         decoded == path
-        !encoded.contains("/")   // URL-safe — no standard base64 slash
+        !encoded.contains("/")   // URL-safe - no standard base64 slash
         !encoded.contains("+")
         !encoded.contains("=")
     }
@@ -409,7 +409,7 @@ class FlashCardServiceSpec extends Specification {
     }
 
     // =========================================================================
-    // computeStats — reviewedToday
+    // computeStats - reviewedToday
     // =========================================================================
 
     def "computeStats reviewedToday counts only cards whose lastReviewed is today"() {
@@ -460,7 +460,7 @@ correctCount: 1
     }
 
     // =========================================================================
-    // computeStats — streak
+    // computeStats - streak
     // =========================================================================
 
     def "computeStats streak counts all consecutive correct cards ordered newest-first"() {

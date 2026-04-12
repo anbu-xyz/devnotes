@@ -141,7 +141,7 @@ public class RestBlockTranslator {
 
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             var snippet = response.body() != null && response.body().length() > 200
-                    ? response.body().substring(0, 200) + "…"
+                    ? response.body().substring(0, 200) + "..."
                     : response.body();
             throw new RestBlockHttpException("HTTP " + response.statusCode() + ": " + snippet);
         }
@@ -150,7 +150,7 @@ public class RestBlockTranslator {
     }
 
     private HttpClient buildTrustAllClient(RestCodeblockConfig config) {
-        log.warn("REST block: tls-verify=false for url={} — certificate validation is disabled", config.getUrl());
+        log.warn("REST block: tls-verify=false for url={} - certificate validation is disabled", config.getUrl());
         try {
             var trustAll = new TrustManager[]{new X509TrustManager() {
                 public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }
@@ -197,13 +197,13 @@ public class RestBlockTranslator {
                 return List.of();
             }
             if (list.get(0) instanceof Map) {
-                // List<Map> — use directly
+                // List<Map> - use directly
                 List<Map<String, Object>> rows = new ArrayList<>();
                 for (var item : list) {
                     if (item instanceof Map<?, ?> m) {
                         rows.add(toStringKeyMap(m));
                     } else {
-                        // mixed list — wrap scalar
+                        // mixed list - wrap scalar
                         rows.add(Map.of("value", item == null ? "" : item.toString()));
                     }
                 }

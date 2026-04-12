@@ -32,9 +32,9 @@ public final class JdbcTypeMapper {
     /**
      * Formats a human-readable type string from JDBC column metadata.
      * <ul>
-     *   <li>Integer / boolean types — returned as-is (no size suffix).</li>
-     *   <li>Types with non-zero decimal digits — {@code TYPE(size,digits)}.</li>
-     *   <li>All other types with a positive size — {@code TYPE(size)}.</li>
+     *   <li>Integer / boolean types - returned as-is (no size suffix).</li>
+     *   <li>Types with non-zero decimal digits - {@code TYPE(size,digits)}.</li>
+     *   <li>All other types with a positive size - {@code TYPE(size)}.</li>
      * </ul>
      */
     public static String formatType(String dbProductName, String typeName, int size, int digits) {

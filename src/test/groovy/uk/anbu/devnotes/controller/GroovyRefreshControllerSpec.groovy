@@ -124,7 +124,7 @@ class GroovyRefreshControllerSpec extends Specification {
     }
 
     // -------------------------------------------------------------------------
-    // Successful refresh — output types
+    // Successful refresh - output types
     // -------------------------------------------------------------------------
 
     def "returns 200 HTML with groovy-block wrapper for a groovy:html block"() {

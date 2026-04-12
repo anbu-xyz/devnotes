@@ -51,8 +51,8 @@
     <div class="panel" id="left">
         <div class="header">
             <div class="controls">
-                <button id="saveBtn" class="secondary" disabled title="No save location set — use Save as… first">Save</button>
-                <button id="saveAsBtn" class="secondary">Save as…</button>
+                <button id="saveBtn" class="secondary" disabled title="No save location set - use Save as... first">Save</button>
+                <button id="saveAsBtn" class="secondary">Save as...</button>
             </div>
             <div class="controls">
                 <span id="saveStatus" aria-live="polite"></span>
@@ -168,7 +168,7 @@
         saveBtn.disabled = !currentSavePath;
         saveBtn.title = currentSavePath
             ? 'Save to: ' + currentSavePath
-            : 'No save location set — use Save as… first';
+            : 'No save location set - use Save as... first';
     }
     updateSaveButton();
 

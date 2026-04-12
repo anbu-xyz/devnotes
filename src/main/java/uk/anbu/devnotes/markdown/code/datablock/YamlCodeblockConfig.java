@@ -88,7 +88,7 @@ public class YamlCodeblockConfig {
          */
         @JsonProperty("number-format")
         private String numberFormat;
-        // Future: dateFormat, stringTransform, …
+        // Future: dateFormat, stringTransform, ...
     }
 
     public String checksum() {

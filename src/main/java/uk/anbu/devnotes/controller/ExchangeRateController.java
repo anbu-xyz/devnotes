@@ -128,7 +128,7 @@ public class ExchangeRateController {
                 headerSkipped = true;
 
                 if (!normalPair.matches("[A-Z]{3}/[A-Z]{3}")) {
-                    errors.add("Line " + lineNumber + ": invalid pair format '" + rawPair + "' — must be BASE/QUOTE");
+                    errors.add("Line " + lineNumber + ": invalid pair format '" + rawPair + "' - must be BASE/QUOTE");
                     continue;
                 }
 

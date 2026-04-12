@@ -15,7 +15,7 @@
     </head>
     <body class="slides-page">
         <div id="slidesContainer">
-            Loading…
+            Loading...
         </div>
         <button hidden id="hiddenSlidesButton"
                 hx-trigger="click"

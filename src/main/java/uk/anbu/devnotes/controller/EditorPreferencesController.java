@@ -13,8 +13,8 @@ import uk.anbu.devnotes.service.EditorPreferencesService;
  * REST endpoints for persisting editor UI preferences in server memory.
  *
  * <ul>
- *   <li>{@code GET  /editor/font-size} — returns the current font-size preference</li>
- *   <li>{@code POST /editor/font-size} — updates the font-size preference</li>
+ *   <li>{@code GET  /editor/font-size} - returns the current font-size preference</li>
+ *   <li>{@code POST /editor/font-size} - updates the font-size preference</li>
  * </ul>
  */
 @Slf4j

@@ -204,11 +204,11 @@ query: SELECT euro_val AS "\u20ACval" FROM portfolio WHERE id = 3
     }
 
     // =========================================================================
-    // Same currency — no conversion
+    // Same currency - no conversion
     // =========================================================================
 
     def "column value already in target currency is formatted without conversion"() {
-        given: "dollar column with a USD value — no rate lookup needed"
+        given: "dollar column with a USD value - no rate lookup needed"
         String yaml = """\
 source: ds
 combine-single-column: false
@@ -225,7 +225,7 @@ query: SELECT 'USD 500' AS "\$val" FROM portfolio WHERE id = 1
     }
 
     // =========================================================================
-    // Unknown rate — amber no-rate cell
+    // Unknown rate - amber no-rate cell
     // =========================================================================
 
     def "unknown rate shows raw value with data-block-no-rate CSS class"() {
@@ -252,7 +252,7 @@ query: SELECT 'GBP 200' AS "\$val" FROM portfolio WHERE id = 1
     // =========================================================================
 
     def "null value in currency column renders as (null) without conversion"() {
-        given: "select all fx_amounts rows; id=3 has null val — column won't be stripped"
+        given: "select all fx_amounts rows; id=3 has null val - column won't be stripped"
         ExchangeRates.setExchangeRate(new CurrencyPair("GBP", "USD"), 1.27)
         String yaml = """\
 source: ds
@@ -279,7 +279,7 @@ query: SELECT val AS "\$val" FROM fx_amounts ORDER BY id
     def "negative amount converts correctly"() {
         given:
         ExchangeRates.setExchangeRate(new CurrencyPair("GBP", "USD"), 1.27)
-        // fx_amounts id=2: val='GBP -50' — query all rows so column isn't cleaned
+        // fx_amounts id=2: val='GBP -50' - query all rows so column isn't cleaned
         String yaml = """\
 source: ds
 combine-single-column: false
@@ -303,7 +303,7 @@ query: SELECT val AS "\$val" FROM fx_amounts ORDER BY id
     def "malformed value falls back to error cell with data-block-currency-error class"() {
         given:
         ExchangeRates.setExchangeRate(new CurrencyPair("GBP", "USD"), 1.27)
-        // fx_amounts id=4: val='BADVAL' — query all rows
+        // fx_amounts id=4: val='BADVAL' - query all rows
         String yaml = """\
 source: ds
 combine-single-column: false
@@ -315,13 +315,13 @@ query: SELECT val AS "\$val" FROM fx_amounts ORDER BY id
         then:
         result.isPresent()
         def tds = Jsoup.parse(result.get().literal).select("tbody td")
-        // Row 4 (index 3): 'BADVAL' — no space → error cell
+        // Row 4 (index 3): 'BADVAL' - no space → error cell
         tds[3].hasClass("data-block-currency-error")
         tds[3].text() == "BADVAL"
     }
 
     // =========================================================================
-    // Non-prefixed column — unaffected
+    // Non-prefixed column - unaffected
     // =========================================================================
 
     def "non-prefixed column is unaffected by currency conversion"() {

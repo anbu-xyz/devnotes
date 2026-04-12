@@ -64,7 +64,7 @@ class FlashCardControllerSpec extends Specification {
     }
 
     // =========================================================================
-    // GET /flashcards — summary page
+    // GET /flashcards - summary page
     // =========================================================================
 
     def "GET /flashcards returns 200 with Flash Cards heading"() {
@@ -91,7 +91,7 @@ class FlashCardControllerSpec extends Specification {
     }
 
     // =========================================================================
-    // GET /flashcards/review — with a due card
+    // GET /flashcards/review - with a due card
     // =========================================================================
 
     def "GET /flashcards/review with a due card returns 200 containing the question text"() {
@@ -177,7 +177,7 @@ class FlashCardControllerSpec extends Specification {
     }
 
     // =========================================================================
-    // POST /flashcards/review — submit rating
+    // POST /flashcards/review - submit rating
     // =========================================================================
 
     def "POST /flashcards/review with valid quality returns 302 redirect"() {
@@ -433,7 +433,7 @@ interval: 6
     }
 
     // =========================================================================
-    // GET /flashcards/review/random — start session
+    // GET /flashcards/review/random - start session
     // =========================================================================
 
     def "GET /flashcards/review/random?n=N redirects to /flashcards/review/random and stores queue in session"() {
@@ -542,7 +542,7 @@ interval: 6
     }
 
     // =========================================================================
-    // POST /flashcards/review/random — submit rating
+    // POST /flashcards/review/random - submit rating
     // =========================================================================
 
     def "POST /flashcards/review/random with valid quality returns 302 redirect"() {

@@ -75,7 +75,7 @@
             <h2>Activate Encryption</h2>
 
             <p class="encryption-hint">
-                Choose a memorable phrase of at least 12 characters —
+                Choose a memorable phrase of at least 12 characters -
                 for example: <em>coffee-builds-faster-now</em> or <em>deploy on Fridays never</em>.
                 The passphrase is <strong>never stored</strong>; you must re-enter it every time
                 the server restarts.

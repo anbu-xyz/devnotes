@@ -123,7 +123,7 @@ class JdbcTypeMapperSpec extends Specification {
         "CLOB"                || "java.lang.String"
         "LONGVARCHAR"         || "java.lang.String"
         "CHARACTER VARYING"   || "java.lang.String"
-        // H2 2.x CLOB — reported as CHARACTER LARGE OBJECT
+        // H2 2.x CLOB - reported as CHARACTER LARGE OBJECT
         "CHARACTER LARGE OBJECT" || "java.lang.String"
         "CHARACTER LARGE"     || "java.lang.String"
         "DATE"                || "java.sql.Date"

@@ -103,7 +103,7 @@ class TodoStatusControllerSpec extends Specification {
         resp.statusCode == HttpStatus.NOT_FOUND
     }
 
-    // ── happy path — status transitions ───────────────────────────────────────
+    // ── happy path - status transitions ───────────────────────────────────────
 
     def "advances status from null to not-started and returns HTML widget"() {
         given:

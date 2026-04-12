@@ -682,9 +682,9 @@ public class DataBlockTranslator {
     /**
      * Maps a column-name prefix to the target ISO 4217 currency code.
      * <ul>
-     *   <li>{@code $…} → USD</li>
-     *   <li>{@code £…} → GBP</li>
-     *   <li>{@code €…} → EUR</li>
+     *   <li>{@code $...} → USD</li>
+     *   <li>{@code £...} → GBP</li>
+     *   <li>{@code €...} → EUR</li>
      * </ul>
      */
     public static Optional<String> resolveTargetCurrency(String col) {

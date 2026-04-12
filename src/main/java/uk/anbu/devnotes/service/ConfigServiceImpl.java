@@ -175,7 +175,7 @@ public class ConfigServiceImpl implements ConfigService {
     /**
      * Returns a copy of {@code dataSources} where every plain-text password has been
      * replaced with an {@code ENC(...)} token (when a key is active).  The in-memory
-     * {@code dataSources} map is not mutated — passwords remain plain text there.
+     * {@code dataSources} map is not mutated - passwords remain plain text there.
      */
     private Map<String, DataSourceConfig> buildEncryptedConfigs() {
         if (encryptionService == null || !encryptionService.isKeySet()) {

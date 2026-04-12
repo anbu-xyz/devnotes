@@ -207,7 +207,7 @@ public class TodoBlockTranslator {
      * or an em-dash if {@code created} is absent.
      */
     String computeOpenDays(TodoConfig.TodoItem item) {
-        if (item.getCreated() == null) return "—";
+        if (item.getCreated() == null) return "-";
         return String.valueOf(ChronoUnit.DAYS.between(item.getCreated(), LocalDate.now()));
     }
 
@@ -216,7 +216,7 @@ public class TodoBlockTranslator {
      * or an em-dash if {@code due} is absent.
      */
     String computeDueIn(TodoConfig.TodoItem item) {
-        if (item.getDue() == null) return "—";
+        if (item.getDue() == null) return "-";
         return String.valueOf(ChronoUnit.DAYS.between(LocalDate.now(), item.getDue()));
     }
 

@@ -71,7 +71,7 @@ public class EncryptionService {
             SecretKey derived = deriveKey(passphraseChars, salt);
             SecretKey previous = this.secretKey;
             this.secretKey = derived;
-            // Round-trip validation — roll back if anything goes wrong
+            // Round-trip validation - roll back if anything goes wrong
             try {
                 String token = encrypt("devnotes-validation");
                 String plain  = decrypt(token);
@@ -198,12 +198,12 @@ public class EncryptionService {
     }
 
     /**
-     * Thrown by {@link #decrypt(String)} when the ciphertext cannot be authenticated —
+     * Thrown by {@link #decrypt(String)} when the ciphertext cannot be authenticated -
      * typically because the active passphrase differs from the one used to encrypt.
      */
     public static class DecryptionFailedException extends RuntimeException {
         public DecryptionFailedException(Throwable cause) {
-            super("Decryption failed — the passphrase may be incorrect", cause);
+            super("Decryption failed - the passphrase may be incorrect", cause);
         }
     }
 }

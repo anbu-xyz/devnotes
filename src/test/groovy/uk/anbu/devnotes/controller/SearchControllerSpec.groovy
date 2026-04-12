@@ -46,7 +46,7 @@ class SearchControllerSpec extends Specification {
     }
 
     // =========================================================================
-    // Plain-text search — HTML output
+    // Plain-text search - HTML output
     // =========================================================================
 
     def "plain text search with multiple results returns 200 HTML with result count"() {
@@ -105,7 +105,7 @@ class SearchControllerSpec extends Specification {
     }
 
     // =========================================================================
-    // Plain-text search — JSON output
+    // Plain-text search - JSON output
     // =========================================================================
 
     def "plain text search with results returns JSON when json=true"() {

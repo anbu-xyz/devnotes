@@ -56,8 +56,8 @@ public class EncryptionKeyController {
             return renderPage(e.getMessage(), false, returnTo);
         } catch (EncryptionService.DecryptionFailedException e) {
             encryptionService.clearKey();
-            log.warn("Passphrase rejected — could not decrypt existing passwords: {}", e.getMessage());
-            return renderPage("The passphrase is incorrect — existing encrypted passwords could not be decrypted. Please try again.", true, returnTo);
+            log.warn("Passphrase rejected - could not decrypt existing passwords: {}", e.getMessage());
+            return renderPage("The passphrase is incorrect - existing encrypted passwords could not be decrypted. Please try again.", true, returnTo);
         } catch (Exception e) {
             log.error("Failed to activate encryption passphrase", e);
             return renderPage("Failed to activate passphrase: " + e.getMessage(), false, returnTo);
@@ -91,15 +91,15 @@ public class EncryptionKeyController {
             return renderChangePage(e.getMessage(), false, returnTo);
         } catch (EncryptionService.DecryptionFailedException e) {
             encryptionService.clearKey();
-            log.warn("Passphrase change rejected — could not decrypt existing passwords: {}", e.getMessage());
-            return renderChangePage("The passphrase is incorrect — existing encrypted passwords could not be decrypted. Please try again.", true, returnTo);
+            log.warn("Passphrase change rejected - could not decrypt existing passwords: {}", e.getMessage());
+            return renderChangePage("The passphrase is incorrect - existing encrypted passwords could not be decrypted. Please try again.", true, returnTo);
         } catch (Exception e) {
             log.error("Failed to change encryption passphrase", e);
             return renderChangePage("Failed to change passphrase: " + e.getMessage(), false, returnTo);
         }
     }
 
-    /** Accepts only safe same-origin relative paths — prevents open-redirect abuse. */
+    /** Accepts only safe same-origin relative paths - prevents open-redirect abuse. */
     private static boolean isSafeReturnTo(String returnTo) {
         return returnTo != null && returnTo.startsWith("/") && !returnTo.contains("://");
     }

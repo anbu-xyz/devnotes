@@ -51,7 +51,7 @@
             if (window.mermaid) {
                 runMermaid();
             } else {
-                // ESM module is still loading from CDN — wait for the ready signal
+                // ESM module is still loading from CDN - wait for the ready signal
                 window.addEventListener('mermaidReady', runMermaid, { once: true });
             }
         })();

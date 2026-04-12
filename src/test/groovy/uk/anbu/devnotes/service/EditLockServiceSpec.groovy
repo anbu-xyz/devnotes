@@ -11,7 +11,7 @@ class EditLockServiceSpec extends Specification {
     EditLockService service = new EditLockService()
 
     // -------------------------------------------------------------------------
-    // tryAcquireLock — basic cases
+    // tryAcquireLock - basic cases
     // -------------------------------------------------------------------------
 
     def "acquiring a lock on an unlocked file succeeds"() {

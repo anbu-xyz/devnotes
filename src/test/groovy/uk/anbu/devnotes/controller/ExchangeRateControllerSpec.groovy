@@ -86,7 +86,7 @@ class ExchangeRateControllerSpec extends Specification {
     }
 
     // =========================================================================
-    // POST /tools/exchange-rates — add rate
+    // POST /tools/exchange-rates - add rate
     // =========================================================================
 
     def "POST with valid pair and rate redirects to GET"() {
@@ -197,7 +197,7 @@ class ExchangeRateControllerSpec extends Specification {
     }
 
     // =========================================================================
-    // POST /tools/exchange-rates/upload — CSV bulk upload
+    // POST /tools/exchange-rates/upload - CSV bulk upload
     // =========================================================================
 
     def "upload valid CSV with header row imports all rates"() {

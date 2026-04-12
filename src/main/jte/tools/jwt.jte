@@ -25,7 +25,7 @@
                   name="token"
                   class="config-input jwt-token-input"
                   rows="4"
-                  placeholder="Paste your JWT token here — eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0...."
+                  placeholder="Paste your JWT token here - eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0...."
                   required></textarea>
     </div>
 

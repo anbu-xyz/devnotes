@@ -47,7 +47,7 @@ public class FlashCardController {
     private final TemplateEngine templateEngine;
 
     // -------------------------------------------------------------------------
-    // GET /flashcards — summary page
+    // GET /flashcards - summary page
     // -------------------------------------------------------------------------
 
     @GetMapping("/flashcards")
@@ -82,7 +82,7 @@ public class FlashCardController {
     }
 
     // -------------------------------------------------------------------------
-    // GET /flashcards/review — show next due card
+    // GET /flashcards/review - show next due card
     // -------------------------------------------------------------------------
 
     @GetMapping("/flashcards/review")
@@ -120,7 +120,7 @@ public class FlashCardController {
     }
 
     // -------------------------------------------------------------------------
-    // POST /flashcards/review — submit rating
+    // POST /flashcards/review - submit rating
     // -------------------------------------------------------------------------
 
     @PostMapping("/flashcards/review")
@@ -145,7 +145,7 @@ public class FlashCardController {
     }
 
     // -------------------------------------------------------------------------
-    // GET /flashcards/review/random — start or continue a random-N session
+    // GET /flashcards/review/random - start or continue a random-N session
     // -------------------------------------------------------------------------
 
     @GetMapping("/flashcards/review/random")
@@ -208,7 +208,7 @@ public class FlashCardController {
     }
 
     // -------------------------------------------------------------------------
-    // POST /flashcards/review/random — submit rating for a random-session card
+    // POST /flashcards/review/random - submit rating for a random-session card
     // -------------------------------------------------------------------------
 
     @PostMapping("/flashcards/review/random")
@@ -232,7 +232,7 @@ public class FlashCardController {
     }
 
     // -------------------------------------------------------------------------
-    // GET /flashcards/new — blank form
+    // GET /flashcards/new - blank form
     // -------------------------------------------------------------------------
 
     @GetMapping("/flashcards/new")
@@ -247,7 +247,7 @@ public class FlashCardController {
     }
 
     // -------------------------------------------------------------------------
-    // POST /flashcards/new — create card
+    // POST /flashcards/new - create card
     // -------------------------------------------------------------------------
 
     @PostMapping("/flashcards/new")
@@ -292,7 +292,7 @@ public class FlashCardController {
     }
 
     // -------------------------------------------------------------------------
-    // GET /flashcards/edit/{encodedPath} — pre-filled edit form
+    // GET /flashcards/edit/{encodedPath} - pre-filled edit form
     // -------------------------------------------------------------------------
 
     @GetMapping("/flashcards/edit/{encodedPath}")
@@ -314,7 +314,7 @@ public class FlashCardController {
     }
 
     // -------------------------------------------------------------------------
-    // POST /flashcards/edit/{encodedPath} — save edits
+    // POST /flashcards/edit/{encodedPath} - save edits
     // -------------------------------------------------------------------------
 
     @PostMapping("/flashcards/edit/{encodedPath}")

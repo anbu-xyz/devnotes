@@ -16,10 +16,10 @@
     <link rel="stylesheet" type="text/css" href="/css/style.css">
     <link rel="stylesheet" href="/css/font-awesome.min.css">
     <script defer src="/js/alpine.min.js"></script>
-    <title>Flash Cards — Review</title>
+    <title>Flash Cards - Review</title>
 </head>
 <body>
-<h1><i class="fas fa-layer-group"></i> Flash Cards — Review</h1>
+<h1><i class="fas fa-layer-group"></i> Flash Cards - Review</h1>
 
 @if(card == null)
     <%-- ── All caught up ──────────────────────────────────────────────── --%>
@@ -106,7 +106,7 @@
                         <input type="hidden" name="quality"      value="0">
                         <input type="hidden" name="topic"        value="${topic}">
                         <button type="submit" id="rate-btn-0" class="btn-blue-glow fc-rate-btn fc-rate-0" title="Press 0">
-                            0 — Blackout
+                            0 - Blackout
                         </button>
                     </form>
 
@@ -115,7 +115,7 @@
                         <input type="hidden" name="quality"      value="1">
                         <input type="hidden" name="topic"        value="${topic}">
                         <button type="submit" id="rate-btn-1" class="btn-blue-glow fc-rate-btn fc-rate-1" title="Press 1">
-                            1 — Wrong
+                            1 - Wrong
                         </button>
                     </form>
 
@@ -124,7 +124,7 @@
                         <input type="hidden" name="quality"      value="2">
                         <input type="hidden" name="topic"        value="${topic}">
                         <button type="submit" id="rate-btn-2" class="btn-blue-glow fc-rate-btn fc-rate-2" title="Press 2">
-                            2 — Forgot
+                            2 - Forgot
                         </button>
                     </form>
 
@@ -133,7 +133,7 @@
                         <input type="hidden" name="quality"      value="3">
                         <input type="hidden" name="topic"        value="${topic}">
                         <button type="submit" id="rate-btn-3" class="btn-blue-glow fc-rate-btn fc-rate-3" title="Press 3">
-                            3 — Hard
+                            3 - Hard
                         </button>
                     </form>
 
@@ -142,7 +142,7 @@
                         <input type="hidden" name="quality"      value="4">
                         <input type="hidden" name="topic"        value="${topic}">
                         <button type="submit" id="rate-btn-4" class="btn-blue-glow fc-rate-btn fc-rate-4" title="Press 4">
-                            4 — Good
+                            4 - Good
                         </button>
                     </form>
 
@@ -151,7 +151,7 @@
                         <input type="hidden" name="quality"      value="5">
                         <input type="hidden" name="topic"        value="${topic}">
                         <button type="submit" id="rate-btn-5" class="btn-blue-glow fc-rate-btn fc-rate-5" title="Press 5">
-                            5 — Easy
+                            5 - Easy
                         </button>
                     </form>
 

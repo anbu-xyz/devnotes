@@ -54,8 +54,8 @@
     <div class="panel" id="left">
         <div class="header">
             <div class="controls">
-                <button id="saveBtn" class="secondary" disabled title="No save location set — use Save as… first">Save</button>
-                <button id="saveAsBtn" class="secondary">Save as…</button>
+                <button id="saveBtn" class="secondary" disabled title="No save location set - use Save as... first">Save</button>
+                <button id="saveAsBtn" class="secondary">Save as...</button>
             </div>
             <div class="controls">
                 <label class="mode-label" for="renderMode">Mode:</label>
@@ -90,7 +90,7 @@
             </div>
         </div>
         <div id="preview" aria-live="polite"></div>
-        <div id="busy-overlay">Running…</div>
+        <div id="busy-overlay">Running...</div>
     </div>
 </div>
 
@@ -239,7 +239,7 @@ output`;
         saveBtn.disabled = !currentSavePath;
         saveBtn.title = currentSavePath
             ? 'Save to: ' + currentSavePath
-            : 'No save location set — use Save as… first';
+            : 'No save location set - use Save as... first';
     }
     updateSaveButton();
 

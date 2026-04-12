@@ -17,7 +17,7 @@ import static java.time.ZoneOffset.UTC;
  * <h2>Quality rating labels</h2>
  * <table border="1">
  *   <tr><th>Rating</th><th>Label</th><th>Meaning</th></tr>
- *   <tr><td>0</td><td>Blackout</td><td>Complete blank — no memory at all</td></tr>
+ *   <tr><td>0</td><td>Blackout</td><td>Complete blank - no memory at all</td></tr>
  *   <tr><td>1</td><td>Wrong</td><td>Incorrect response, remembered after seeing answer</td></tr>
  *   <tr><td>2</td><td>Forgot</td><td>Incorrect but easy when shown the answer</td></tr>
  *   <tr><td>3</td><td>Hard</td><td>Correct with significant difficulty</td></tr>
@@ -28,7 +28,7 @@ import static java.time.ZoneOffset.UTC;
 public class Sm2Algorithm {
 
     private Sm2Algorithm() {
-        // utility class — not instantiable
+        // utility class - not instantiable
     }
 
     /**

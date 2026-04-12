@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
 
-/* Alpine.js cloak — hide elements until Alpine initialises */
+/* Alpine.js cloak - hide elements until Alpine initialises */
 [x-cloak] {
     display: none !important;
 }
@@ -810,7 +810,7 @@ table.sortable .btn-blue-glow i {
     border-radius: 4px;
 }
 
-/* Encryption warning banner (amber) — shown when no passphrase is set */
+/* Encryption warning banner (amber) - shown when no passphrase is set */
 .warning-banner {
     background-color: rgba(210, 153, 34, 0.12);
     border: 1px solid #d29922;
@@ -830,7 +830,7 @@ table.sortable .btn-blue-glow i {
     color: #f0c040;
 }
 
-/* Encryption status line (green) — shown when passphrase is active */
+/* Encryption status line (green) - shown when passphrase is active */
 .encryption-status {
     border-radius: 4px;
     padding: 0.5rem 0.8rem;
@@ -1151,56 +1151,59 @@ dialog#decryption-failed-dialog::backdrop {
     border-color: #58a6ff;
 }
 
-/* ── Todo add-item dialog ────────────────────────────────────────────────── */
+/* ── Todo add/edit-item dialog ───────────────────────────────────────────── */
 
-dialog#todo-add-dialog {
-    background: #1a1a2e;
-    border: 1px solid #444;
+dialog#todo-item-dialog {
+    border: 1px solid #ccc;
     border-radius: 8px;
-    padding: 1.5em 1.8em;
-    color: #e6edf3;
+    padding: 1.5rem;
+    min-width: 340px;
     width: min(480px, 92vw);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    background: #121212;
+    color: #29b4fd;
 }
 
-dialog#todo-add-dialog::backdrop {
-    background: rgba(0, 0, 0, 0.65);
+dialog#todo-item-dialog::backdrop {
+    background: rgba(0, 0, 0, 0.4);
 }
 
 .todo-add-dialog-title {
-    margin: 0 0 1.1em;
-    font-size: 1.05em;
-    color: #e6edf3;
+    margin: 0 0 1rem 0;
+    font-size: 1.05rem;
 }
 
 .todo-add-dialog-field {
     display: flex;
     flex-direction: column;
-    gap: 0.3em;
-    margin-bottom: 0.85em;
+    margin-bottom: 0.75rem;
 }
 
 .todo-add-dialog-field label {
-    font-size: 0.82em;
-    color: #8b949e;
+    margin-bottom: 0.3rem;
+    font-size: 0.875rem;
+    font-weight: 600;
 }
 
 .todo-add-dialog-field input,
 .todo-add-dialog-field select,
 .todo-add-dialog-field textarea {
-    background: #0d1117;
-    border: 1px solid #444;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #ccc;
     border-radius: 4px;
-    color: #e6edf3;
-    padding: 0.4em 0.6em;
-    font-size: 0.88em;
+    font-size: 1rem;
+    width: 100%;
+    box-sizing: border-box;
     font-family: inherit;
+    background: #1e1e1e;
+    color: #e6edf3;
 }
 
 .todo-add-dialog-field input:focus,
 .todo-add-dialog-field select:focus,
 .todo-add-dialog-field textarea:focus {
     outline: none;
-    border-color: #58a6ff;
+    border-color: #29b4fd;
 }
 
 .todo-add-dialog-field textarea {
@@ -1211,24 +1214,8 @@ dialog#todo-add-dialog::backdrop {
 .todo-add-dialog-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 0.6em;
-    margin-top: 1.1em;
-}
-
-.todo-add-dialog-cancel {
-    background: none;
-    border: 1px solid #555;
-    color: #8b949e;
-    border-radius: 4px;
-    padding: 0.3em 0.8em;
-    font-size: 0.88em;
-    cursor: pointer;
-    transition: border-color 0.15s, color 0.15s;
-}
-
-.todo-add-dialog-cancel:hover {
-    border-color: #888;
-    color: #ccc;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
 }
 
 /* ── Edit-lock dialog ─────────────────────────────────────────────────────── */

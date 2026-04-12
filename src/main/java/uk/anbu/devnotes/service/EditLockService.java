@@ -65,14 +65,14 @@ public class EditLockService {
                 result[0] = true;
                 return new EditLock(lockToken, Instant.now());
             }
-            // Locked by a different token — leave lock unchanged
+            // Locked by a different token - leave lock unchanged
             return existing;
         });
 
         if (result[0]) {
             log.debug("Edit lock acquired for '{}' (token {})", filename, lockToken);
         } else {
-            log.info("Edit lock for '{}' denied — already held by another session", filename);
+            log.info("Edit lock for '{}' denied - already held by another session", filename);
         }
         return result[0];
     }

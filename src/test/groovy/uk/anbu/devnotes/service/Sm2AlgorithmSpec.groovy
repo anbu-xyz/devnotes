@@ -25,7 +25,7 @@ class Sm2AlgorithmSpec extends Specification {
 
     // ---- quality 5: perfect recall on a brand-new card ----
 
-    def "quality 5 (perfect) on new card — interval=1, reviewCount=1, correctCount=1, EF increases"() {
+    def "quality 5 (perfect) on new card - interval=1, reviewCount=1, correctCount=1, EF increases"() {
         given:
         def card = newCard()
         def before = LocalDateTime.now(UTC)
@@ -46,7 +46,7 @@ class Sm2AlgorithmSpec extends Specification {
 
     // ---- quality 4 on reviewCount=1: interval jumps to 6 ----
 
-    def "quality 4 on reviewCount=1 card — interval becomes 6"() {
+    def "quality 4 on reviewCount=1 card - interval becomes 6"() {
         given:
         def card = newCard(reviewCount: 1, interval: 1)
 
@@ -61,7 +61,7 @@ class Sm2AlgorithmSpec extends Specification {
 
     // ---- quality 4 on reviewCount >= 2: interval = round(interval * EF) ----
 
-    def "quality 4 on reviewCount >= 2 — interval = round(prevInterval * prevEF)"() {
+    def "quality 4 on reviewCount >= 2 - interval = round(prevInterval * prevEF)"() {
         given:
         def card = newCard(reviewCount: 3, interval: 6, easeFactor: 2.5)
 
@@ -75,9 +75,9 @@ class Sm2AlgorithmSpec extends Specification {
         result.reviewCount == 4
     }
 
-    // ---- quality 3: minimum correct rating — EF floor ----
+    // ---- quality 3: minimum correct rating - EF floor ----
 
-    def "quality 3 (minimum pass) starting at EF=1.3 — EF never drops below 1.3"() {
+    def "quality 3 (minimum pass) starting at EF=1.3 - EF never drops below 1.3"() {
         given:
         def card = newCard(easeFactor: 1.3)
 
@@ -93,7 +93,7 @@ class Sm2AlgorithmSpec extends Specification {
 
     // ---- quality 2: failed recall ----
 
-    def "quality 2 (fail) — interval=1, reviewCount=0, incorrectCount++, history preserved"() {
+    def "quality 2 (fail) - interval=1, reviewCount=0, incorrectCount++, history preserved"() {
         given:
         def card = newCard(reviewCount: 5, interval: 30, correctCount: 5, easeFactor: 2.5)
 
@@ -110,7 +110,7 @@ class Sm2AlgorithmSpec extends Specification {
 
     // ---- quality 0: blackout ----
 
-    def "quality 0 (blackout) — EF stays >= 1.3, interval=1, reviewCount=0"() {
+    def "quality 0 (blackout) - EF stays >= 1.3, interval=1, reviewCount=0"() {
         given:
         def card = newCard(easeFactor: 1.3)
 
@@ -130,21 +130,21 @@ class Sm2AlgorithmSpec extends Specification {
         given:
         def card = newCard()
 
-        when: "1st review — reviewCount 0→1, interval stays 1"
+        when: "1st review - reviewCount 0→1, interval stays 1"
         card = Sm2Algorithm.apply(card, 4)
 
         then:
         card.interval == 1
         card.reviewCount == 1
 
-        when: "2nd review — reviewCount 1→2, interval jumps to 6"
+        when: "2nd review - reviewCount 1→2, interval jumps to 6"
         card = Sm2Algorithm.apply(card, 4)
 
         then:
         card.interval == 6
         card.reviewCount == 2
 
-        when: "3rd review — reviewCount 2→3, interval = round(6 * EF)"
+        when: "3rd review - reviewCount 2→3, interval = round(6 * EF)"
         def prevInterval = card.interval   // 6
         def prevEF       = card.easeFactor
         card = Sm2Algorithm.apply(card, 4)
@@ -193,7 +193,7 @@ class Sm2AlgorithmSpec extends Specification {
 
     // ---- immutability of input ----
 
-    def "input card is never mutated — original fields unchanged after apply"() {
+    def "input card is never mutated - original fields unchanged after apply"() {
         given:
         def original = newCard(reviewCount: 3, interval: 10, easeFactor: 2.5)
 

@@ -10,7 +10,7 @@ class TodoCreatedDateFillerSpec extends Specification {
     static final String TODAY_STR = "2026-03-31"
 
     // =========================================================================
-    // fillMissingCreatedDates — full-markdown level
+    // fillMissingCreatedDates - full-markdown level
     // =========================================================================
 
     def "markdown with no todo block is returned unchanged"() {
@@ -61,7 +61,7 @@ items:
         result.contains("due: 2026-04-01")
     }
 
-    def "multiple items — only those without created get today injected"() {
+    def "multiple items - only those without created get today injected"() {
         given:
         def markdown = """\
 ```todo
@@ -151,7 +151,7 @@ After the block.
     }
 
     // =========================================================================
-    // injectCreatedDates — YAML body unit tests
+    // injectCreatedDates - YAML body unit tests
     // =========================================================================
 
     def "yaml body with no items section is returned unchanged"() {

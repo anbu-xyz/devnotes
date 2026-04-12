@@ -49,7 +49,7 @@ async function _sendEditLockHeartbeat() {
         if (resp.ok) {
             const data = await resp.json();
             if (!data.alive) {
-                console.warn('Edit-lock heartbeat rejected — lock lost');
+                console.warn('Edit-lock heartbeat rejected - lock lost');
                 stopEditLockHeartbeat();
             }
         }
@@ -535,7 +535,7 @@ function setupDataBlockSourceToggle() {
                 return;
             }
 
-            // Nothing found — log for debugging
+            // Nothing found - log for debugging
             console.debug('No <pre> with code.language-hidden-data found for Source toggle');
             return;
         }
@@ -1192,7 +1192,7 @@ function saveTodoFilters(widget) {
 }
 
 /**
- * Handle clicks on .todo-next-state-btn — POST to /todo/advance-status and
+ * Handle clicks on .todo-next-state-btn - POST to /todo/advance-status and
  * replace the whole .todo-widget with the returned HTML fragment.
  * Uses event delegation so it only needs to be called once per page load.
  */
@@ -1238,7 +1238,7 @@ function setupTodoStatusHandler() {
             const newWidget = container.querySelector('.todo-widget') || container.firstElementChild;
             if (newWidget) {
                 widget.replaceWith(newWidget);
-                // Apply filter visibility — the checkboxes already reflect the persisted
+                // Apply filter visibility - the checkboxes already reflect the persisted
                 // YAML state, so applyTodoFilters will hide the right items.
                 applyTodoFilters(newWidget);
             }
@@ -1258,7 +1258,7 @@ function setupTodoStatusHandler() {
  * Creates a single shared <dialog> used for both adding and editing todo items.
  * The dialog's dataset.mode ('add' | 'edit') drives which endpoint is called and
  * whether the form fields are blank (add) or pre-filled (edit).
- * Safe to call multiple times — setup runs only once per page load.
+ * Safe to call multiple times - setup runs only once per page load.
  */
 function setupTodoItemDialogHandler() {
     if (window._todoItemDialogAttached) return;
@@ -1274,7 +1274,7 @@ function setupTodoItemDialogHandler() {
                 <div class="todo-add-dialog-field">
                     <label for="todo-item-summary">Summary <span style="color:#f85149">*</span></label>
                     <input type="text" id="todo-item-summary" name="summary" required
-                           placeholder="Task summary…" autocomplete="off">
+                           placeholder="Task summary..." autocomplete="off">
                 </div>
                 <div class="todo-add-dialog-field">
                     <label for="todo-item-status">Status</label>
@@ -1289,12 +1289,12 @@ function setupTodoItemDialogHandler() {
                     <input type="date" id="todo-item-due" name="due">
                 </div>
                 <div class="todo-add-dialog-field">
-                    <label for="todo-item-description">Description (optional — markdown)</label>
+                    <label for="todo-item-description">Description (optional - markdown)</label>
                     <textarea id="todo-item-description" name="description"
-                              placeholder="Additional details…"></textarea>
+                              placeholder="Additional details..."></textarea>
                 </div>
                 <div class="todo-add-dialog-actions">
-                    <button type="button" class="todo-add-dialog-cancel" id="todo-item-cancel">Cancel</button>
+                    <button type="button" class="btn-blue-glow" id="todo-item-cancel">Cancel</button>
                     <button type="submit" class="btn-blue-glow" id="todo-item-submit">Add Task</button>
                 </div>
             </form>

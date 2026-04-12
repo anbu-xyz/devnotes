@@ -1,5 +1,5 @@
 /**
- * SlidesController — keyboard-driven slide navigation for devnotes presentation mode.
+ * SlidesController - keyboard-driven slide navigation for devnotes presentation mode.
  *
  * Keyboard shortcuts:
  *   → ↓ Space  next slide

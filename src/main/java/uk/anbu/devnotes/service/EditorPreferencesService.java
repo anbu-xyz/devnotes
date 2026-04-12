@@ -3,7 +3,7 @@ package uk.anbu.devnotes.service;
 import org.springframework.stereotype.Service;
 
 /**
- * Holds in-memory editor UI preferences (singleton — single-user personal tool).
+ * Holds in-memory editor UI preferences (singleton - single-user personal tool).
  * Values survive for the lifetime of the JVM but are not persisted to disk.
  */
 @Service

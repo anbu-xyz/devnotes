@@ -177,7 +177,7 @@ items:
     }
 
     // =========================================================================
-    // 4. Color coding — age-driven
+    // 4. Color coding - age-driven
     // =========================================================================
 
     def "item created today (no due) gets todo-green class from age"() {
@@ -237,7 +237,7 @@ items:
     }
 
     // =========================================================================
-    // 5. Color coding — due-in-driven
+    // 5. Color coding - due-in-driven
     // =========================================================================
 
     def "item with due date 35 days away (created today) gets todo-green class from due-in"() {
@@ -887,7 +887,7 @@ items:
     }
 
     // =========================================================================
-    // Widget structure — filter bar, data attributes, next-state button
+    // Widget structure - filter bar, data attributes, next-state button
     // =========================================================================
 
     def "translated block is wrapped in a todo-widget div with a data-todo-id attribute"() {

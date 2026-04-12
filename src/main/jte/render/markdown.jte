@@ -74,7 +74,7 @@
             <h2 class="edit-lock-dialog-title">&#128274; File Already Open for Editing</h2>
             <p class="edit-lock-dialog-body">
                 This file is currently open for editing in another window or browser tab.
-                Close that editor first, or wait — the lock expires automatically after 60 seconds of inactivity.
+                Close that editor first, or wait - the lock expires automatically after 60 seconds of inactivity.
             </p>
             <div class="edit-lock-dialog-actions">
                 <button class="edit-lock-force-btn"
@@ -120,7 +120,7 @@
                 document.addEventListener('DOMContentLoaded', async function() {
                     const acquired = await acquireEditLock();
                     if (!acquired) {
-                        // Another session holds the lock — revert to view mode
+                        // Another session holds the lock - revert to view mode
                         const body = document.querySelector('[x-data]');
                         if (body && body._x_dataStack && body._x_dataStack[0]) {
                             body._x_dataStack[0].editMode = false;

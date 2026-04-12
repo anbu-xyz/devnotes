@@ -23,30 +23,30 @@ documentation, and other dynamic features.
     - HTML
     - Text
     - Optional config parameters per block: `cacheEnabled` (default `true`) and `controlsEnabled`
-      (default `true` — set to `false` to hide the ⋮ context menu)
-* **Groovy Playground** at `/groovy-playground` — interactive split-pane editor with live execution and render-mode
+      (default `true` - set to `false` to hide the ⋮ context menu)
+* **Groovy Playground** at `/groovy-playground` - interactive split-pane editor with live execution and render-mode
   selector
-* **Mermaid Playground** at `/mermaid-playground` — interactive split-pane editor with live Mermaid diagram preview
+* **Mermaid Playground** at `/mermaid-playground` - interactive split-pane editor with live Mermaid diagram preview
 * Spaced-repetition flash cards for active recall of notes
-* **Currency-symbol column conversion** in data blocks — columns named `$…`, `£…`, or `€…` automatically convert cell
+* **Currency-symbol column conversion** in data blocks - columns named `$...`, `£...`, or `€...` automatically convert cell
   values to USD / GBP / EUR using configured exchange rates
-* **Exchange Rate Manager** at `/tools/exchange-rates` — add, delete, and bulk-import currency-pair rates (via CSV
+* **Exchange Rate Manager** at `/tools/exchange-rates` - add, delete, and bulk-import currency-pair rates (via CSV
   upload) that are persisted and used for live column conversion
-* **Image Audit** at `/tools/image-audit` — scan the docs directory for orphaned image files and broken image links in
+* **Image Audit** at `/tools/image-audit` - scan the docs directory for orphaned image files and broken image links in
   markdown files
-* **Todo blocks** — embed colour-coded task lists directly in markdown using `` ```todo `` fences; rows are coloured by
+* **Todo blocks** - embed colour-coded task lists directly in markdown using `` ```todo `` fences; rows are coloured by
   the worst of independent age and due-in thresholds; `created` dates are filled in automatically on save
-* **REST blocks** — call any HTTP endpoint from a `` ```rest `` fence; extract results with JSONPath; render as an HTML
+* **REST blocks** - call any HTTP endpoint from a `` ```rest `` fence; extract results with JSONPath; render as an HTML
   table (with nested tables for nested objects/arrays); results are cached to disk and refreshable via a context menu
-* **Inline Groovy expressions** — evaluate a Groovy expression inside any paragraph, heading, or bold/italic text using
+* **Inline Groovy expressions** - evaluate a Groovy expression inside any paragraph, heading, or bold/italic text using
   `[groovy]expression[/groovy]`; errors render as a ⚠ warning span
-* **Inline red text** — highlight a span of text in red using `[red]text[/red]`
-* **YAML front-matter** — add a `---` delimited YAML block at the top of any `.md` file to set a custom page `title`,
+* **Inline red text** - highlight a span of text in red using `[red]text[/red]`
+* **YAML front-matter** - add a `---` delimited YAML block at the top of any `.md` file to set a custom page `title`,
   tag badges, and a short `description` displayed below the tags
-* **Slides / Presentation mode** — set `type: slides` in front-matter to render a markdown file as a full-screen browser
+* **Slides / Presentation mode** - set `type: slides` in front-matter to render a markdown file as a full-screen browser
   slide deck; supports explicit `---` slide breaks, automatic heading-divider splitting, per-slide metadata, speaker
   notes, themes, and keyboard navigation
-* **Exclusive edit locking** — opening a file for editing takes a server-side exclusive lock so the same file cannot be
+* **Exclusive edit locking** - opening a file for editing takes a server-side exclusive lock so the same file cannot be
   edited simultaneously from another window or tab; the lock is kept alive by automatic heartbeats and expires after
   60 seconds of inactivity; a **Force Edit** option lets you take over an apparently abandoned session
 
@@ -184,8 +184,8 @@ groovy:html(cacheEnabled:false,controlsEnabled:false)
 Every rendered groovy block has a **⋮** button in the top-right corner (unless
 `controlsEnabled:false` is set). Clicking it opens a two-item menu:
 
-* **Refresh** — re-executes the script (bypasses cache) and replaces the block output in-place.
-* **Source** — toggles the visibility of the original Groovy source code.
+* **Refresh** - re-executes the script (bypasses cache) and replaces the block output in-place.
+* **Source** - toggles the visibility of the original Groovy source code.
 
 To permanently hide the ⋮ button for a block that should appear as plain content, add
 `controlsEnabled:false` to the info string:
@@ -214,13 +214,13 @@ code blocks:
 
 Features:
 
-- **Live preview** — the script re-executes automatically as you type (debounced 800 ms).
-- **Ctrl+Enter** — triggers an immediate run without waiting for the debounce.
-- **Render mode** — the selected mode is remembered across sessions (browser `localStorage` and
+- **Live preview** - the script re-executes automatically as you type (debounced 800 ms).
+- **Ctrl+Enter** - triggers an immediate run without waiting for the debounce.
+- **Render mode** - the selected mode is remembered across sessions (browser `localStorage` and
   server-side `config/groovy-playground/last-render-mode.txt`).
-- **Save / Save as…** — persist the script to any `.groovy` file within your docs directory.
-- **Reset** — restore the editor to the built-in sample script.
-- **Error handling** — execution errors are shown inline in the output panel; the server never
+- **Save / Save as...** - persist the script to any `.groovy` file within your docs directory.
+- **Reset** - restore the editor to the built-in sample script.
+- **Error handling** - execution errors are shown inline in the output panel; the server never
   returns a 5xx for a Groovy error.
 
 The script and render mode are autosaved to `<docsDirectory>/config/groovy-playground/` on every
@@ -228,7 +228,7 @@ keystroke so your work is never lost.
 
 ### Inline Groovy expressions
 
-Any paragraph, heading, list item, or bold/italic run can contain a `[groovy]…[/groovy]` tag.
+Any paragraph, heading, list item, or bold/italic run can contain a `[groovy]...[/groovy]` tag.
 The content between the tags is executed as a Groovy expression and its `toString()` result is
 injected inline:
 
@@ -243,17 +243,17 @@ Report version [groovy]2 * 3[/groovy].
 The same built-in classes that are available in fenced Groovy blocks are available here
 (`LocalDate`, `LocalDateTime`, etc.).
 
-- **Success** — the result is rendered in a `<span class="groovy-inline">`.
-- **Error** — a `<span class="groovy-inline-error">` with a ⚠ icon is shown; the full error
+- **Success** - the result is rendered in a `<span class="groovy-inline">`.
+- **Error** - a `<span class="groovy-inline-error">` with a ⚠ icon is shown; the full error
   message is in the `title` attribute so hovering reveals it.
-- **Null result** — renders as an empty span (no visible output).
-- **Backtick code spans** — content inside `` `…` `` is never evaluated; it is rendered as
+- **Null result** - renders as an empty span (no visible output).
+- **Backtick code spans** - content inside `` `...` `` is never evaluated; it is rendered as
   literal text.
-- **Unclosed tag** — if `[groovy]` has no matching `[/groovy]`, the tag is left as plain text.
+- **Unclosed tag** - if `[groovy]` has no matching `[/groovy]`, the tag is left as plain text.
 
 ### Inline text highlighting
 
-Wrap any run of text in `[red]…[/red]` to render it as a red `<span>`:
+Wrap any run of text in `[red]...[/red]` to render it as a red `<span>`:
 
 ```markdown
 This is [red]very important[/red] information.
@@ -355,8 +355,8 @@ Mention TCP vs application-level retry behavior.
 
 Two ways to create slide breaks:
 
-- **Explicit separator** — a line containing only `---` starts a new slide.
-- **Heading divider** — when `headingDivider` is set, a new slide is started automatically before
+- **Explicit separator** - a line containing only `---` starts a new slide.
+- **Heading divider** - when `headingDivider` is set, a new slide is started automatically before
   any heading at the specified level(s). Explicit `---` separators take priority; heading splitting
   applies within each resulting region.
 
@@ -414,7 +414,7 @@ wiki editor for the file.
 
 | Value                  | Appearance                                                       |
 |------------------------|------------------------------------------------------------------|
-| `default` (or omitted) | Dark background (`#0d1117`), light text — matches the wiki theme |
+| `default` (or omitted) | Dark background (`#0d1117`), light text - matches the wiki theme |
 | `dark`                 | Same dark palette, explicit                                      |
 | `light`                | White background, dark text                                      |
 
@@ -422,7 +422,7 @@ Individual slide backgrounds override the deck default via the per-slide `backgr
 
 #### Mermaid diagrams in slides
 
-Mermaid diagrams work inside slides using the standard `` ```mermaid `` code fence — the same
+Mermaid diagrams work inside slides using the standard `` ```mermaid `` code fence - the same
 syntax as the normal wiki view. The Mermaid ESM library is loaded from CDN in the slides shell,
 and diagrams are rendered automatically once the slides content is swapped in by HTMX.
 
@@ -557,7 +557,7 @@ number.
 **Cell wire format:** `CCC <number>` where `CCC` is an ISO 4217 code (e.g. `GBP 200`,
 `EUR 1234.56`). Negative amounts are supported.
 
-Example — a column named `$balance` holding `GBP 200` will look up the GBP→USD rate and
+Example - a column named `$balance` holding `GBP 200` will look up the GBP→USD rate and
 display the converted value formatted with `#,##0.00` (or a custom `number-format` if
 configured):
 
@@ -575,9 +575,9 @@ column-formats:
 
 | Situation                                                 | Result                                                 |
 |-----------------------------------------------------------|--------------------------------------------------------|
-| Null / blank cell                                         | `(null)` — no conversion                               |
+| Null / blank cell                                         | `(null)` - no conversion                               |
 | Malformed value (no space, unknown ISO code, non-numeric) | Red cell (`data-block-currency-error`)                 |
-| Source currency = target currency                         | Formatted directly as a number — no rate lookup        |
+| Source currency = target currency                         | Formatted directly as a number - no rate lookup        |
 | Rate found                                                | Converted and formatted; `data-block-number` CSS class |
 | Rate not configured                                       | Amber cell with tooltip (`data-block-no-rate`)         |
 
@@ -604,7 +604,7 @@ datasource2:
 #### Encrypting datasource passwords
 
 Passwords in `config/datasource.yaml` can be stored encrypted using **AES-256-GCM**.
-The key is derived from a memorable passphrase you supply via the UI — it is held only in
+The key is derived from a memorable passphrase you supply via the UI - it is held only in
 JVM memory and is never written to disk.
 
 **Activating encryption:**
@@ -622,7 +622,7 @@ After activation, passwords in `datasource.yaml` are stored as opaque tokens:
 datasource2:
   url: "jdbc:postgresql://localhost:5432/db2"
   username: "user2"
-  password: "ENC(abc123…)"
+  password: "ENC(abc123...)"
 ```
 
 **On every server restart** you must re-enter the passphrase at `/config/encryption-key`
@@ -638,7 +638,7 @@ are immediately re-encrypted with the new key.
 
 A random PBKDF2 salt is generated on first use and stored (non-secret) in
 `config/encryption.salt` alongside `datasource.yaml`. Back this file up together
-with `datasource.yaml` — without it the passphrase alone is not enough to decrypt.
+with `datasource.yaml` - without it the passphrase alone is not enough to decrypt.
 
 > Plain-text passwords in an existing `datasource.yaml` are read as-is if no
 > passphrase has been set, so upgrading an existing installation requires no
@@ -647,15 +647,15 @@ with `datasource.yaml` — without it the passphrase alone is not enough to decr
 
 ### Database Metadata blocks
 
-Database metadata blocks document a single database table — its columns, types, descriptions and
-allowed values — directly inside a markdown file.
+Database metadata blocks document a single database table - its columns, types, descriptions and
+allowed values - directly inside a markdown file.
 
 ````
 ```database-metadata
 table:
   name: instrument
   description: Store instruments used in trading.
-  datasource: myDatasource        # optional — enables "Check against DB"
+  datasource: myDatasource        # optional - enables "Check against DB"
 columns:
   name:
     oracle-type: varchar2(200)
@@ -704,12 +704,12 @@ Clicking it sends the YAML to `POST /database-metadata/check`, which:
 | `table.datasource`           | no       | Datasource key; enables the diff button                 |
 | `columns.<name>.oracle-type` | no       | Oracle DDL type, e.g. `varchar2(200)`                   |
 | `columns.<name>.h2-type`     | no       | H2 DDL type, e.g. `varchar(200)`                        |
-| `columns.<name>.db-type`     | no       | DDL type for all other databases (PostgreSQL, MySQL, …) |
+| `columns.<name>.db-type`     | no       | DDL type for all other databases (PostgreSQL, MySQL, ...) |
 | `columns.<name>.java-type`   | no       | Fully-qualified Java class                              |
 | `columns.<name>.description` | no       | Human-readable column description                       |
 | `columns.<name>.values`      | no       | Map of allowed values to their meanings                 |
 
-The three type fields (`oracle-type`, `h2-type`, `db-type`) are mutually exclusive — only the one
+The three type fields (`oracle-type`, `h2-type`, `db-type`) are mutually exclusive - only the one
 matching the target database is populated; the others are omitted.
 
 #### Fetching metadata from a live database
@@ -723,7 +723,7 @@ optionally scope the export with schema/table patterns.
 | Parameter       | Required | Description                                                                  |
 |-----------------|----------|------------------------------------------------------------------------------|
 | `configName`    | yes      | Datasource key from `config/datasource.yaml`                                 |
-| `targetName`    | yes      | Output filename stem — written to `<docsDirectory>/database/<targetName>.md` |
+| `targetName`    | yes      | Output filename stem - written to `<docsDirectory>/database/<targetName>.md` |
 | `schemaPattern` | no       | JDBC schema pattern (e.g. `PUBLIC`); defaults to all schemas                 |
 | `tablePattern`  | no       | JDBC table-name pattern (e.g. `ORD%`); defaults to `%`                       |
 
@@ -735,7 +735,7 @@ database product:
 |----------------------------------|--------------------|
 | H2                               | `h2-type`          |
 | Oracle                           | `oracle-type`      |
-| Any other (PostgreSQL, MySQL, …) | `db-type`          |
+| Any other (PostgreSQL, MySQL, ...) | `db-type`          |
 
 After generation, open the file in your wiki, fill in the `description` placeholders, and add
 `values` maps for enum-like columns. The `table.datasource` key is pre-populated so the
@@ -748,22 +748,22 @@ block. The block body is YAML.
 
 ````
 ```todo
-thresholds:              # optional — these are the defaults
+thresholds:              # optional - these are the defaults
   age:
-    green:  7            # days open — green/amber boundary
-    amber: 14            # days open — amber/red boundary
-    red:   30            # days open — red/overdue boundary
+    green:  7            # days open - green/amber boundary
+    amber: 14            # days open - amber/red boundary
+    red:   30            # days open - red/overdue boundary
   due-in:
-    green: 30            # days left — amber/green boundary
-    amber: 14            # days left — red/amber boundary
-    red:    7            # days left — overdue/red boundary
+    green: 30            # days left - amber/green boundary
+    amber: 14            # days left - red/amber boundary
+    red:    7            # days left - overdue/red boundary
 items:
   - summary: Fix login bug
     created: 2026-03-01
     due: 2026-04-01
     status: in-progress
     description: |
-      See ticket **#1234**. Steps to reproduce…
+      See ticket **#1234**. Steps to reproduce...
   - summary: Update docs
     created: 2026-03-20
     status: not-started
@@ -773,8 +773,8 @@ items:
 The fence renders as a styled HTML table with four columns: **Summary / Open (days) / Due in /
 Description**.
 
-- **Open (days)** — number of days since `created` (`—` when absent).
-- **Due in** — days until `due`; negative means overdue (`—` when absent).
+- **Open (days)** - number of days since `created` (`-` when absent).
+- **Due in** - days until `due`; negative means overdue (`-` when absent).
 
 #### Colour coding
 
@@ -814,20 +814,20 @@ green for the due-in dimension.
 Each rendered todo block includes three interactive controls that do not require saving the
 Markdown editor:
 
-**Next-state button (→)** — Every item has a small arrow button on its **left edge**. Clicking it
+**Next-state button (→)** - Every item has a small arrow button on its **left edge**. Clicking it
 advances the item's status through the cycle:
 
-> (none) → `not-started` → `in-progress` → `completed` → `not-started` → …
+> (none) → `not-started` → `in-progress` → `completed` → `not-started` → ...
 
 The button POSTs to `POST /todo/advance-status`, updates the YAML in the Markdown file on disk,
-and replaces the widget with the freshly re-rendered HTML — no page reload needed.
+and replaces the widget with the freshly re-rendered HTML - no page reload needed.
 
-**Filter checkboxes** — Three checkboxes at the top of the widget (`Not started`, `In progress`,
+**Filter checkboxes** - Three checkboxes at the top of the widget (`Not started`, `In progress`,
 `Completed`) let you show or hide items by status. Items without an explicit `status` are always
 visible. The filter state resets to all-checked whenever the widget is re-rendered after a
 status advance.
 
-**Add button (`+ Add`)** — A `+ Add` button sits at the right end of the filter bar. Clicking it
+**Add button (`+ Add`)** - A `+ Add` button sits at the right end of the filter bar. Clicking it
 opens a dialog where you can fill in:
 
 | Field       | Required | Notes                                                   |
@@ -839,12 +839,12 @@ opens a dialog where you can fill in:
 
 The `created` date is always set to today automatically. The new item is prepended at the **top**
 of the list. The endpoint `POST /todo/add-item` updates the YAML in the Markdown file on disk and
-returns the re-rendered widget HTML — no page reload needed.
+returns the re-rendered widget HTML - no page reload needed.
 
-**Edit button (✎)** — Every item has a small pencil button on its **right edge**. Clicking it
+**Edit button (✎)** - Every item has a small pencil button on its **right edge**. Clicking it
 opens the same dialog pre-filled with the item's current values. On submit, `POST /todo/edit-item`
 updates the item in place (preserving its `created` date) and returns the re-rendered widget
-HTML — no page reload needed.
+HTML - no page reload needed.
 
 ### REST blocks
 
@@ -858,11 +858,11 @@ method: GET                     # GET | POST | PUT | PATCH | DELETE  (default: G
 headers:
   Authorization: "Bearer my-token"
   Accept: application/json
-jsonpath: "$[*]"                 # optional — JSONPath expression to extract elements
+jsonpath: "$[*]"                 # optional - JSONPath expression to extract elements
 options:
-  columns: [id, title, completed]   # optional — controls column order / filter
-  row-limit: 20                      # optional — max rows to display (default 100)
-column-formats:                 # optional — same format as data blocks
+  columns: [id, title, completed]   # optional - controls column order / filter
+  row-limit: 20                      # optional - max rows to display (default 100)
+column-formats:                 # optional - same format as data blocks
   id:
     number-format: "#"
 ```
@@ -885,18 +885,18 @@ jsonpath: "$.results[*]"
 
 | Field                                | Required | Default | Description                                                                                  |
 |--------------------------------------|----------|---------|----------------------------------------------------------------------------------------------|
-| `url`                                | **yes**  | —       | Full URL of the REST endpoint                                                                |
+| `url`                                | **yes**  | -       | Full URL of the REST endpoint                                                                |
 | `method`                             | no       | `GET`   | HTTP method: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`                                         |
-| `headers`                            | no       | —       | Map of request headers                                                                       |
-| `body`                               | no       | —       | Request body string (typically JSON); used with `POST`/`PUT`/`PATCH`                         |
+| `headers`                            | no       | -       | Map of request headers                                                                       |
+| `body`                               | no       | -       | Request body string (typically JSON); used with `POST`/`PUT`/`PATCH`                         |
 | `timeout-seconds`                    | no       | `30`    | HTTP connect + read timeout                                                                  |
 | `tls-verify`                         | no       | `true`  | Set `false` to skip TLS certificate validation (self-signed certs)                           |
-| `jsonpath`                           | no       | —       | [JSONPath](https://github.com/json-path/JsonPath) expression to extract part of the response |
-| `options.columns`                    | no       | —       | Explicit list of columns to show, in order; inferred from first row when absent              |
+| `jsonpath`                           | no       | -       | [JSONPath](https://github.com/json-path/JsonPath) expression to extract part of the response |
+| `options.columns`                    | no       | -       | Explicit list of columns to show, in order; inferred from first row when absent              |
 | `options.row-limit`                  | no       | `100`   | Maximum number of rows to render                                                             |
-| `column-formats.<col>.number-format` | no       | —       | `java.text.DecimalFormat` pattern applied to numeric cells                                   |
-| `output.template-type`               | no       | —       | Set to `jte` to use a custom jte template                                                    |
-| `output.template`                    | no       | —       | Inline jte template; receives `List<Map<String,Object>> rows`                                |
+| `column-formats.<col>.number-format` | no       | -       | `java.text.DecimalFormat` pattern applied to numeric cells                                   |
+| `output.template-type`               | no       | -       | Set to `jte` to use a custom jte template                                                    |
+| `output.template`                    | no       | -       | Inline jte template; receives `List<Map<String,Object>> rows`                                |
 
 #### JSONPath extraction
 
@@ -911,7 +911,7 @@ When `jsonpath` is specified, the expression is evaluated against the response u
 
 | Response            | JSONPath        | Result                         |
 |---------------------|-----------------|--------------------------------|
-| `{"items":[…]}`     | `$.items[*]`    | The array under `items`        |
+| `{"items":[...]}`     | `$.items[*]`    | The array under `items`        |
 | `{"count":7}`       | `$.count`       | Scalar `7` in a `value` column |
 | `[{"a":1},{"a":2}]` | `$[?(@.a > 1)]` | Filtered rows                  |
 
@@ -928,8 +928,8 @@ same way as data blocks. The cache key is a SHA-256 hash of the complete YAML co
 
 Every rendered REST block has a **⋮** button in the top-right corner:
 
-- **Refresh** — deletes the cache file and re-executes the request in-place.
-- **Source** — toggles the visibility of the original YAML source.
+- **Refresh** - deletes the cache file and re-executes the request in-place.
+- **Source** - toggles the visibility of the original YAML source.
 
 #### Custom jte template
 
@@ -1012,11 +1012,11 @@ Should render:
 The **Mermaid Playground** at `/mermaid-playground` is a browser-based split-pane editor for
 authoring and previewing Mermaid diagrams interactively.
 
-- **Live preview** — the diagram re-renders automatically as you type.
-- **Save / Save as…** — persist the diagram to any `.mmd` file within your docs directory.
-- **Download SVG** — export the current diagram as an SVG file.
-- **Fullscreen** — view the rendered diagram full-screen via an overlay modal.
-- **Reset** — restore the editor to the built-in sample diagram.
+- **Live preview** - the diagram re-renders automatically as you type.
+- **Save / Save as...** - persist the diagram to any `.mmd` file within your docs directory.
+- **Download SVG** - export the current diagram as an SVG file.
+- **Fullscreen** - view the rendered diagram full-screen via an overlay modal.
+- **Reset** - restore the editor to the built-in sample diagram.
 
 The editor content is autosaved to `<docsDirectory>/config/mermaid/last-edited.mmd` on every
 keystroke so your work is never lost.
@@ -1051,7 +1051,7 @@ a card at `java/streams/lambda-basics.yaml` belongs to topic `java/streams`.
 question: |
   What is the type of a lambda that takes **two ints** and returns a `boolean`?
 answer: |
-  `BiPredicate<Integer, Integer>` — or any custom `@FunctionalInterface`.
+  `BiPredicate<Integer, Integer>` - or any custom `@FunctionalInterface`.
 
   - Use `Predicate<T>` for one argument
   - Use `BiPredicate<T,U>` for two arguments
@@ -1066,7 +1066,7 @@ interval: 6
 
 Both `question` and `answer` are rendered as **CommonMark markdown** at review time, so code
 fences, bold/italic, bullet lists, and inline code all work. New cards created through the UI
-need no pre-existing SM-2 fields — all scheduling fields default to their initial values.
+need no pre-existing SM-2 fields - all scheduling fields default to their initial values.
 
 #### Reviewing cards
 
@@ -1079,7 +1079,7 @@ Start a review session at `GET /flashcards/review` (all topics) or
 
 | Key | Label    | Meaning                                       |
 |-----|----------|-----------------------------------------------|
-| 0   | Blackout | Complete blank — no memory at all             |
+| 0   | Blackout | Complete blank - no memory at all             |
 | 1   | Wrong    | Incorrect, remembered after seeing the answer |
 | 2   | Forgot   | Incorrect but easy when shown                 |
 | 3   | Hard     | Correct with significant difficulty           |
@@ -1113,7 +1113,7 @@ another browser window or tab, a dialog is shown explaining that the file is alr
 
 > 🔒 **File Already Open for Editing**
 > This file is currently open for editing in another window or browser tab.
-> Close that editor first, or wait — the lock expires automatically after 60 seconds of inactivity.
+> Close that editor first, or wait - the lock expires automatically after 60 seconds of inactivity.
 
 **How it works:**
 
@@ -1123,11 +1123,11 @@ another browser window or tab, a dialog is shown explaining that the file is alr
 - When you save and close the editor, the lock is released immediately.
 - If you close the browser tab or navigate away without saving, the lock is released on page
   unload. If the unload beacon fails for any reason, the lock expires automatically after
-  **60 seconds** of inactivity — so an abandoned tab never permanently blocks editing.
+  **60 seconds** of inactivity - so an abandoned tab never permanently blocks editing.
 
 **Force Edit:**  If you are confident the other editor session is gone (e.g. a crashed browser),
 click the **Force Edit** button in the dialog. This immediately takes over the lock and opens
-the editor. Use this with care — if the other session is still active, both sessions will be
+the editor. Use this with care - if the other session is still active, both sessions will be
 editing the same file simultaneously and the last save wins (the normal conflict-detection
 mechanism still applies).
 
@@ -1146,7 +1146,7 @@ Navigate to **`/tools/exchange-rates`** to:
 
 #### CSV upload format
 
-The CSV file must have two columns — `currency-pair` and `rate` — one pair per line:
+The CSV file must have two columns - `currency-pair` and `rate` - one pair per line:
 
 ```csv
 currency-pair,rate
@@ -1171,7 +1171,7 @@ EUR/USD: 1.0850
 JPY/USD: 0.006800
 ```
 
-**Cross-rates** are derived automatically — if `GBP/USD` and `EUR/USD` are both configured,
+**Cross-rates** are derived automatically - if `GBP/USD` and `EUR/USD` are both configured,
 `GBP/EUR` is computed on the fly without an explicit entry.
 
 **Cache invalidation** is automatic: saving or deleting any rate rewrites the YAML file, which
@@ -1186,17 +1186,17 @@ two kinds of housekeeping issues:
 | Section                | What it shows                                                                   |
 |------------------------|---------------------------------------------------------------------------------|
 | **Orphaned Images**    | Image files on disk that are not linked from any `.md` file                     |
-| **Broken Image Links** | `![…](…)` references in markdown files that point to a file that does not exist |
+| **Broken Image Links** | `![...](...)` references in markdown files that point to a file that does not exist |
 
-Navigate to `/tools/image-audit` to run the audit on demand. There are no parameters — it
+Navigate to `/tools/image-audit` to run the audit on demand. There are no parameters - it
 always scans the full `docsDirectory`.
 
 #### Path resolution
 
 | Link form                | Interpreted as                                                              |
 |--------------------------|-----------------------------------------------------------------------------|
-| `http://…` / `https://…` | External — ignored                                                          |
-| `/path/to/img.png`       | Absolute from the docs root — resolved as `<docsDirectory>/path/to/img.png` |
+| `http://...` / `https://...` | External - ignored                                                          |
+| `/path/to/img.png`       | Absolute from the docs root - resolved as `<docsDirectory>/path/to/img.png` |
 | `relative/img.png`       | Relative to the markdown file's own directory                               |
 
 #### Recognised image extensions
@@ -1227,7 +1227,7 @@ java -Ddevnotes.docsDirectory=/path/to/docs -jar target/devnotes-0.0.1-SNAPSHOT.
 
 ## Adding todo items
 
-Use the `` ```todo `` fenced code block directly in any markdown file — see the
+Use the `` ```todo `` fenced code block directly in any markdown file - see the
 [Todo blocks](#todo-blocks) section above for the full YAML schema and colour-threshold reference.
 
 You can also add items without editing the markdown source: every rendered todo block has a
@@ -1284,9 +1284,9 @@ sources in `src/main/js/` and is **not** committed to the repository.
 **The bundle is built automatically** by `mvn package` (and any phase that includes
 `generate-resources`). The `exec-maven-plugin` runs two steps:
 
-1. `npm install` — installs packages declared in `src/main/js/package.json` into
+1. `npm install` - installs packages declared in `src/main/js/package.json` into
    `src/main/js/node_modules/`.
-2. `esbuild` via Node.js — bundles `src/main/js/entry.js` into
+2. `esbuild` via Node.js - bundles `src/main/js/entry.js` into
    `src/main/resources/static/js/codemirror-bundle.js`.
 
 Node.js and npm must be available on `PATH`.

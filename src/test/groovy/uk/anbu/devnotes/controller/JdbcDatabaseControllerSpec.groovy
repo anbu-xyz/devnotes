@@ -229,7 +229,7 @@ class JdbcDatabaseControllerSpec extends Specification {
         def active = config.columns["active"]
         active != null
         active.javaType == "java.lang.Boolean"
-        // H2 returns BOOLEAN — no size suffix expected
+        // H2 returns BOOLEAN - no size suffix expected
         active.h2Type == "BOOLEAN"
     }
 

@@ -12,10 +12,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="/css/style.css">
     <link rel="stylesheet" href="/css/font-awesome.min.css">
-    <title>Flash Cards — Edit Card</title>
+    <title>Flash Cards - Edit Card</title>
 </head>
 <body>
-<h1><i class="fas fa-layer-group"></i> Flash Cards — Edit Card</h1>
+<h1><i class="fas fa-layer-group"></i> Flash Cards - Edit Card</h1>
 
 @if(error != null)
     <div class="encryption-error">
@@ -30,7 +30,7 @@
         <div class="form-group">
             <label for="question">
                 Question
-                <span style="color:#aaa; font-weight:normal;">— CommonMark markdown supported</span>
+                <span style="color:#aaa; font-weight:normal;">- CommonMark markdown supported</span>
             </label>
             <textarea id="question"
                       name="question"
@@ -41,7 +41,7 @@
         <div class="form-group">
             <label for="answer">
                 Answer
-                <span style="color:#aaa; font-weight:normal;">— CommonMark markdown supported</span>
+                <span style="color:#aaa; font-weight:normal;">- CommonMark markdown supported</span>
             </label>
             <textarea id="answer"
                       name="answer"

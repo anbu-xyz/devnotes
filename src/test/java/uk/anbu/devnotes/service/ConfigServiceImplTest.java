@@ -131,7 +131,7 @@ class ConfigServiceImplTest {
         // Act
         configService.saveAndReloadConfig();
 
-        // Assert — raw YAML must contain an ENC(...) token, not the plain password
+        // Assert - raw YAML must contain an ENC(...) token, not the plain password
         String yaml = Files.readString(tempDir.resolve("config/datasource.yaml"));
         assertTrue(yaml.contains("ENC("), "Password should be stored as ENC(...) token in YAML");
         assertFalse(yaml.contains("testPass"), "Plain-text password must not appear in YAML");
@@ -164,10 +164,10 @@ class ConfigServiceImplTest {
         // Give the service an EncryptionService with the same passphrase + salt
         configService.setEncryptionService(encryptionService);
 
-        // Act — reEncryptAndSave() clears in-memory, reloads from disk (decrypting), then saves back
+        // Act - reEncryptAndSave() clears in-memory, reloads from disk (decrypting), then saves back
         configService.reEncryptAndSave();
 
-        // Assert — in-memory password must be the decrypted plain text
+        // Assert - in-memory password must be the decrypted plain text
         assertEquals("secretPassword", configService.getDataSourceConfig("testDB").password());
     }
 
@@ -190,7 +190,7 @@ class ConfigServiceImplTest {
                 "legacyDB", "jdbc:legacy:url", "legacyUser", "legacyPass"));
         configService.setDataSources(ds);
 
-        // Act — saveAndReloadConfig: saves (encrypting legacyPass), then reloads (decrypting)
+        // Act - saveAndReloadConfig: saves (encrypting legacyPass), then reloads (decrypting)
         assertDoesNotThrow(() -> configService.saveAndReloadConfig());
 
         // After reload the in-memory password must be plain text

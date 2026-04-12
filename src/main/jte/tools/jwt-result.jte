@@ -70,7 +70,7 @@
                 @endif
             @else
                 <div class="jwt-validation-result jwt-validation-unknown">
-                    <i class="fas fa-question-circle"></i> Signature not verified — no key or secret provided
+                    <i class="fas fa-question-circle"></i> Signature not verified - no key or secret provided
                 </div>
             @endif
 

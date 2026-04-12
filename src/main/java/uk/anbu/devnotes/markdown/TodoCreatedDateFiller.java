@@ -109,7 +109,7 @@ public class TodoCreatedDateFiller {
             }
 
             if (isItemStart && (itemIndent == -1 || indent == itemIndent)) {
-                // Start of a new list item — close the previous one if missing created
+                // Start of a new list item - close the previous one if missing created
                 if (currentItemFirstLine >= 0 && !currentItemHasCreated) {
                     insertAfterLines.add(currentItemFirstLine);
                 }
