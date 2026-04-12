@@ -43,20 +43,22 @@
             <i class="fas fa-edit"></i>Edit
         </button>
         <hr>
-        <p><em>Last modified: <span id="md-last-modified-time-viewer">${lastModifiedTime}</span></em></p>
-        @if(mermaidBlockCount > 0)
-            <label style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.82rem;color:#6b7280;margin-left:0.75rem;">
-                Mermaid:
-                <select class="mermaid-theme-picker" onchange="window.setMermaidTheme && window.setMermaidTheme(this.value)"
-                        style="font-size:0.82rem;padding:0.15rem 0.35rem;border-radius:3px;">
-                    <option value="default">Default</option>
-                    <option value="dark">Dark</option>
-                    <option value="neutral">Neutral</option>
-                    <option value="forest">Forest</option>
-                    <option value="base">Base</option>
-                </select>
-            </label>
-        @endif
+        <p id="status-bar" class="last-modified-time">
+            <em>Last modified: <span id="md-last-modified-time-viewer">${lastModifiedTime}</span></em>
+            @if(mermaidBlockCount > 0)
+                <label style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.82rem;color:#6b7280;margin-left:0.75rem;">
+                    Mermaid:
+                    <select class="mermaid-theme-picker" onchange="window.setMermaidTheme && window.setMermaidTheme(this.value)"
+                            style="font-size:0.82rem;padding:0.15rem 0.35rem;border-radius:3px;">
+                        <option value="default">Default</option>
+                        <option value="dark">Dark</option>
+                        <option value="neutral">Neutral</option>
+                        <option value="forest">Forest</option>
+                        <option value="base">Base</option>
+                    </select>
+                </label>
+            @endif
+        </p>
         <span hidden id="md-file-path">${markdownFile}</span>
         <script>
             document.querySelectorAll('.mermaid').forEach(el => {
@@ -73,8 +75,8 @@
             });
             @if(cacheFileCount > 0)
             (function() {
-                const h1 = document.querySelector('#markdownViewer h1');
-                if (h1) {
+                const statusBar = document.querySelector('#status-bar');
+                if (statusBar) {
                     const badge = document.createElement('button');
                     badge.className = 'cache-files-badge';
                     badge.title = 'This page has ${cacheFileCount} cached output file${cacheFileCount == 1 ? "" : "s"} \u2014 click to clear';
@@ -83,7 +85,7 @@
                         e.preventDefault();
                         document.getElementById('cache-clear-dialog').showModal();
                     });
-                    h1.appendChild(badge);
+                    statusBar.appendChild(badge);
                 }
                 document.getElementById('clearCacheConfirm').addEventListener('click', async function() {
                     document.getElementById('cache-clear-dialog').close();
