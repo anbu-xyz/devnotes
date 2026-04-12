@@ -675,11 +675,11 @@ Type-string formatting and JDBC-type → Java-type mapping are handled by `JdbcT
 
 **Key files:**
 
-| File | Role |
-|---|---|
+| File                                     | Role |
+|------------------------------------------|---|
 | `controller/JdbcDatabaseController.java` | `GET /database` page + `POST /database/fetch-metadata` endpoint |
-| `util/JdbcTypeMapper.java` | `resolveTypeFieldName`, `formatType`, `toJavaType` static helpers |
-| `src/main/jte/tools/database.jte` | UI form (datasource selector, output name, schema/table pattern filters) |
+| `util/JdbcTypeMapper.java`               | `resolveTypeFieldName`, `formatType`, `toJavaType` static helpers |
+| `src/main/jte/tools/database-metadata.jte`     | UI form (datasource selector, output name, schema/table pattern filters) |
 
 ### Password Encryption (`EncryptionService`)
 

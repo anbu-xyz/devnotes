@@ -28,6 +28,48 @@ public class ImageAuditService {
 
     public record ImageAuditResult(List<String> orphanedImages, List<BrokenImageLink> brokenLinks) {}
 
+    @lombok.Builder
+    public static class ImageVisitor extends AbstractVisitor {
+
+        private final java.nio.file.Path docsDir;
+        private final java.nio.file.Path mdDir;
+        private final String relMd;
+        private final java.util.Set<java.nio.file.Path> referencedImages;
+        private final java.util.List<BrokenImageLink> brokenLinks;
+
+        @Override
+        public void visit(Image image) {
+            String dest = image.getDestination();
+            if (dest == null || dest.isBlank()) {
+                super.visit(image);
+                return;
+            }
+            // Skip external URLs and plantuml synthetic links
+            if (dest.startsWith("http://") || dest.startsWith("https://")
+                    || dest.startsWith("/plantumlContent?")) {
+                super.visit(image);
+                return;
+            }
+
+            java.nio.file.Path imagePath;
+            if (dest.startsWith("/")) {
+                // absolute path rooted at docsDir
+                imagePath = docsDir.resolve(dest.substring(1)).normalize();
+            } else {
+                // relative to the markdown file's directory
+                imagePath = mdDir.resolve(dest).normalize();
+            }
+
+            if (Files.exists(imagePath)) {
+                referencedImages.add(docsDir.relativize(imagePath));
+            } else {
+                brokenLinks.add(new BrokenImageLink(relMd, dest));
+            }
+
+            super.visit(image);
+        }
+    }
+
     public ImageAuditResult audit() throws IOException {
         Path docsDir = Path.of(configService.getDocsDirectory()).toAbsolutePath().normalize();
 
@@ -59,39 +101,15 @@ public class ImageAuditService {
                 Path mdDir = mdFile.getParent();
                 String relMd = docsDir.relativize(mdFile).toString().replace('\\', '/');
 
-                document.accept(new AbstractVisitor() {
-                    @Override
-                    public void visit(Image image) {
-                        String dest = image.getDestination();
-                        if (dest == null || dest.isBlank()) {
-                            super.visit(image);
-                            return;
-                        }
-                        // Skip external URLs and plantuml synthetic links
-                        if (dest.startsWith("http://") || dest.startsWith("https://")
-                                || dest.startsWith("/plantumlContent?")) {
-                            super.visit(image);
-                            return;
-                        }
+                var visitor = ImageVisitor.builder()
+                        .docsDir(docsDir)
+                        .mdDir(mdDir)
+                        .relMd(relMd)
+                        .referencedImages(referencedImages)
+                        .brokenLinks(brokenLinks)
+                        .build();
 
-                        Path imagePath;
-                        if (dest.startsWith("/")) {
-                            // absolute path rooted at docsDir
-                            imagePath = docsDir.resolve(dest.substring(1)).normalize();
-                        } else {
-                            // relative to the markdown file's directory
-                            imagePath = mdDir.resolve(dest).normalize();
-                        }
-
-                        if (Files.exists(imagePath)) {
-                            referencedImages.add(docsDir.relativize(imagePath));
-                        } else {
-                            brokenLinks.add(new BrokenImageLink(relMd, dest));
-                        }
-
-                        super.visit(image);
-                    }
-                });
+                document.accept(visitor);
             } catch (Exception e) {
                 log.warn("Error processing markdown file for image audit: {}", mdFile, e);
             }
