@@ -58,12 +58,9 @@ public class JdbcDatabaseController {
                     fetchMetadata(config, configName, schemaPattern, tablePattern);
             String filePath = saveAllTablesAsMarkdownFile(tables, targetName);
 
-            StringBuilder summary = new StringBuilder();
-            summary.append("Generated ").append(filePath)
-                    .append(" with ").append(tables.size()).append(" table(s):\n");
-            new TreeMap<>(tables).keySet().forEach(t -> summary.append("  ").append(t).append("\n"));
-
-            return ResponseEntity.ok(summary.toString());
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .header(org.springframework.http.HttpHeaders.LOCATION, "/markdown?filename=" + filePath)
+                    .build();
         } catch (SQLException | IOException e) {
             log.error("Error fetching or saving database metadata", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error: " + e.getMessage());

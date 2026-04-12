@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import uk.anbu.devnotes.markdown.code.databasemetadata.DatabaseMetadataConfig;
 import uk.anbu.devnotes.service.ConfigService;
+import uk.anbu.devnotes.util.JdbcTypeMapper;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -69,13 +70,15 @@ public class DatabaseMetadataController {
 
             try (Connection conn = ds.getConnection()) {
                 DatabaseMetaData meta = conn.getMetaData();
+                var dbProductName = meta.getDatabaseProductName();
+                var typeFieldName = JdbcTypeMapper.resolveTypeFieldName(dbProductName);
                 List<LiveColumn> liveColumns = fetchLiveColumns(meta, tableName);
 
                 if (liveColumns == null) {
                     return warnDiv("Table '" + tableName + "' not found in datasource '" + datasource + "'.");
                 }
 
-                return renderDiffTemplate(tableName, config, liveColumns);
+                return renderDiffTemplate(tableName, config, liveColumns, typeFieldName);
             }
         } catch (Exception e) {
             log.error("JDBC error during database-metadata check for table '{}' on datasource '{}'",
@@ -84,10 +87,6 @@ public class DatabaseMetadataController {
         }
     }
 
-    /**
-     * Returns the list of live columns for the given table, or {@code null} if the
-     * table does not exist in the database.
-     */
     private List<LiveColumn> fetchLiveColumns(DatabaseMetaData meta, String tableName) throws Exception {
         boolean tableFound = false;
         try (ResultSet tables = meta.getTables(null, null, "%", new String[]{"TABLE"})) {
@@ -105,9 +104,11 @@ public class DatabaseMetadataController {
         List<LiveColumn> columns = new ArrayList<>();
         try (ResultSet rs = meta.getColumns(null, null, tableName.toUpperCase(), "%")) {
             while (rs.next()) {
+                var rawType = rs.getString("TYPE_NAME");
                 columns.add(new LiveColumn(
                         rs.getString("COLUMN_NAME"),
-                        rs.getString("TYPE_NAME") + "(" + rs.getInt("COLUMN_SIZE") + ")"
+                        rawType,
+                        rawType + "(" + rs.getInt("COLUMN_SIZE") + ")"
                 ));
             }
         }
@@ -115,9 +116,11 @@ public class DatabaseMetadataController {
         if (columns.isEmpty()) {
             try (ResultSet rs = meta.getColumns(null, null, tableName, "%")) {
                 while (rs.next()) {
+                    var rawType = rs.getString("TYPE_NAME");
                     columns.add(new LiveColumn(
                             rs.getString("COLUMN_NAME"),
-                            rs.getString("TYPE_NAME") + "(" + rs.getInt("COLUMN_SIZE") + ")"
+                            rawType,
+                            rawType + "(" + rs.getInt("COLUMN_SIZE") + ")"
                     ));
                 }
             }
@@ -127,11 +130,14 @@ public class DatabaseMetadataController {
 
     private String renderDiffTemplate(String tableName,
                                       DatabaseMetadataConfig config,
-                                      List<LiveColumn> liveColumns) {
+                                      List<LiveColumn> liveColumns,
+                                      String typeFieldName) {
         // Normalise column names to lowercase for case-insensitive comparison
         Map<String, String> liveByName = new LinkedHashMap<>();
+        Map<String, String> rawTypeByName = new LinkedHashMap<>();
         for (LiveColumn c : liveColumns) {
             liveByName.put(c.name().toLowerCase(), c.typeSummary());
+            rawTypeByName.put(c.name().toLowerCase(), c.rawTypeName());
         }
 
         Set<String> wikiNames = new TreeSet<>();
@@ -150,11 +156,22 @@ public class DatabaseMetadataController {
             undocumentedMap.put(col, liveByName.get(col));
         }
 
+        // Build YAML snippet for undocumented columns (ready to paste into the columns: block)
+        var yamlSb = new StringBuilder();
+        for (String col : undocumented) {
+            var javaType = JdbcTypeMapper.toJavaType(rawTypeByName.get(col));
+            yamlSb.append("  ").append(col).append(":\n");
+            yamlSb.append("    ").append(typeFieldName).append(": ").append(undocumentedMap.get(col)).append("\n");
+            yamlSb.append("    java-type: ").append(javaType).append("\n");
+        }
+        var undocumentedYaml = yamlSb.isEmpty() ? "" : yamlSb.toString().stripTrailing();
+
         Map<String, Object> params = new HashMap<>();
         params.put("tableName", tableName);
         params.put("matched", matched);
         params.put("undocumented", undocumentedMap);
         params.put("ghosts", ghosts);
+        params.put("undocumentedYaml", undocumentedYaml);
 
         TemplateOutput output = new StringOutput();
         templateEngine.render("database-metadata-diff.jte", params, output);
@@ -169,5 +186,5 @@ public class DatabaseMetadataController {
         return div().withClass("db-meta-diff-undocumented").withText("⚠️ " + message).render();
     }
 
-    private record LiveColumn(String name, String typeSummary) {}
+    private record LiveColumn(String name, String rawTypeName, String typeSummary) {}
 }

@@ -106,7 +106,7 @@ class JdbcDatabaseControllerSpec extends Specification {
         def response = controller.fetchDatabaseMetadata("testds", "mydb", "PUBLIC", null)
 
         then:
-        response.statusCode.value() == 200
+        response.statusCode.value() == 302
 
         def mdFile = tempDir.resolve("database/mydb.md").toFile()
         mdFile.exists()
@@ -139,7 +139,7 @@ class JdbcDatabaseControllerSpec extends Specification {
         def response = controller.fetchDatabaseMetadata("testds", "filtered", null, "INSTR%")
 
         then:
-        response.statusCode.value() == 200
+        response.statusCode.value() == 302
 
         def blocks = extractBlocks(tempDir.resolve("database/filtered.md").toFile().text)
         blocks.size() == 1
@@ -154,7 +154,7 @@ class JdbcDatabaseControllerSpec extends Specification {
         def response = controller.fetchDatabaseMetadata("testds", "schema", "PUBLIC", null)
 
         then:
-        response.statusCode.value() == 200
+        response.statusCode.value() == 302
         def blocks = extractBlocks(tempDir.resolve("database/schema.md").toFile().text)
         blocks.size() == 2
     }
@@ -176,7 +176,7 @@ class JdbcDatabaseControllerSpec extends Specification {
         def response = controller.fetchDatabaseMetadata("testds", "newdir", "PUBLIC", null)
 
         then:
-        response.statusCode.value() == 200
+        response.statusCode.value() == 302
         dbDir.exists()
         tempDir.resolve("database/newdir.md").toFile().exists()
     }
@@ -248,15 +248,13 @@ class JdbcDatabaseControllerSpec extends Specification {
         notes.h2Type.toUpperCase().contains("CHARACTER LARGE")
     }
 
-    def "response summary lists the generated file path and table names"() {
+    def "successful fetch redirects to the generated markdown file"() {
         when:
         def response = controller.fetchDatabaseMetadata("testds", "summary", "PUBLIC", null)
 
         then:
-        def body = response.body
-        body.contains("database/summary.md")
-        body.contains("instrument")
-        body.contains("product")
+        response.statusCode.value() == 302
+        response.headers.getFirst("Location") == "/markdown?filename=database/summary.md"
     }
 }
 

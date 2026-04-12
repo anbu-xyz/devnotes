@@ -803,6 +803,27 @@ table.sortable .btn-blue-glow i {
 .db-meta-diff-undocumented { color: #d29922; }
 .db-meta-diff-ghost    { color: #f85149; }
 
+.db-meta-diff-undocumented-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6em;
+}
+
+.db-meta-copy-btn {
+    font-size: 0.75rem;
+    padding: 0.15em 0.5em;
+    border: 1px solid #d29922;
+    border-radius: 4px;
+    background: transparent;
+    color: #d29922;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.db-meta-copy-btn:hover {
+    background: rgba(210, 153, 34, 0.15);
+}
+
 .database-metadata-error {
     color: #f85149;
     border: 1px solid #f85149;

@@ -224,5 +224,44 @@ columns:
         doc.select(".db-meta-diff-undocumented").isEmpty()
         doc.select(".db-meta-diff-ghost").isEmpty()
     }
-}
 
+    def "undocumented columns section includes a copy YAML button with correct snippet"() {
+        given: "YAML documents only 'name' and 'type', leaving 'created_at' undocumented"
+        String yaml = """
+table:
+  name: instrument
+columns:
+  name:
+    h2-type: varchar(200)
+  type:
+    h2-type: varchar(20)
+"""
+
+        when:
+        def html = controller.check("testds", yaml)
+        def doc = Jsoup.parse(html)
+
+        then: "the copy button is present inside the undocumented section"
+        def btn = doc.select(".db-meta-diff-undocumented .db-meta-copy-btn")
+        btn.size() == 1
+
+        and: "the data-yaml attribute contains the column name"
+        def yamlSnippet = btn.first().attr("data-yaml")
+        yamlSnippet.contains("created_at:")
+
+        and: "the data-yaml attribute contains the h2-type field (H2 database)"
+        yamlSnippet.contains("h2-type:")
+
+        and: "the data-yaml attribute contains a java-type field"
+        yamlSnippet.contains("java-type:")
+    }
+
+    def "copy button is absent when all columns are matched"() {
+        when:
+        def html = controller.check("testds", instrumentYaml())
+        def doc = Jsoup.parse(html)
+
+        then:
+        doc.select(".db-meta-copy-btn").isEmpty()
+    }
+}
