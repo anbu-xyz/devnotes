@@ -15,7 +15,7 @@
     <title>Search: ${searchTerm}</title>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
     <link rel="stylesheet" type="text/css" href="/css/search-results.css">
-    <link rel="stylesheet" href="/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/generated/css/font-awesome.min.css">
 </head>
 <body class="p-8">
 

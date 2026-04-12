@@ -35,15 +35,7 @@ build/
 ## Jte
 jte-classes/
 
-## Generated bundles
-src/main/resources/static/js/codemirror-bundle.js
-src/main/resources/static/js/alpine.min.js
-src/main/resources/static/js/htmx.min.js
-src/main/resources/static/js/htmx-json-enc.js
-src/main/resources/static/js/mermaid.min.js
-src/main/resources/static/js/prism-bundle.js
-src/main/resources/static/css/font-awesome.min.css
-src/main/resources/static/css/prism-tomorrow.min.css
-src/main/resources/static/webfonts/
+## Generated bundles (all vendor/built assets land in static/generated/)
+src/main/resources/static/generated/
 src/main/js/node_modules/
 src/main/js/package-lock.json

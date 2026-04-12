@@ -288,7 +288,7 @@
                                 <argument>--bundle</argument>
                                 <argument>--format=esm</argument>
                                 <argument>--minify</argument>
-                                <argument>--outfile=${project.basedir}/src/main/resources/static/js/codemirror-bundle.js</argument>
+                                <argument>--outfile=${project.basedir}/src/main/resources/static/generated/js/codemirror-bundle.js</argument>
                             </arguments>
                         </configuration>
                     </execution>

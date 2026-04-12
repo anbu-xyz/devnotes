@@ -14,8 +14,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <link rel="stylesheet" href="/css/font-awesome.min.css">
-    <script defer src="/js/alpine.min.js"></script>
+    <link rel="stylesheet" href="/generated/css/font-awesome.min.css">
+    <script defer src="/generated/js/alpine.min.js"></script>
     <title>Flash Cards - Review</title>
 </head>
 <body>

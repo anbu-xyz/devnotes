@@ -12,10 +12,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Groovy Script Scheduler</title>
-    <link rel="stylesheet" type="text/css" href="/css/font-awesome.min.css">
+    <link rel="stylesheet" type="text/css" href="/generated/css/font-awesome.min.css">
     <link rel="stylesheet" type="text/css" href="/css/style.css">
     <link rel="stylesheet" type="text/css" href="/css/script-scheduler.css">
-    <script src="/js/htmx.min.js"></script>
+    <script src="/generated/js/htmx.min.js"></script>
 </head>
 <body>
 <div class="container">

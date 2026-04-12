@@ -6,11 +6,11 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <link rel="stylesheet" href="/css/font-awesome.min.css">
-        <link rel="stylesheet" href="/css/prism-tomorrow.min.css">
+        <link rel="stylesheet" href="/generated/css/font-awesome.min.css">
+        <link rel="stylesheet" href="/generated/css/prism-tomorrow.min.css">
         <link rel="stylesheet" type="text/css" href="/css/style.css">
         <link rel="stylesheet" type="text/css" href="/css/slides.css">
-        <script src="/js/htmx.min.js"></script>
+        <script src="/generated/js/htmx.min.js"></script>
         <title>${title}</title>
     </head>
     <body class="slides-page">
@@ -33,8 +33,8 @@
                 }">
         </button>
         <div hidden id="dl-current-directory-name">${directoryName}</div>
-        <script src="/js/prism-bundle.js"></script>
-        <script src="/js/mermaid.min.js"></script>
+        <script src="/generated/js/prism-bundle.js"></script>
+        <script src="/generated/js/mermaid.min.js"></script>
         <script>
             // mermaid is available as a global from mermaid.min.js
             mermaid.initialize({ startOnLoad: false, theme: 'dark' });

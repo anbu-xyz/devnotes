@@ -6,7 +6,7 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <link rel="stylesheet" href="/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/generated/css/font-awesome.min.css">
     <title>Database Metadata Fetcher</title>
 </head>
 <body class="p-8">

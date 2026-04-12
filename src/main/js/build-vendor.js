@@ -5,9 +5,10 @@ const { execFileSync } = require('child_process');
 
 const projectRoot = path.resolve(__dirname, '..', '..', '..');
 const staticDir   = path.join(projectRoot, 'src', 'main', 'resources', 'static');
-const staticJs    = path.join(staticDir, 'js');
-const staticCss   = path.join(staticDir, 'css');
-const staticWf    = path.join(staticDir, 'webfonts');
+const generatedDir = path.join(staticDir, 'generated');
+const staticJs    = path.join(generatedDir, 'js');
+const staticCss   = path.join(generatedDir, 'css');
+const staticWf    = path.join(generatedDir, 'webfonts');
 const nm          = path.join(__dirname, 'node_modules');
 const esbuildBin  = path.join(nm, 'esbuild', 'bin', 'esbuild');
 

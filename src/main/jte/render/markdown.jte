@@ -7,17 +7,17 @@
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <link rel="stylesheet" href="/css/font-awesome.min.css">
-        <link rel="stylesheet" href="/css/prism-tomorrow.min.css">
+        <link rel="stylesheet" href="/generated/css/font-awesome.min.css">
+        <link rel="stylesheet" href="/generated/css/prism-tomorrow.min.css">
         <link rel="stylesheet" type="text/css" href="/css/style.css">
         <style>
             [x-cloak] {
                 display: none !important;
             }
         </style>
-        <script src="/js/htmx.min.js"></script>
-        <script src="/js/htmx-json-enc.js"></script>
-        <script defer src="/js/alpine.min.js"></script>
+        <script src="/generated/js/htmx.min.js"></script>
+        <script src="/generated/js/htmx-json-enc.js"></script>
+        <script defer src="/generated/js/alpine.min.js"></script>
         <title>${title}</title>
     </head>
         <body class="p-8" x-data="{ editMode: ${editMode}, isSlides: ${isSlides} }">
@@ -88,9 +88,9 @@
             </div>
         </dialog>
         <!-- JavaScript -->
-        <script src="/js/prism-bundle.js"></script>
+        <script src="/generated/js/prism-bundle.js"></script>
         <script type="module">
-            import { basicSetup, EditorView, markdown, yaml, oneDark } from '/js/codemirror-bundle.js';
+            import { basicSetup, EditorView, markdown, yaml, oneDark } from '/generated/js/codemirror-bundle.js';
 
             window.initCodeMirrorEditor = function(mountId, initialContent) {
                 const mountEl = document.getElementById(mountId);
@@ -166,7 +166,7 @@
                 });
             }
         </script>
-        <script src="/js/mermaid.min.js"></script>
+        <script src="/generated/js/mermaid.min.js"></script>
         <script>
             // mermaid is available as a global from mermaid.min.js
 
@@ -194,3 +194,4 @@
         </script>
     </body>
 </html>
+

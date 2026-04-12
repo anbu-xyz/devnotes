@@ -8,9 +8,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/css/font-awesome.min.css">
+    <link rel="stylesheet" href="/generated/css/font-awesome.min.css">
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <script src="/js/htmx.min.js"></script>
+    <script src="/generated/js/htmx.min.js"></script>
     <title>Image Audit</title>
 </head>
 <body class="p-8">

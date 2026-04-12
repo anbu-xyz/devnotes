@@ -6,7 +6,7 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <link rel="stylesheet" href="/css/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="/generated/css/prism-tomorrow.min.css">
     <title>File Not Found - ${data.get("filename")}</title>
 </head>
 <body class="p-8">
@@ -21,6 +21,6 @@
 </form>
 <a href="/" class="text-blue-500 hover:text-blue-700">No, return to home</a>
 
-<script src="/js/prism-bundle.js"></script>
+<script src="/generated/js/prism-bundle.js"></script>
 </body>
 </html>

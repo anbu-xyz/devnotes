@@ -5,9 +5,9 @@
 <html lang="en">
 <head>
     <link rel="stylesheet" type="text/css" href="/css/render.css">
-    <link rel="stylesheet" href="/css/prism-tomorrow.min.css">
+    <link rel="stylesheet" href="/generated/css/prism-tomorrow.min.css">
 
-    <script src="/js/prism-bundle.js"></script>
+    <script src="/generated/js/prism-bundle.js"></script>
 
     <title>${title}</title>
     <style>

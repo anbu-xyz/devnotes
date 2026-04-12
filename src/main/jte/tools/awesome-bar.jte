@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Awesome bar</title>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <script src="/js/htmx.min.js"></script>
+    <script src="/generated/js/htmx.min.js"></script>
 </head>
 <body>
 <div class="container">

@@ -6,10 +6,10 @@
 <html>
 <head>
     <link rel="stylesheet" type="text/css" href="/css/style.css">
-    <link rel="stylesheet" href="/css/font-awesome.min.css">
-    <script defer src="/js/alpine.min.js"></script>
-    <script src="/js/htmx.min.js"></script>
-    <script src="/js/htmx-json-enc.js"></script>
+    <link rel="stylesheet" href="/generated/css/font-awesome.min.css">
+    <script defer src="/generated/js/alpine.min.js"></script>
+    <script src="/generated/js/htmx.min.js"></script>
+    <script src="/generated/js/htmx-json-enc.js"></script>
     <title>Configuration</title>
 </head>
 <body class="p-8" x-data="{ showNewDataSourceForm: false, newDataSourceName: '' }">
