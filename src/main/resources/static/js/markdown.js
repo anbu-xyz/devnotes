@@ -1302,7 +1302,6 @@ function setupTodoItemDialogHandler() {
         document.body.appendChild(dlg);
 
         document.getElementById('todo-item-cancel').addEventListener('click', () => dlg.close());
-        dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
 
         document.getElementById('todo-item-form').addEventListener('submit', async function (ev) {
             ev.preventDefault();
