@@ -86,9 +86,17 @@ def "check for uncommitted changes"() {
 
 def baseDir = this['project']['basedir']
 
-System.out.println "Checking for uncommited changes"
-"check for uncommitted changes"()
-System.out.println "Going to check if pom.xml has changed"
-"check if pom was changed"(baseDir)
-System.out.println "Going to check if version tag is updated in pom.xml"
-"check if version was changed"(baseDir)
+// Determine the current HEAD version to decide whether to enforce version-bump rules
+String currentPomContent = runGitCommand("git --no-pager show HEAD:" + mainPomFile(baseDir))
+String currentVersion = extractVersion(currentPomContent)
+
+if (currentVersion?.endsWith('-SNAPSHOT')) {
+    System.out.println "Snapshot version detected (${currentVersion}) - skipping version-change enforcement."
+} else {
+    System.out.println "Checking for uncommited changes"
+    "check for uncommitted changes"()
+    System.out.println "Going to check if pom.xml has changed"
+    "check if pom was changed"(baseDir)
+    System.out.println "Going to check if version tag is updated in pom.xml"
+    "check if version was changed"(baseDir)
+}

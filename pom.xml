@@ -28,6 +28,9 @@
         <jsonpath.version>2.9.0</jsonpath.version>
         <wiremock.version>3.13.0</wiremock.version>
 
+        <!-- When true, the JaCoCo check execution is skipped. Default false => checks run. -->
+        <jacoco.skip>false</jacoco.skip>
+
         <npm.cmd>npm</npm.cmd> <!-- npm executable name; overridden to npm.cmd on Windows via the windows-npm profile -->
     </properties>
     <dependencies>
@@ -412,6 +415,34 @@
                         <goals>
                             <goal>prepare-agent</goal>
                         </goals>
+                    </execution>
+                    <!-- Enforce coverage during verify; can be skipped with -Djacoco.skip=true -->
+                    <execution>
+                        <id>check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${jacoco.skip}</skip>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
                     </execution>
                     <execution>
                         <id>report</id>
